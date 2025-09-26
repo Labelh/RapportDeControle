@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapport de Contrôle</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1>Rapport de Contrôle</h1>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="#" class="nav-link active" data-page="rapport">Nouveau Rapport</a></li>
+                <li><a href="#" class="nav-link" data-page="parametres">Paramètres</a></li>
+                <li><button id="themeToggle" class="theme-toggle">◐</button></li>
+            </ul>
+        </nav>
+
+        <main class="main-content">
+            <!-- Page Rapport -->
+            <div id="page-rapport" class="page active">
+                <div class="card">
+                    <h2>Informations Générales</h2>
+                    <div class="form-group">
+                        <label for="ordeFabrication">Ordre de Fabrication :</label>
+                        <input type="text" id="ordeFabrication" name="ordeFabrication" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reference">Référence :</label>
+                        <input type="text" id="reference" name="reference" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="client">Client :</label>
+                        <select id="client" name="client" required>
+                            <option value="">Sélectionner un client</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Défauts</h2>
+                    <div class="defauts-section">
+                        <button id="addDefaut" class="btn btn-primary">Ajouter un Défaut</button>
+                        <div id="defautsList" class="defauts-list"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="generate-section">
+                        <button id="genererPDF" class="btn btn-success">Générer le Rapport PDF</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Page Paramètres -->
+            <div id="page-parametres" class="page">
+                <div class="card">
+                    <h2>Configuration des Clients</h2>
+                    <div class="form-group">
+                        <label for="nouveauClient">Nouveau Client :</label>
+                        <input type="text" id="nouveauClient" placeholder="Nom du client">
+                        <button id="ajouterClient" class="btn btn-secondary">Ajouter</button>
+                    </div>
+                    <div class="clients-list">
+                        <h3>Clients Existants :</h3>
+                        <ul id="listeClients"></ul>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Configuration des Types de Défauts</h2>
+                    <div class="form-group">
+                        <label for="nouveauDefaut">Nouveau Type de Défaut :</label>
+                        <input type="text" id="nouveauDefaut" placeholder="Type de défaut">
+                        <button id="ajouterTypeDefaut" class="btn btn-secondary">Ajouter</button>
+                    </div>
+                    <div class="defauts-types-list">
+                        <h3>Types de Défauts Existants :</h3>
+                        <ul id="listeTypesDefauts"></ul>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal pour ajouter un défaut -->
+    <div id="defautModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Ajouter un Défaut</h2>
+            <form id="defautForm">
+                <div class="form-group">
+                    <label for="typeDefaut">Type de Défaut :</label>
+                    <select id="typeDefaut" required>
+                        <option value="">Sélectionner un type</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="quantite">Quantité de pièces concernées :</label>
+                    <input type="number" id="quantite" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label for="commentaire">Commentaire :</label>
+                    <textarea id="commentaire" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="photos">Photos :</label>
+                    <input type="file" id="photos" multiple accept="image/*">
+                    <div id="photosPreview" class="photos-preview"></div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="annulerDefaut" class="btn btn-secondary">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Ajouter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
