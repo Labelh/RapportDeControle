@@ -3,6 +3,8 @@
     --primary-light: #636e72;
     --accent-orange: #a13a20;
     --accent-orange-light: #fab1a0;
+    --accent-green-blue: #17a2b8;
+    --accent-green: #28a745;
     --background-light: #f8f9fa;
     --background-white: #ffffff;
     --text-dark: #2d3436;
@@ -160,6 +162,7 @@ body {
     background-color: var(--background-white);
     color: var(--text-dark);
     font-family: inherit;
+    resize: vertical;
 }
 
 .form-group input:focus,
@@ -190,6 +193,24 @@ body {
 }
 
 .btn-primary:hover {
+    opacity: 0.9;
+}
+
+.btn-green-blue {
+    background-color: var(--accent-green-blue);
+    color: white;
+}
+
+.btn-green-blue:hover {
+    opacity: 0.9;
+}
+
+.btn-green {
+    background-color: var(--accent-green);
+    color: white;
+}
+
+.btn-green:hover {
     opacity: 0.9;
 }
 
@@ -241,6 +262,24 @@ body {
     opacity: 0.9;
 }
 
+.btn-large {
+    padding: 1.2rem 2rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-light);
+}
+
+.btn-large:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(45, 52, 54, 0.2);
+}
+
+.btn-icon {
+    font-size: 1.2rem;
+    margin-right: 0.5rem;
+}
+
 /* Défauts Section */
 .defauts-section {
     margin-top: 1rem;
@@ -276,21 +315,33 @@ body {
     font-size: 0.9rem;
     color: var(--text-light);
     margin-bottom: 0.75rem;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    line-height: 1.4;
 }
 
 .defaut-photos {
-    display: flex;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-    margin-top: 0.75rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+    max-width: 300px;
 }
 
 .defaut-photo {
-    width: 80px;
-    height: 80px;
+    width: 120px;
+    height: 120px;
     object-fit: cover;
-    border-radius: var(--border-radius-small);
-    border: 1px solid var(--border-light);
+    border-radius: var(--border-radius);
+    border: 2px solid var(--border-light);
+    box-shadow: var(--shadow-light);
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.defaut-photo:hover {
+    transform: scale(1.05);
+    border-color: var(--accent-orange);
 }
 
 .defaut-actions {
@@ -300,7 +351,9 @@ body {
 
 .generate-section {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
 }
 
 /* Lists */
@@ -378,18 +431,59 @@ body {
     border-top: 1px solid var(--border-light);
 }
 
+/* Drop Zone */
+.drop-zone {
+    border: 2px dashed var(--border-light);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    text-align: center;
+    background: var(--background-light);
+    cursor: pointer;
+    transition: var(--transition);
+    margin-bottom: 1rem;
+}
+
+.drop-zone:hover,
+.drop-zone.drag-over {
+    border-color: var(--accent-green-blue);
+    background: #f1f3f4;
+    transform: scale(1.01);
+}
+
+.drop-zone-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.drop-zone-icon {
+    font-size: 3rem;
+    opacity: 0.6;
+}
+
+.drop-zone-text {
+    color: var(--text-light);
+    font-size: 1rem;
+    line-height: 1.4;
+}
+
+.drop-zone-text strong {
+    color: var(--text-dark);
+    font-size: 1.1rem;
+}
+
 /* Photos Preview */
 .photos-preview {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
     gap: 0.75rem;
-    flex-wrap: wrap;
     margin-top: 0.75rem;
     padding: 1rem;
     background: var(--background-light);
     border-radius: var(--border-radius-small);
-    border: 1px dashed var(--border-light);
-    min-height: 100px;
-    align-items: center;
+    border: 1px solid var(--border-light);
+    min-height: 80px;
 }
 
 .photo-preview {
@@ -424,6 +518,38 @@ body {
 
 .photo-preview .remove-photo:hover {
     opacity: 0.8;
+}
+
+/* PDF Modal */
+.pdf-modal {
+    max-width: 400px;
+    padding: 2rem;
+    text-align: center;
+}
+
+.pdf-modal-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.pdf-modal-icon {
+    font-size: 3rem;
+    color: var(--accent-green);
+}
+
+.pdf-modal h3 {
+    color: var(--text-dark);
+    margin: 0;
+    font-size: 1.3rem;
+}
+
+.pdf-modal p {
+    color: var(--text-light);
+    margin: 0;
+    font-size: 1rem;
+    word-break: break-all;
 }
 
 /* Responsive */

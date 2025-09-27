@@ -44,13 +44,13 @@
                 <div class="card">
                     <h2>Défauts</h2>
                     <div class="defauts-section">
-                        <button id="addDefaut" class="btn btn-primary">Ajouter un Défaut</button>
                         <div id="defautsList" class="defauts-list"></div>
                     </div>
                 </div>
 
                 <div class="card">
                     <div class="generate-section">
+                        <button id="addDefaut" class="btn btn-green">Ajouter un Défaut</button>
                         <button id="genererPDF" class="btn btn-success">Générer le Rapport PDF</button>
                     </div>
                 </div>
@@ -59,28 +59,28 @@
             <!-- Page Paramètres -->
             <div id="page-parametres" class="page">
                 <div class="card">
-                    <h2>Configuration des Clients</h2>
+                    <h2>Clients</h2>
+                    <div class="clients-list">
+                        <h3>Clients Existants :</h3>
+                        <ul id="listeClients"></ul>
+                    </div>
                     <div class="form-group">
                         <label for="nouveauClient">Nouveau Client :</label>
                         <input type="text" id="nouveauClient" placeholder="Nom du client">
                         <button id="ajouterClient" class="btn btn-secondary">Ajouter</button>
                     </div>
-                    <div class="clients-list">
-                        <h3>Clients Existants :</h3>
-                        <ul id="listeClients"></ul>
-                    </div>
                 </div>
 
                 <div class="card">
-                    <h2>Configuration des Types de Défauts</h2>
+                    <h2>Types de Défauts</h2>
+                    <div class="defauts-types-list">
+                        <h3>Types de Défauts Existants :</h3>
+                        <ul id="listeTypesDefauts"></ul>
+                    </div>
                     <div class="form-group">
                         <label for="nouveauDefaut">Nouveau Type de Défaut :</label>
                         <input type="text" id="nouveauDefaut" placeholder="Type de défaut">
                         <button id="ajouterTypeDefaut" class="btn btn-secondary">Ajouter</button>
-                    </div>
-                    <div class="defauts-types-list">
-                        <h3>Types de Défauts Existants :</h3>
-                        <ul id="listeTypesDefauts"></ul>
                     </div>
                 </div>
 
@@ -109,8 +109,17 @@
                     <textarea id="commentaire" rows="3"></textarea>
                 </div>
                 <div class="form-group">
-                    <label for="photos">Photos :</label>
-                    <input type="file" id="photos" multiple accept="image/*">
+                    <label>Photos :</label>
+                    <div id="dropZone" class="drop-zone">
+                        <div class="drop-zone-content">
+                            <div class="drop-zone-icon">📁</div>
+                            <div class="drop-zone-text">
+                                <strong>Glissez vos photos ici</strong><br>
+                                ou cliquez pour sélectionner
+                            </div>
+                        </div>
+                        <input type="file" id="photos" multiple accept="image/*" hidden>
+                    </div>
                     <div id="photosPreview" class="photos-preview"></div>
                 </div>
                 <div class="form-actions">
@@ -118,6 +127,18 @@
                     <button type="submit" class="btn btn-primary">Ajouter</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal de confirmation PDF -->
+    <div id="pdfModal" class="modal">
+        <div class="modal-content pdf-modal">
+            <div class="pdf-modal-content">
+                <div class="pdf-modal-icon">✅</div>
+                <h3>Rapport généré avec succès</h3>
+                <p id="pdfFileName"></p>
+                <button id="closePdfModal" class="btn btn-success">OK</button>
+            </div>
         </div>
     </div>
 

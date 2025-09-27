@@ -53,7 +53,8 @@ class RapportDeControle {
         // Form submission
         document.getElementById('defautForm').addEventListener('submit', (e) => this.addDefaut(e));
 
-        // Photos
+        // Photos - Drag and Drop
+        this.setupDragAndDrop();
         document.getElementById('photos').addEventListener('change', (e) => this.handlePhotoSelection(e));
 
         // Settings
@@ -62,6 +63,9 @@ class RapportDeControle {
 
         // PDF Generation
         document.getElementById('genererPDF').addEventListener('click', () => this.genererPDF());
+
+        // PDF Modal
+        document.getElementById('closePdfModal').addEventListener('click', () => this.closePdfModal());
 
         // Theme Toggle
         document.getElementById('themeToggle').addEventListener('click', () => this.toggleTheme());
@@ -229,22 +233,90 @@ class RapportDeControle {
         this.updatePhotosPreview();
     }
 
+    // Drag and Drop Setup
+    setupDragAndDrop() {
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('photos');
+
+        // Click to select files
+        dropZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // Drag events
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+
+            const files = Array.from(e.dataTransfer.files);
+            this.processFiles(files);
+        });
+    }
+
     // Photos Management
     handlePhotoSelection(e) {
         const files = Array.from(e.target.files);
+        this.processFiles(files);
+    }
+
+    processFiles(files) {
         files.forEach(file => {
             if (file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
+                this.compressImage(file, (compressedDataUrl) => {
                     this.selectedPhotos.push({
                         name: file.name,
-                        data: event.target.result
+                        data: compressedDataUrl
                     });
                     this.updatePhotosPreview();
-                };
-                reader.readAsDataURL(file);
+                });
             }
         });
+    }
+
+    compressImage(file, callback) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+
+        img.onload = () => {
+            // Calculer les nouvelles dimensions (max 800px pour la plus grande dimension)
+            const maxSize = 800;
+            let { width, height } = img;
+
+            if (width > height) {
+                if (width > maxSize) {
+                    height = (height * maxSize) / width;
+                    width = maxSize;
+                }
+            } else {
+                if (height > maxSize) {
+                    width = (width * maxSize) / height;
+                    height = maxSize;
+                }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+
+            // Dessiner l'image redimensionnée
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // Convertir en base64 avec compression (qualité 0.7)
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+            callback(compressedDataUrl);
+        };
+
+        img.src = URL.createObjectURL(file);
     }
 
     updatePhotosPreview() {
@@ -354,145 +426,155 @@ class RapportDeControle {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
-        // Colors
-        const primaryColor = [45, 52, 54]; // #2d3436
-        const accentColor = [225, 112, 85]; // #e17055
+        // Colors - Style sobre et professionnel
+        const primaryColor = [52, 58, 64]; // Gris foncé
+        const lightGray = [108, 117, 125]; // Gris moyen
+        const veryLightGray = [248, 249, 250]; // Gris très clair
 
-        // En-tête avec style
-        doc.setFillColor(...accentColor);
-        doc.rect(0, 0, 210, 35, 'F');
-
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(24);
-        doc.setFont('helvetica', 'bold');
-        doc.text('RAPPORT DE CONTRÔLE', 105, 22, { align: 'center' });
-
-        // Reset text color
+        // En-tête simple et épuré
         doc.setTextColor(...primaryColor);
-
-        // Section informations générales avec encadré
-        doc.setFillColor(248, 249, 250);
-        doc.rect(15, 45, 180, 35, 'F');
-        doc.setDrawColor(...primaryColor);
-        doc.setLineWidth(0.5);
-        doc.rect(15, 45, 180, 35, 'S');
-
-        doc.setFontSize(14);
+        doc.setFontSize(22);
         doc.setFont('helvetica', 'bold');
-        doc.text('INFORMATIONS GÉNÉRALES', 20, 55);
+        doc.text('RAPPORT DE CONTRÔLE QUALITÉ', 105, 25, { align: 'center' });
 
-        doc.setFontSize(11);
+
+        // Section informations générales
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...primaryColor);
+        doc.text('Informations générales', 20, 40);
+
+        doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...lightGray);
         const currentDate = new Date();
-        doc.text(`Ordre de Fabrication: ${ordeFabrication}`, 20, 65);
-        doc.text(`Référence: ${reference}`, 20, 70);
-        doc.text(`Client: ${client}`, 20, 75);
-        doc.text(`Date: ${currentDate.toLocaleDateString('fr-FR')} à ${currentDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`, 125, 65);
+
+        doc.text(`Ordre de fabrication : ${ordeFabrication}`, 20, 50);
+        doc.text(`Référence : ${reference}`, 20, 57);
+        doc.text(`Client : ${client}`, 20, 64);
+        doc.text(`Date du contrôle : ${currentDate.toLocaleDateString('fr-FR')}`, 20, 71);
+        doc.text(`Heure : ${currentDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`, 20, 78);
 
         // Section défauts
-        let yPosition = 95;
+        let yPosition = 90;
 
-        // Header défauts avec style
-        doc.setFillColor(...accentColor);
-        doc.rect(15, yPosition - 5, 180, 12, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(14);
+        doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.text('DÉFAUTS DÉTECTÉS', 20, yPosition + 3);
-
         doc.setTextColor(...primaryColor);
-        yPosition += 20;
+        doc.text('Défauts identifiés', 20, yPosition);
+
+        yPosition += 10;
 
         if (this.defauts.length === 0) {
-            doc.setFillColor(248, 249, 250);
-            doc.rect(15, yPosition - 5, 180, 15, 'F');
-            doc.setDrawColor(...primaryColor);
-            doc.rect(15, yPosition - 5, 180, 15, 'S');
-            doc.setFontSize(11);
+            doc.setFontSize(10);
             doc.setFont('helvetica', 'italic');
-            doc.text('Aucun défaut détecté', 20, yPosition + 3);
+            doc.setTextColor(...lightGray);
+            doc.text('Aucun défaut détecté lors du contrôle.', 20, yPosition);
         } else {
             for (let index = 0; index < this.defauts.length; index++) {
                 const defaut = this.defauts[index];
 
                 // Vérifier si on a besoin d'une nouvelle page
-                if (yPosition > 240) {
+                if (yPosition > 230) {
                     doc.addPage();
                     yPosition = 20;
                 }
 
-                // Encadré pour chaque défaut
-                const defautHeight = this.calculateDefautHeight(defaut);
-                doc.setFillColor(252, 252, 252);
-                doc.rect(15, yPosition - 5, 180, defautHeight, 'F');
-                doc.setDrawColor(...primaryColor);
-                doc.setLineWidth(0.3);
-                doc.rect(15, yPosition - 5, 180, defautHeight, 'S');
-
-                // Numéro et type du défaut
-                doc.setFillColor(...accentColor);
-                doc.rect(15, yPosition - 5, 25, 8, 'F');
-                doc.setTextColor(255, 255, 255);
-                doc.setFontSize(10);
+                // Numéro du défaut
+                doc.setFontSize(11);
                 doc.setFont('helvetica', 'bold');
-                doc.text(`${index + 1}`, 27.5, yPosition - 1, { align: 'center' });
-
                 doc.setTextColor(...primaryColor);
-                doc.setFontSize(12);
-                doc.setFont('helvetica', 'bold');
-                doc.text(`${defaut.type}`, 45, yPosition);
+                doc.text(`${index + 1}. ${defaut.type}`, 20, yPosition);
 
-                yPosition += 10;
-
-                // Détails
-                doc.setFontSize(10);
-                doc.setFont('helvetica', 'normal');
-                doc.text(`Quantité: ${defaut.quantite} pièces`, 20, yPosition);
                 yPosition += 8;
 
+                // Détails
+                doc.setFontSize(9);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(...lightGray);
+                doc.text(`Quantité affectée : ${defaut.quantite} pièces`, 20, yPosition);
+                yPosition += 6;
+
                 if (defaut.commentaire) {
-                    const commentaireLines = doc.splitTextToSize(`Commentaire: ${defaut.commentaire}`, 170);
+                    const commentaireLines = doc.splitTextToSize(`Observation : ${defaut.commentaire}`, 165);
                     doc.text(commentaireLines, 20, yPosition);
-                    yPosition += commentaireLines.length * 6 + 5;
+                    yPosition += commentaireLines.length * 5 + 5;
                 }
 
-                // Ajouter les photos
+                // Ajouter les photos avec format d'origine (maximum 2 par ligne)
                 if (defaut.photos.length > 0) {
-                    doc.setFont('helvetica', 'bold');
-                    doc.text(`Photos jointes (${defaut.photos.length}):`, 20, yPosition);
-                    yPosition += 8;
+                    yPosition += 5;
 
-                    for (let photoIndex = 0; photoIndex < defaut.photos.length; photoIndex++) {
-                        const photo = defaut.photos[photoIndex];
-
-                        // Vérifier si on a assez d'espace pour la photo
-                        if (yPosition > 220) {
+                    for (let photoIndex = 0; photoIndex < defaut.photos.length; photoIndex += 2) {
+                        // Vérifier si on a assez d'espace pour les photos
+                        if (yPosition > 200) {
                             doc.addPage();
                             yPosition = 20;
                         }
 
-                        try {
-                            // Ajouter l'image avec bordure
-                            const imgWidth = 50;
-                            const imgHeight = 50;
+                        const photosInThisRow = Math.min(2, defaut.photos.length - photoIndex);
 
-                            doc.setDrawColor(...primaryColor);
-                            doc.setLineWidth(0.5);
-                            doc.rect(20, yPosition, imgWidth, imgHeight, 'S');
+                        for (let i = 0; i < photosInThisRow; i++) {
+                            const photo = defaut.photos[photoIndex + i];
 
-                            doc.addImage(photo.data, 'JPEG', 21, yPosition + 1, imgWidth - 2, imgHeight - 2);
+                            // Créer une image temporaire pour obtenir les dimensions
+                            const img = new Image();
+                            img.src = photo.data;
 
-                            yPosition += imgHeight + 8;
-                        } catch (error) {
-                            console.error('Erreur lors de l\'ajout de l\'image:', error);
-                            doc.setFont('helvetica', 'italic');
-                            doc.text(`[Erreur de chargement de l'image]`, 20, yPosition);
-                            yPosition += 8;
+                            await new Promise((resolve) => {
+                                img.onload = () => {
+                                    try {
+                                        // Calculer les dimensions en préservant le ratio
+                                        const maxWidth = 70;
+                                        const maxHeight = 70;
+                                        let imgWidth = img.width;
+                                        let imgHeight = img.height;
+
+                                        // Redimensionner si nécessaire tout en conservant le ratio
+                                        const ratio = Math.min(maxWidth / imgWidth, maxHeight / imgHeight);
+                                        if (ratio < 1) {
+                                            imgWidth *= ratio;
+                                            imgHeight *= ratio;
+                                        }
+
+                                        const xPosition = 20 + (i * 85);
+
+                                        // Bordure simple
+                                        doc.setDrawColor(...lightGray);
+                                        doc.setLineWidth(0.2);
+                                        doc.rect(xPosition, yPosition, imgWidth, imgHeight, 'S');
+
+                                        doc.addImage(photo.data, 'JPEG', xPosition, yPosition, imgWidth, imgHeight);
+                                        resolve();
+                                    } catch (error) {
+                                        console.error('Erreur lors de l\'ajout de l\'image:', error);
+                                        doc.setFont('helvetica', 'italic');
+                                        doc.setFontSize(8);
+                                        doc.setTextColor(...lightGray);
+                                        doc.text(`[Image non disponible]`, 20 + (i * 85), yPosition + 10);
+                                        resolve();
+                                    }
+                                };
+                                img.onerror = () => {
+                                    console.error('Erreur de chargement de l\'image');
+                                    resolve();
+                                };
+                            });
                         }
+
+                        yPosition += 75;
                     }
                 }
 
-                yPosition += 15; // Espacement entre défauts
+                yPosition += 10; // Espacement entre défauts
+
+                // Ligne de séparation entre défauts
+                if (index < this.defauts.length - 1) {
+                    doc.setDrawColor(...veryLightGray);
+                    doc.setLineWidth(0.3);
+                    doc.line(20, yPosition, 190, yPosition);
+                    yPosition += 8;
+                }
             }
         }
 
@@ -500,7 +582,31 @@ class RapportDeControle {
         const fileName = `Rapport_${ordeFabrication}_${reference}_${new Date().toISOString().split('T')[0]}.pdf`;
         doc.save(fileName);
 
-        alert(`Rapport PDF généré avec ${this.defauts.reduce((total, defaut) => total + defaut.photos.length, 0)} photos: ${fileName}`);
+        // Remettre à zéro le formulaire
+        this.resetForm();
+
+        // Afficher le popup de confirmation
+        this.showPdfModal(fileName);
+    }
+
+    resetForm() {
+        // Remettre à zéro tous les champs du formulaire principal
+        document.getElementById('ordeFabrication').value = '';
+        document.getElementById('reference').value = '';
+        document.getElementById('client').value = '';
+
+        // Vider la liste des défauts
+        this.defauts = [];
+        this.updateDefautsList();
+    }
+
+    showPdfModal(fileName) {
+        document.getElementById('pdfFileName').textContent = fileName;
+        document.getElementById('pdfModal').style.display = 'block';
+    }
+
+    closePdfModal() {
+        document.getElementById('pdfModal').style.display = 'none';
     }
 
     calculateDefautHeight(defaut) {
@@ -521,8 +627,13 @@ const app = new RapportDeControle();
 
 // Close modal when clicking outside of it
 window.onclick = function(event) {
-    const modal = document.getElementById('defautModal');
-    if (event.target === modal) {
+    const defautModal = document.getElementById('defautModal');
+    const pdfModal = document.getElementById('pdfModal');
+
+    if (event.target === defautModal) {
         app.closeDefautModal();
+    }
+    if (event.target === pdfModal) {
+        app.closePdfModal();
     }
 }
