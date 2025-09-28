@@ -15,6 +15,7 @@ class RapportDeControle {
         this.loadClients();
         this.loadTypesDefauts();
         this.initTheme();
+        this.updateDefautsList(); // Initialiser l'affichage des défauts et du bouton PDF
     }
 
     // Navigation
@@ -109,7 +110,7 @@ class RapportDeControle {
             const li = document.createElement('li');
             li.innerHTML = `
                 <span>${client}</span>
-                <button class="btn btn-danger" onclick="app.supprimerClient(${index})">Supprimer</button>
+                <button class="btn-delete" onclick="app.supprimerClient(${index})" title="Supprimer">×</button>
             `;
             listeClients.appendChild(li);
         });
@@ -153,7 +154,7 @@ class RapportDeControle {
             const li = document.createElement('li');
             li.innerHTML = `
                 <span>${type}</span>
-                <button class="btn btn-danger" onclick="app.supprimerTypeDefaut(${index})">Supprimer</button>
+                <button class="btn-delete" onclick="app.supprimerTypeDefaut(${index})" title="Supprimer">×</button>
             `;
             listeTypesDefauts.appendChild(li);
         });
@@ -371,7 +372,27 @@ class RapportDeControle {
 
     updateDefautsList() {
         const liste = document.getElementById('defautsList');
+        const defautsHeader = document.querySelector('.defauts-header');
+        const defautsCard = defautsHeader.nextElementSibling;
+
         liste.innerHTML = '';
+
+        // Masquer ou afficher la section des défauts selon s'il y en a
+        // Le header (avec le bouton Ajouter) reste toujours visible
+        defautsHeader.style.display = 'flex';
+
+        const defautsTitle = document.getElementById('defautsTitle');
+
+        if (this.defauts.length === 0) {
+            defautsCard.style.display = 'none';
+            defautsTitle.style.display = 'none';
+        } else {
+            defautsCard.style.display = 'block';
+            defautsTitle.style.display = 'block';
+        }
+
+        // Vérifier s'il y a des photos et masquer/afficher le bouton générer PDF
+        this.updateGeneratePdfButton();
 
         this.defauts.forEach((defaut, index) => {
             const div = document.createElement('div');
@@ -492,7 +513,7 @@ class RapportDeControle {
                 doc.setFontSize(9);
                 doc.setFont('helvetica', 'normal');
                 doc.setTextColor(...lightGray);
-                doc.text(`Quantité affectée : ${defaut.quantite} pièces`, 20, yPosition);
+                doc.text(`Qté : ${defaut.quantite} pièces`, 20, yPosition);
                 yPosition += 6;
 
                 if (defaut.commentaire) {
@@ -619,6 +640,17 @@ class RapportDeControle {
             height += 8 + (defaut.photos.length * 58); // 50 + 8 spacing per photo
         }
         return height;
+    }
+
+    updateGeneratePdfButton() {
+        const generateBtn = document.getElementById('genererPDF');
+        const hasPhotos = this.defauts.some(defaut => defaut.photos && defaut.photos.length > 0);
+
+        if (hasPhotos) {
+            generateBtn.style.display = 'inline-block';
+        } else {
+            generateBtn.style.display = 'none';
+        }
     }
 }
 
