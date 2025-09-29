@@ -34,6 +34,40 @@
     box-sizing: border-box;
 }
 
+/* Notifications styles */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: var(--border-radius);
+    color: white;
+    font-weight: 500;
+    z-index: 10000;
+    transform: translateX(100%);
+    opacity: 0;
+    transition: var(--transition);
+    max-width: 400px;
+    word-wrap: break-word;
+}
+
+.notification.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.notification-success {
+    background-color: var(--accent-green);
+}
+
+.notification-error {
+    background-color: var(--accent-orange);
+}
+
+.notification-info {
+    background-color: var(--accent-green-blue);
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: var(--background-light);

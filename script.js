@@ -12,6 +12,7 @@ class RapportDeControle {
     init() {
         this.setupNavigation();
         this.setupEventListeners();
+        this.loadFromURL(); // Charger les paramètres depuis l'URL si présents
         this.loadClients();
         this.loadTypesDefauts();
         this.initTheme();
@@ -61,6 +62,7 @@ class RapportDeControle {
         // Settings
         document.getElementById('ajouterClient').addEventListener('click', () => this.ajouterClient());
         document.getElementById('ajouterTypeDefaut').addEventListener('click', () => this.ajouterTypeDefaut());
+        document.getElementById('genererLien').addEventListener('click', () => this.generateShareableURL());
 
         // PDF Generation
         document.getElementById('genererPDF').addEventListener('click', () => this.genererPDF());
@@ -78,6 +80,14 @@ class RapportDeControle {
         document.getElementById('nouveauDefaut').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.ajouterTypeDefaut();
         });
+
+        // URL sharing handlers
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                this.generateShareableURL();
+            }
+        });
     }
 
     // Data Management
@@ -88,6 +98,97 @@ class RapportDeControle {
     loadData(key) {
         const data = localStorage.getItem(key);
         return data ? JSON.parse(data) : null;
+    }
+
+    // URL sharing functionality
+    generateShareableURL() {
+        const settings = {
+            clients: this.clients,
+            typesDefauts: this.typesDefauts,
+            theme: this.loadData('theme') || 'light'
+        };
+
+        try {
+            const encodedSettings = btoa(JSON.stringify(settings));
+            const shareableURL = `${window.location.origin}${window.location.pathname}?settings=${encodedSettings}`;
+
+            // Copier dans le presse-papiers
+            navigator.clipboard.writeText(shareableURL).then(() => {
+                this.showNotification('Lien copié dans le presse-papiers ! Partagez-le pour sauvegarder vos paramètres.', 'success');
+            }).catch(() => {
+                // Fallback si clipboard API n'est pas disponible
+                this.showURLModal(shareableURL);
+            });
+        } catch (error) {
+            console.error('Erreur lors de la génération du lien:', error);
+            this.showNotification('Erreur lors de la génération du lien de partage.', 'error');
+        }
+    }
+
+    loadFromURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const settingsParam = urlParams.get('settings');
+
+        if (settingsParam) {
+            try {
+                const settings = JSON.parse(atob(settingsParam));
+
+                // Charger les clients
+                if (settings.clients && Array.isArray(settings.clients)) {
+                    this.clients = settings.clients;
+                    this.saveData('clients', this.clients);
+                }
+
+                // Charger les types de défauts
+                if (settings.typesDefauts && Array.isArray(settings.typesDefauts)) {
+                    this.typesDefauts = settings.typesDefauts;
+                    this.saveData('typesDefauts', this.typesDefauts);
+                }
+
+                // Charger le thème
+                if (settings.theme) {
+                    this.saveData('theme', settings.theme);
+                }
+
+                this.showNotification('Paramètres chargés depuis le lien !', 'success');
+            } catch (error) {
+                console.error('Erreur lors du chargement des paramètres depuis l\'URL:', error);
+                this.showNotification('Erreur lors du chargement des paramètres depuis l\'URL.', 'error');
+            }
+        }
+    }
+
+    showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.textContent = message;
+
+        document.body.appendChild(notification);
+
+        // Afficher la notification
+        setTimeout(() => notification.classList.add('show'), 100);
+
+        // Masquer après 3 secondes
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => document.body.removeChild(notification), 300);
+        }, 3000);
+    }
+
+    showURLModal(url) {
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <span class="close" onclick="this.parentElement.parentElement.remove()">&times;</span>
+                <h2>Lien de partage généré</h2>
+                <p>Copiez ce lien pour sauvegarder vos paramètres :</p>
+                <textarea readonly style="width: 100%; height: 60px; margin: 10px 0;">${url}</textarea>
+                <button class="btn btn-primary" onclick="navigator.clipboard.writeText('${url}').then(() => this.textContent = 'Copié !').catch(() => {}); setTimeout(() => this.parentElement.parentElement.remove(), 1000);">Copier</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.style.display = 'block';
     }
 
     // Clients Management
