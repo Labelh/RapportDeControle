@@ -6,7 +6,9 @@
       "Bash(cp:*)",
       "Bash(git checkout:*)",
       "Bash(git push:*)",
-      "Bash(git add:*)"
+      "Bash(git pull:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

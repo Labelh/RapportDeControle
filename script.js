@@ -5,6 +5,7 @@ class RapportDeControle {
         this.defauts = [];
         this.selectedPhotos = [];
         this.editingDefautIndex = -1;
+        this.rapports = this.loadData('rapports') || [];
 
         this.init();
     }
@@ -17,6 +18,7 @@ class RapportDeControle {
         this.loadTypesDefauts();
         this.initTheme();
         this.updateDefautsList(); // Initialiser l'affichage des défauts et du bouton PDF
+        this.updateRapportsList(); // Initialiser l'affichage de l'historique
     }
 
     // Navigation
@@ -42,15 +44,15 @@ class RapportDeControle {
 
     // Event Listeners
     setupEventListeners() {
-        // Modal
-        const modal = document.getElementById('defautModal');
+        // Formulaire inline
+        const formContainer = document.getElementById('defautFormContainer');
         const addDefautBtn = document.getElementById('addDefaut');
-        const closeModal = document.querySelector('.close');
+        const closeFormBtn = document.getElementById('closeDefautForm');
         const annulerBtn = document.getElementById('annulerDefaut');
 
-        addDefautBtn.addEventListener('click', () => this.openDefautModal());
-        closeModal.addEventListener('click', () => this.closeDefautModal());
-        annulerBtn.addEventListener('click', () => this.closeDefautModal());
+        addDefautBtn.addEventListener('click', () => this.openDefautForm());
+        closeFormBtn.addEventListener('click', () => this.closeDefautForm());
+        annulerBtn.addEventListener('click', () => this.closeDefautForm());
 
         // Form submission
         document.getElementById('defautForm').addEventListener('submit', (e) => this.addDefaut(e));
@@ -300,15 +302,15 @@ class RapportDeControle {
         this.saveData('theme', newTheme);
     }
 
-    // Modal Management
-    openDefautModal(editIndex = -1) {
+    // Formulaire inline Management
+    openDefautForm(editIndex = -1) {
         this.editingDefautIndex = editIndex;
-        const modal = document.getElementById('defautModal');
-        const modalTitle = modal.querySelector('h2');
+        const formContainer = document.getElementById('defautFormContainer');
+        const formTitle = document.getElementById('defautFormTitle');
 
         if (editIndex >= 0) {
             // Mode édition
-            modalTitle.textContent = 'Modifier le Défaut';
+            formTitle.textContent = 'Modifier le Défaut';
             const defaut = this.defauts[editIndex];
             document.getElementById('typeDefaut').value = defaut.type;
             document.getElementById('quantite').value = defaut.quantite;
@@ -317,18 +319,21 @@ class RapportDeControle {
             document.querySelector('.form-actions button[type="submit"]').textContent = 'Modifier';
         } else {
             // Mode ajout
-            modalTitle.textContent = 'Ajouter un Défaut';
+            formTitle.textContent = 'Ajouter un Défaut';
             document.getElementById('defautForm').reset();
             this.selectedPhotos = [];
             document.querySelector('.form-actions button[type="submit"]').textContent = 'Ajouter';
         }
 
-        modal.style.display = 'block';
+        formContainer.style.display = 'block';
         this.updatePhotosPreview();
+
+        // Scroll vers le formulaire
+        formContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
-    closeDefautModal() {
-        document.getElementById('defautModal').style.display = 'none';
+    closeDefautForm() {
+        document.getElementById('defautFormContainer').style.display = 'none';
         document.getElementById('defautForm').reset();
         this.selectedPhotos = [];
         this.editingDefautIndex = -1;
@@ -467,14 +472,14 @@ class RapportDeControle {
             }
 
             this.updateDefautsList();
-            this.closeDefautModal();
+            this.closeDefautForm();
         }
     }
 
     updateDefautsList() {
         const liste = document.getElementById('defautsList');
         const defautsHeader = document.querySelector('.defauts-header');
-        const defautsCard = defautsHeader.nextElementSibling;
+        const defautsCard = defautsHeader.nextElementSibling.nextElementSibling; // Skip form container
 
         liste.innerHTML = '';
 
@@ -514,7 +519,7 @@ class RapportDeControle {
                 <div class="defaut-header">
                     <div class="defaut-type">${defaut.type}</div>
                     <div class="defaut-actions">
-                        <button class="btn btn-edit" onclick="app.openDefautModal(${index})">Modifier</button>
+                        <button class="btn btn-edit" onclick="app.openDefautForm(${index})">Modifier</button>
                         <button class="btn btn-danger" onclick="app.supprimerDefaut(${index})">Supprimer</button>
                     </div>
                 </div>
@@ -534,6 +539,129 @@ class RapportDeControle {
         this.updateDefautsList();
     }
 
+    // Générer un numéro de rapport unique
+    generateReportNumber() {
+        const lastReport = this.rapports.length > 0 ? this.rapports[this.rapports.length - 1] : null;
+        const lastNumber = lastReport ? parseInt(lastReport.numero.replace('RC', '')) : 0;
+        const newNumber = String(lastNumber + 1).padStart(4, '0');
+        return newNumber;
+    }
+
+    // Sauvegarder un rapport dans l'historique
+    saveRapportToHistory(reportNumber, ordeFabrication, reference, client, defauts, pdfData) {
+        const rapport = {
+            numero: `RC${reportNumber}`,
+            ordeFabrication: ordeFabrication,
+            reference: reference,
+            client: client,
+            date: new Date().toISOString(),
+            dateFormatted: new Date().toLocaleDateString('fr-FR'),
+            defauts: defauts,
+            pdfData: pdfData // Stocker les données du PDF pour re-téléchargement
+        };
+
+        this.rapports.push(rapport);
+        this.saveData('rapports', this.rapports);
+        this.updateRapportsList();
+    }
+
+    // Mettre à jour la liste des rapports
+    updateRapportsList() {
+        const container = document.getElementById('listeRapports');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        if (this.rapports.length === 0) {
+            const emptyCard = document.createElement('div');
+            emptyCard.className = 'card';
+            emptyCard.style.textAlign = 'center';
+            emptyCard.style.padding = '2rem';
+            emptyCard.style.color = 'var(--text-light)';
+            emptyCard.innerHTML = '<p>Aucun rapport enregistré</p>';
+            container.appendChild(emptyCard);
+            return;
+        }
+
+        // Afficher les rapports du plus récent au plus ancien
+        this.rapports.slice().reverse().forEach((rapport, reverseIndex) => {
+            const index = this.rapports.length - 1 - reverseIndex;
+            const card = document.createElement('div');
+            card.className = 'card rapport-card';
+            card.innerHTML = `
+                <div class="rapport-card-content">
+                    <div class="rapport-info">
+                        <div class="rapport-numero">${rapport.numero}</div>
+                        <div class="rapport-details">
+                            <span class="rapport-label">Ordre de fabrication:</span> ${rapport.ordeFabrication}
+                        </div>
+                        <div class="rapport-details">
+                            <span class="rapport-label">Client:</span> ${rapport.client}
+                        </div>
+                        <div class="rapport-date">${rapport.dateFormatted}</div>
+                    </div>
+                    <div class="rapport-actions">
+                        <button class="btn-icon-only btn-download" onclick="app.telechargerRapport(${index})" title="Télécharger">
+                            ⬇
+                        </button>
+                        <button class="btn-icon-only btn-delete-icon" onclick="app.supprimerRapport(${index})" title="Supprimer">
+                            ×
+                        </button>
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    // Télécharger un rapport existant
+    telechargerRapport(index) {
+        const rapport = this.rapports[index];
+        if (!rapport || !rapport.pdfData) {
+            alert('Erreur : rapport introuvable');
+            return;
+        }
+
+        // Convertir le data URI en blob et télécharger
+        const link = document.createElement('a');
+        link.href = rapport.pdfData;
+        link.download = `${rapport.numero}_${rapport.ordeFabrication}_${rapport.reference}.pdf`;
+        link.click();
+    }
+
+    // Supprimer un rapport
+    supprimerRapport(index) {
+        if (confirm('Êtes-vous sûr de vouloir supprimer ce rapport ?')) {
+            this.rapports.splice(index, 1);
+            this.saveData('rapports', this.rapports);
+            this.updateRapportsList();
+        }
+    }
+
+    // Ajouter le pied de page à une page spécifique
+    addFooterToPage(doc, pageNumber, totalPages, terracottaOrange, lightGray, primaryColor) {
+        // Ligne de séparation
+        doc.setDrawColor(...lightGray);
+        doc.setLineWidth(0.3);
+        doc.line(15, 282, 195, 282);
+
+        // Référence du document à gauche
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...terracottaOrange);
+        doc.text('FOR-AJ-001', 15, 287);
+
+        // Copyright au centre
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...lightGray);
+        doc.text('© 2025 Ajust\'82 - Tous droits réservés', 105, 287, { align: 'center' });
+
+        // Numéro de page à droite
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...primaryColor);
+        doc.text(`Page ${pageNumber} / ${totalPages}`, 195, 287, { align: 'right' });
+    }
+
     // PDF Generation
     async genererPDF() {
         const ordeFabrication = document.getElementById('ordeFabrication').value;
@@ -548,44 +676,141 @@ class RapportDeControle {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
-        // Colors - Style sobre et professionnel
-        const primaryColor = [52, 58, 64]; // Gris foncé
-        const lightGray = [108, 117, 125]; // Gris moyen
-        const veryLightGray = [248, 249, 250]; // Gris très clair
+        // Colors
+        const primaryColor = [52, 58, 64];
+        const lightGray = [108, 117, 125];
+        const veryLightGray = [248, 249, 250];
+        const terracottaOrange = [161, 58, 32]; // Couleur orange terracotta
+        const white = [255, 255, 255];
 
-        // En-tête simple et épuré
+        // Charger le logo
+        try {
+            const logoImg = new Image();
+            logoImg.src = 'Logo-Ajust.png';
+
+            await new Promise((resolve, reject) => {
+                logoImg.onload = () => {
+                    try {
+                        // Logo en haut à gauche (30mm de largeur)
+                        doc.addImage(logoImg, 'PNG', 15, 10, 40, 15);
+                        resolve();
+                    } catch (error) {
+                        console.error('Erreur lors de l\'ajout du logo:', error);
+                        resolve(); // Continue même si le logo échoue
+                    }
+                };
+                logoImg.onerror = () => {
+                    console.error('Erreur de chargement du logo');
+                    resolve(); // Continue même si le logo échoue
+                };
+            });
+        } catch (error) {
+            console.error('Erreur avec le logo:', error);
+        }
+
+        // Générer le numéro de rapport
+        const reportNumber = this.generateReportNumber();
+
+        // Titre à gauche sous le logo
         doc.setTextColor(...primaryColor);
-        doc.setFontSize(22);
+        doc.setFontSize(16);
         doc.setFont('helvetica', 'bold');
-        doc.text('RAPPORT DE CONTRÔLE QUALITÉ', 105, 25, { align: 'center' });
+        doc.text('RAPPORT DE CONTRÔLE', 15, 18);
+        doc.text('QUALITÉ À RÉCEPTION', 15, 25);
 
-
-        // Section informations générales
+        // Numéro de rapport à droite
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...primaryColor);
-        doc.text('Informations générales', 20, 40);
+        doc.setTextColor(...terracottaOrange);
+        doc.text(`RC N°${reportNumber}`, 195, 18, { align: 'right' });
 
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...lightGray);
-        const currentDate = new Date();
+        // Générer le code-barres
+        try {
+            const canvas = document.createElement('canvas');
+            JsBarcode(canvas, reportNumber, {
+                format: "CODE128",
+                width: 1.5,
+                height: 30,
+                displayValue: false,
+                margin: 0
+            });
+            const barcodeImg = canvas.toDataURL('image/png');
+            doc.addImage(barcodeImg, 'PNG', 165, 21, 30, 8);
+        } catch (error) {
+            console.error('Erreur lors de la génération du code-barres:', error);
+        }
 
-        doc.text(`Ordre de fabrication : ${ordeFabrication}`, 20, 50);
-        doc.text(`Référence : ${reference}`, 20, 57);
-        doc.text(`Client : ${client}`, 20, 64);
-        doc.text(`Date du contrôle : ${currentDate.toLocaleDateString('fr-FR')}`, 20, 71);
-        doc.text(`Heure : ${currentDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`, 20, 78);
+        // Section informations générales avec bande orange
+        let yPosition = 33;
 
-        // Section défauts
-        let yPosition = 90;
+        // Bande orange pour le titre
+        doc.setFillColor(...terracottaOrange);
+        doc.rect(15, yPosition, 180, 8, 'F');
 
-        doc.setFontSize(12);
+        doc.setTextColor(...white);
+        doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...primaryColor);
-        doc.text('Défauts identifiés', 20, yPosition);
+        doc.text('INFORMATIONS GÉNÉRALES', 20, yPosition + 5.5);
 
         yPosition += 10;
+
+        // Tableau des informations générales
+        const currentDate = new Date();
+        const tableData = [
+            ['Ordre de fabrication', ordeFabrication],
+            ['Référence', reference],
+            ['Client', client],
+            ['Date du contrôle', currentDate.toLocaleDateString('fr-FR')],
+            ['Heure', currentDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })]
+        ];
+
+        doc.setTextColor(...primaryColor);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+
+        const cellHeight = 7;
+        const col1Width = 60;
+        const col2Width = 120;
+
+        tableData.forEach((row, index) => {
+            const rowY = yPosition + (index * cellHeight);
+
+            // Alternance de couleur de fond
+            if (index % 2 === 0) {
+                doc.setFillColor(250, 250, 250);
+                doc.rect(15, rowY, col1Width + col2Width, cellHeight, 'F');
+            }
+
+            // Bordures
+            doc.setDrawColor(...veryLightGray);
+            doc.setLineWidth(0.1);
+            doc.rect(15, rowY, col1Width, cellHeight, 'S');
+            doc.rect(15 + col1Width, rowY, col2Width, cellHeight, 'S');
+
+            // Texte colonne 1 (label) en gras
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(...lightGray);
+            doc.text(row[0], 18, rowY + 4.5);
+
+            // Texte colonne 2 (valeur)
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(...primaryColor);
+            doc.text(row[1], 18 + col1Width, rowY + 4.5);
+        });
+
+        // Section défauts
+        yPosition += (tableData.length * cellHeight) + 15;
+
+        // Bande orange pour le titre des défauts
+        doc.setFillColor(...terracottaOrange);
+        doc.rect(15, yPosition, 180, 8, 'F');
+
+        doc.setTextColor(...white);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text('DÉFAUTS IDENTIFIÉS', 20, yPosition + 5.5);
+
+        yPosition += 15;
 
         if (this.defauts.length === 0) {
             doc.setFontSize(10);
@@ -596,8 +821,23 @@ class RapportDeControle {
             for (let index = 0; index < this.defauts.length; index++) {
                 const defaut = this.defauts[index];
 
-                // Vérifier si on a besoin d'une nouvelle page
-                if (yPosition > 230) {
+                // Calculer la hauteur nécessaire pour ce défaut
+                const defautStartY = yPosition;
+                let estimatedHeight = 8 + 6; // Titre + quantité
+
+                if (defaut.commentaire) {
+                    const commentaireLines = doc.splitTextToSize(`Observation : ${defaut.commentaire}`, 165);
+                    estimatedHeight += commentaireLines.length * 5 + 5;
+                }
+
+                if (defaut.photos.length > 0) {
+                    estimatedHeight += 5 + (Math.ceil(defaut.photos.length / 2) * 75);
+                }
+
+                estimatedHeight += 10; // Espacement après le défaut
+
+                // Si pas assez de place, passer à la page suivante
+                if (yPosition + estimatedHeight > 270 && yPosition > 100) {
                     doc.addPage();
                     yPosition = 20;
                 }
@@ -608,28 +848,28 @@ class RapportDeControle {
                 doc.setTextColor(...primaryColor);
                 doc.text(`${index + 1}. ${defaut.type}`, 20, yPosition);
 
-                yPosition += 8;
+                yPosition += 7;
 
                 // Détails
                 doc.setFontSize(9);
                 doc.setFont('helvetica', 'normal');
                 doc.setTextColor(...lightGray);
                 doc.text(`Qté : ${defaut.quantite} pièces`, 20, yPosition);
-                yPosition += 6;
+                yPosition += 5;
 
                 if (defaut.commentaire) {
                     const commentaireLines = doc.splitTextToSize(`Observation : ${defaut.commentaire}`, 165);
                     doc.text(commentaireLines, 20, yPosition);
-                    yPosition += commentaireLines.length * 5 + 5;
+                    yPosition += commentaireLines.length * 4 + 3;
                 }
 
                 // Ajouter les photos avec format d'origine (maximum 2 par ligne)
                 if (defaut.photos.length > 0) {
-                    yPosition += 5;
+                    yPosition += 3;
 
                     for (let photoIndex = 0; photoIndex < defaut.photos.length; photoIndex += 2) {
                         // Vérifier si on a assez d'espace pour les photos
-                        if (yPosition > 200) {
+                        if (yPosition > 210) {
                             doc.addPage();
                             yPosition = 20;
                         }
@@ -684,24 +924,37 @@ class RapportDeControle {
                             });
                         }
 
-                        yPosition += 75;
+                        yPosition += 72;
                     }
                 }
 
-                yPosition += 10; // Espacement entre défauts
+                yPosition += 6; // Espacement entre défauts
 
                 // Ligne de séparation entre défauts
                 if (index < this.defauts.length - 1) {
                     doc.setDrawColor(...veryLightGray);
                     doc.setLineWidth(0.3);
                     doc.line(20, yPosition, 190, yPosition);
-                    yPosition += 8;
+                    yPosition += 6;
                 }
             }
         }
 
+        // Ajouter les pieds de page à toutes les pages
+        const totalPages = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= totalPages; i++) {
+            doc.setPage(i);
+            this.addFooterToPage(doc, i, totalPages, terracottaOrange, lightGray, primaryColor);
+        }
+
+        // Convertir le PDF en base64 pour le stocker
+        const pdfData = doc.output('datauristring');
+
+        // Sauvegarder dans l'historique
+        this.saveRapportToHistory(reportNumber, ordeFabrication, reference, client, this.defauts, pdfData);
+
         // Sauvegarde
-        const fileName = `Rapport_${ordeFabrication}_${reference}_${new Date().toISOString().split('T')[0]}.pdf`;
+        const fileName = `RC${reportNumber}_${ordeFabrication}_${reference}_${new Date().toISOString().split('T')[0]}.pdf`;
         doc.save(fileName);
 
         // Remettre à zéro le formulaire
@@ -760,12 +1013,8 @@ const app = new RapportDeControle();
 
 // Close modal when clicking outside of it
 window.onclick = function(event) {
-    const defautModal = document.getElementById('defautModal');
     const pdfModal = document.getElementById('pdfModal');
 
-    if (event.target === defautModal) {
-        app.closeDefautModal();
-    }
     if (event.target === pdfModal) {
         app.closePdfModal();
     }
