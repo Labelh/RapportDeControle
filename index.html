@@ -6,6 +6,7 @@
     <title>Rapport de Contrôle</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -15,6 +16,7 @@
             </div>
             <ul class="nav-menu">
                 <li><a href="#" class="nav-link active" data-page="rapport">Nouveau Rapport</a></li>
+                <li><a href="#" class="nav-link" data-page="historique">Historique</a></li>
                 <li><a href="#" class="nav-link" data-page="parametres">Paramètres</a></li>
                 <li><button id="themeToggle" class="theme-toggle">◐</button></li>
             </ul>
@@ -45,6 +47,53 @@
                     <h2 id="defautsTitle">Défauts</h2>
                     <button id="addDefaut" class="btn btn-green">Ajouter un Défaut</button>
                 </div>
+
+                <!-- Formulaire inline pour ajouter un défaut -->
+                <div id="defautFormContainer" class="defaut-form-container" style="display: none;">
+                    <div class="card">
+                        <div class="card-header-inline">
+                            <h3 id="defautFormTitle">Ajouter un Défaut</h3>
+                            <button id="closeDefautForm" class="close-inline">&times;</button>
+                        </div>
+                        <form id="defautForm">
+                            <div class="form-row">
+                                <div class="form-group form-group-flex">
+                                    <label for="typeDefaut">Type de Défaut :</label>
+                                    <select id="typeDefaut" required>
+                                        <option value="">Sélectionner un type</option>
+                                    </select>
+                                </div>
+                                <div class="form-group form-group-flex">
+                                    <label for="quantite">Quantité :</label>
+                                    <input type="number" id="quantite" min="1" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="commentaire">Commentaire :</label>
+                                <textarea id="commentaire" rows="2"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Photos :</label>
+                                <div id="dropZone" class="drop-zone">
+                                    <div class="drop-zone-content">
+                                        <div class="drop-zone-icon">📁</div>
+                                        <div class="drop-zone-text">
+                                            <strong>Glissez vos photos ici</strong><br>
+                                            ou cliquez pour sélectionner
+                                        </div>
+                                    </div>
+                                    <input type="file" id="photos" multiple accept="image/*" hidden>
+                                </div>
+                                <div id="photosPreview" class="photos-preview"></div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" id="annulerDefaut" class="btn btn-secondary">Annuler</button>
+                                <button type="submit" class="btn btn-primary">Ajouter</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
                 <div class="card">
                     <div class="defauts-section">
                         <div id="defautsList" class="defauts-list"></div>
@@ -52,6 +101,14 @@
                 </div>
 
                 <button id="genererPDF" class="btn btn-success generate-pdf-btn">Générer le Rapport PDF</button>
+            </div>
+
+            <!-- Page Historique -->
+            <div id="page-historique" class="page">
+                <div class="card">
+                    <h2>Historique des Rapports</h2>
+                </div>
+                <div id="listeRapports" class="rapports-list"></div>
             </div>
 
             <!-- Page Paramètres -->
@@ -82,48 +139,6 @@
 
             </div>
         </main>
-    </div>
-
-    <!-- Modal pour ajouter un défaut -->
-    <div id="defautModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Ajouter un Défaut</h2>
-            <form id="defautForm">
-                <div class="form-group">
-                    <label for="typeDefaut">Type de Défaut :</label>
-                    <select id="typeDefaut" required>
-                        <option value="">Sélectionner un type</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="quantite">Quantité de pièces concernées :</label>
-                    <input type="number" id="quantite" min="1" required>
-                </div>
-                <div class="form-group">
-                    <label for="commentaire">Commentaire :</label>
-                    <textarea id="commentaire" rows="3"></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Photos :</label>
-                    <div id="dropZone" class="drop-zone">
-                        <div class="drop-zone-content">
-                            <div class="drop-zone-icon">📁</div>
-                            <div class="drop-zone-text">
-                                <strong>Glissez vos photos ici</strong><br>
-                                ou cliquez pour sélectionner
-                            </div>
-                        </div>
-                        <input type="file" id="photos" multiple accept="image/*" hidden>
-                    </div>
-                    <div id="photosPreview" class="photos-preview"></div>
-                </div>
-                <div class="form-actions">
-                    <button type="button" id="annulerDefaut" class="btn btn-secondary">Annuler</button>
-                    <button type="submit" class="btn btn-primary">Ajouter</button>
-                </div>
-            </form>
-        </div>
     </div>
 
     <!-- Modal de confirmation PDF -->
