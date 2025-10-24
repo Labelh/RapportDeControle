@@ -1,0 +1,15 @@
+# Fichiers de configuration contenant des secrets
+config.js
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Dossiers node_modules (si jamais vous en avez)
+node_modules/
+
+# Fichiers Claude
+.claude/settings.local.json

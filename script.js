@@ -1,81 +1,246 @@
-class RapportDeControle {
+// ============================================
+// APPLICATION DE RAPPORT DE CONTRÔLE QUALITÉ
+// Avec authentification Supabase
+// ============================================
+
+// ========== INITIALISATION SUPABASE ==========
+const { createClient } = supabase;
+const supabaseClient = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+
+// ========== CLASSE PRINCIPALE ==========
+class RapportDeControleApp {
     constructor() {
-        this.clients = this.loadData('clients') || ['Client A', 'Client B', 'Client C'];
-        this.typesDefauts = this.loadData('typesDefauts') || ['Rayure', 'Bosselure', 'Peinture défectueuse', 'Dimension incorrecte'];
+        this.currentUser = null;
+        this.userProfile = null;
+        this.clients = [];
+        this.typesDefauts = [];
         this.defauts = [];
         this.selectedPhotos = [];
         this.editingDefautIndex = -1;
-        this.rapports = this.loadData('rapports') || [];
+        this.rapports = [];
 
         this.init();
     }
 
-    init() {
-        this.setupNavigation();
-        this.setupEventListeners();
-        this.loadFromURL(); // Charger les paramètres depuis l'URL si présents
-        this.loadClients();
-        this.loadTypesDefauts();
+    async init() {
+        // Vérifier la session
+        await this.checkAuth();
+
+        // Initialiser le thème
         this.initTheme();
-        this.updateDefautsList(); // Initialiser l'affichage des défauts et du bouton PDF
-        this.updateRapportsList(); // Initialiser l'affichage de l'historique
     }
 
-    // Navigation
+    // ========== AUTHENTIFICATION ==========
+    async checkAuth() {
+        const { data: { session }, error } = await supabaseClient.auth.getSession();
+
+        if (error) {
+            console.error('Erreur lors de la vérification de session:', error);
+            this.showLoginPage();
+            return;
+        }
+
+        if (!session) {
+            this.showLoginPage();
+            return;
+        }
+
+        // Récupérer le profil utilisateur
+        const { data: profile, error: profileError } = await supabaseClient
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+        if (profileError) {
+            console.error('Erreur lors de la récupération du profil:', profileError);
+            this.showLoginPage();
+            return;
+        }
+
+        this.currentUser = session.user;
+        this.userProfile = profile;
+
+        // Afficher l'application
+        this.showApp();
+    }
+
+    showLoginPage() {
+        document.getElementById('login-page').style.display = 'flex';
+        document.getElementById('app-container').style.display = 'none';
+        this.setupLoginForm();
+    }
+
+    showApp() {
+        document.getElementById('login-page').style.display = 'none';
+        document.getElementById('app-container').style.display = 'flex';
+
+        // Afficher les informations utilisateur
+        document.getElementById('userName').textContent = this.userProfile.full_name;
+        document.getElementById('userRole').textContent = this.userProfile.role;
+
+        // Afficher les menus admin si nécessaire
+        if (this.userProfile.role === 'admin') {
+            document.querySelectorAll('.admin-only').forEach(el => {
+                el.style.display = 'flex';
+            });
+        }
+
+        // Initialiser l'application
+        this.setupEventListeners();
+        this.setupNavigation();
+        this.setupSidebar();
+        this.loadClients();
+        this.loadTypesDefauts();
+        this.loadRapports();
+    }
+
+    setupLoginForm() {
+        const loginForm = document.getElementById('loginForm');
+        const loginError = document.getElementById('loginError');
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+
+            console.log('🔐 Tentative de connexion avec:', username);
+            loginError.style.display = 'none';
+
+            // Récupérer l'email correspondant au username
+            const { data: profileData, error: profileError } = await supabaseClient
+                .from('profiles')
+                .select('email')
+                .eq('username', username)
+                .single();
+
+            console.log('📧 Recherche email:', profileData, 'Erreur:', profileError);
+
+            if (profileError || !profileData) {
+                console.error('❌ Erreur profil:', profileError);
+                loginError.textContent = 'Identifiant incorrect. Vérifiez que l\'utilisateur existe dans Supabase.';
+                loginError.style.display = 'block';
+                return;
+            }
+
+            // Se connecter avec l'email trouvé
+            console.log('🔑 Tentative de connexion avec email:', profileData.email);
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+                email: profileData.email,
+                password
+            });
+
+            console.log('✅ Résultat connexion:', data, 'Erreur:', error);
+
+            if (error) {
+                console.error('❌ Erreur connexion:', error);
+                loginError.textContent = 'Mot de passe incorrect: ' + error.message;
+                loginError.style.display = 'block';
+                return;
+            }
+
+            console.log('🎉 Connexion réussie, rechargement...');
+            // Recharger l'application
+            await this.checkAuth();
+        });
+    }
+
+    async logout() {
+        const { error } = await supabaseClient.auth.signOut();
+
+        if (error) {
+            console.error('Erreur lors de la déconnexion:', error);
+            this.showNotification('Erreur lors de la déconnexion', 'error');
+            return;
+        }
+
+        this.currentUser = null;
+        this.userProfile = null;
+        this.showLoginPage();
+    }
+
+    // ========== NAVIGATION ET SIDEBAR ==========
     setupNavigation() {
-        const navLinks = document.querySelectorAll('.nav-link');
+        const navLinks = document.querySelectorAll('.nav-item');
         const pages = document.querySelectorAll('.page');
 
         navLinks.forEach(link => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
-                const targetPage = e.target.getAttribute('data-page');
+                const targetPage = link.getAttribute('data-page');
 
-                // Remove active class from all links and pages
+                // Enlever la classe active
                 navLinks.forEach(l => l.classList.remove('active'));
                 pages.forEach(p => p.classList.remove('active'));
 
-                // Add active class to current link and page
-                e.target.classList.add('active');
+                // Ajouter la classe active
+                link.classList.add('active');
                 document.getElementById(`page-${targetPage}`).classList.add('active');
+
+                // Charger les données spécifiques à la page
+                if (targetPage === 'historique') {
+                    this.loadRapports();
+                } else if (targetPage === 'admin') {
+                    this.loadAdminRapports();
+                } else if (targetPage === 'utilisateurs') {
+                    this.loadUsers();
+                } else if (targetPage === 'parametres') {
+                    this.loadClients();
+                    this.loadTypesDefauts();
+                }
+
+                // Fermer la sidebar sur mobile
+                if (window.innerWidth <= 1024) {
+                    document.getElementById('sidebar').classList.remove('show');
+                }
             });
         });
     }
 
-    // Event Listeners
+    setupSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('show');
+        });
+
+        // Fermer la sidebar en cliquant en dehors sur mobile
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 1024) {
+                if (!sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
+                    sidebar.classList.remove('show');
+                }
+            }
+        });
+    }
+
     setupEventListeners() {
-        // Formulaire inline
-        const formContainer = document.getElementById('defautFormContainer');
-        const addDefautBtn = document.getElementById('addDefaut');
-        const closeFormBtn = document.getElementById('closeDefautForm');
-        const annulerBtn = document.getElementById('annulerDefaut');
+        // Déconnexion
+        document.getElementById('logoutBtn').addEventListener('click', () => this.logout());
 
-        addDefautBtn.addEventListener('click', () => this.openDefautForm());
-        closeFormBtn.addEventListener('click', () => this.closeDefautForm());
-        annulerBtn.addEventListener('click', () => this.closeDefautForm());
+        // Thème
+        document.getElementById('themeToggle').addEventListener('click', () => this.toggleTheme());
 
-        // Form submission
+        // Formulaire défaut
+        document.getElementById('addDefaut').addEventListener('click', () => this.openDefautForm());
+        document.getElementById('closeDefautForm').addEventListener('click', () => this.closeDefautForm());
+        document.getElementById('annulerDefaut').addEventListener('click', () => this.closeDefautForm());
         document.getElementById('defautForm').addEventListener('submit', (e) => this.addDefaut(e));
 
-        // Photos - Drag and Drop
+        // Photos drag & drop
         this.setupDragAndDrop();
         document.getElementById('photos').addEventListener('change', (e) => this.handlePhotoSelection(e));
 
-        // Settings
-        document.getElementById('ajouterClient').addEventListener('click', () => this.ajouterClient());
-        document.getElementById('ajouterTypeDefaut').addEventListener('click', () => this.ajouterTypeDefaut());
-        document.getElementById('genererLien').addEventListener('click', () => this.generateShareableURL());
-
-        // PDF Generation
+        // Génération PDF
         document.getElementById('genererPDF').addEventListener('click', () => this.genererPDF());
-
-        // PDF Modal
         document.getElementById('closePdfModal').addEventListener('click', () => this.closePdfModal());
 
-        // Theme Toggle
-        document.getElementById('themeToggle').addEventListener('click', () => this.toggleTheme());
+        // Paramètres (admin)
+        document.getElementById('ajouterClient').addEventListener('click', () => this.ajouterClient());
+        document.getElementById('ajouterTypeDefaut').addEventListener('click', () => this.ajouterTypeDefaut());
 
-        // Enter key handlers
         document.getElementById('nouveauClient').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.ajouterClient();
         });
@@ -83,233 +248,34 @@ class RapportDeControle {
             if (e.key === 'Enter') this.ajouterTypeDefaut();
         });
 
-        // URL sharing handlers
-        document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.key === 's') {
-                e.preventDefault();
-                this.generateShareableURL();
-            }
-        });
-    }
+        // Gestion utilisateurs (admin)
+        const addUserForm = document.getElementById('addUserForm');
+        if (addUserForm) {
+            addUserForm.addEventListener('submit', (e) => this.addUser(e));
+        }
 
-    // Data Management
-    saveData(key, data) {
-        localStorage.setItem(key, JSON.stringify(data));
-    }
+        // Filtres admin
+        const filterStatus = document.getElementById('filterStatus');
+        if (filterStatus) {
+            filterStatus.addEventListener('change', () => this.loadAdminRapports());
+        }
 
-    loadData(key) {
-        const data = localStorage.getItem(key);
-        return data ? JSON.parse(data) : null;
-    }
-
-    // URL sharing functionality
-    generateShareableURL() {
-        const settings = {
-            clients: this.clients,
-            typesDefauts: this.typesDefauts,
-            theme: this.loadData('theme') || 'light'
-        };
-
-        try {
-            const encodedSettings = btoa(JSON.stringify(settings));
-            const shareableURL = `${window.location.origin}${window.location.pathname}?settings=${encodedSettings}`;
-
-            // Copier dans le presse-papiers
-            navigator.clipboard.writeText(shareableURL).then(() => {
-                this.showNotification('Lien copié dans le presse-papiers ! Partagez-le pour sauvegarder vos paramètres.', 'success');
-            }).catch(() => {
-                // Fallback si clipboard API n'est pas disponible
-                this.showURLModal(shareableURL);
+        // Modal rapport admin
+        const closeRapportModal = document.getElementById('closeRapportModal');
+        if (closeRapportModal) {
+            closeRapportModal.addEventListener('click', () => {
+                document.getElementById('rapportModal').style.display = 'none';
             });
-        } catch (error) {
-            console.error('Erreur lors de la génération du lien:', error);
-            this.showNotification('Erreur lors de la génération du lien de partage.', 'error');
         }
     }
 
-    loadFromURL() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const settingsParam = urlParams.get('settings');
-
-        if (settingsParam) {
-            try {
-                const settings = JSON.parse(atob(settingsParam));
-
-                // Charger les clients
-                if (settings.clients && Array.isArray(settings.clients)) {
-                    this.clients = settings.clients;
-                    this.saveData('clients', this.clients);
-                }
-
-                // Charger les types de défauts
-                if (settings.typesDefauts && Array.isArray(settings.typesDefauts)) {
-                    this.typesDefauts = settings.typesDefauts;
-                    this.saveData('typesDefauts', this.typesDefauts);
-                }
-
-                // Charger le thème
-                if (settings.theme) {
-                    this.saveData('theme', settings.theme);
-                }
-
-                this.showNotification('Paramètres chargés depuis le lien !', 'success');
-            } catch (error) {
-                console.error('Erreur lors du chargement des paramètres depuis l\'URL:', error);
-                this.showNotification('Erreur lors du chargement des paramètres depuis l\'URL.', 'error');
-            }
-        }
-    }
-
-    showNotification(message, type = 'info') {
-        const notification = document.createElement('div');
-        notification.className = `notification notification-${type}`;
-        notification.textContent = message;
-
-        document.body.appendChild(notification);
-
-        // Afficher la notification
-        setTimeout(() => notification.classList.add('show'), 100);
-
-        // Masquer après 3 secondes
-        setTimeout(() => {
-            notification.classList.remove('show');
-            setTimeout(() => document.body.removeChild(notification), 300);
-        }, 3000);
-    }
-
-    showURLModal(url) {
-        const modal = document.createElement('div');
-        modal.className = 'modal';
-        modal.innerHTML = `
-            <div class="modal-content">
-                <span class="close" onclick="this.parentElement.parentElement.remove()">&times;</span>
-                <h2>Lien de partage généré</h2>
-                <p>Copiez ce lien pour sauvegarder vos paramètres :</p>
-                <textarea readonly style="width: 100%; height: 60px; margin: 10px 0;">${url}</textarea>
-                <button class="btn btn-primary" onclick="navigator.clipboard.writeText('${url}').then(() => this.textContent = 'Copié !').catch(() => {}); setTimeout(() => this.parentElement.parentElement.remove(), 1000);">Copier</button>
-            </div>
-        `;
-        document.body.appendChild(modal);
-        modal.style.display = 'block';
-    }
-
-    // Clients Management
-    loadClients() {
-        const clientSelect = document.getElementById('client');
-        const listeClients = document.getElementById('listeClients');
-
-        // Clear existing options (except first one)
-        clientSelect.innerHTML = '<option value="">Sélectionner un client</option>';
-        listeClients.innerHTML = '';
-
-        this.clients.forEach((client, index) => {
-            // Add to select
-            const option = document.createElement('option');
-            option.value = client;
-            option.textContent = client;
-            clientSelect.appendChild(option);
-
-            // Add to list with delete button
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <span>${client}</span>
-                <button class="btn-delete" onclick="app.supprimerClient(${index})" title="Supprimer">×</button>
-            `;
-            listeClients.appendChild(li);
-        });
-    }
-
-    ajouterClient() {
-        const input = document.getElementById('nouveauClient');
-        const client = input.value.trim();
-
-        if (client && !this.clients.includes(client)) {
-            this.clients.push(client);
-            this.saveData('clients', this.clients);
-            this.loadClients();
-            input.value = '';
-        }
-    }
-
-    supprimerClient(index) {
-        this.clients.splice(index, 1);
-        this.saveData('clients', this.clients);
-        this.loadClients();
-    }
-
-    // Types de défauts Management
-    loadTypesDefauts() {
-        const typeDefautSelect = document.getElementById('typeDefaut');
-        const listeTypesDefauts = document.getElementById('listeTypesDefauts');
-
-        // Clear existing options (except first one)
-        typeDefautSelect.innerHTML = '<option value="">Sélectionner un type</option>';
-        listeTypesDefauts.innerHTML = '';
-
-        this.typesDefauts.forEach((type, index) => {
-            // Add to select
-            const option = document.createElement('option');
-            option.value = type;
-            option.textContent = type;
-            typeDefautSelect.appendChild(option);
-
-            // Add to list with delete button
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <span>${type}</span>
-                <button class="btn-delete" onclick="app.supprimerTypeDefaut(${index})" title="Supprimer">×</button>
-            `;
-            listeTypesDefauts.appendChild(li);
-        });
-    }
-
-    ajouterTypeDefaut() {
-        const input = document.getElementById('nouveauDefaut');
-        const type = input.value.trim();
-
-        if (type && !this.typesDefauts.includes(type)) {
-            this.typesDefauts.push(type);
-            this.saveData('typesDefauts', this.typesDefauts);
-            this.loadTypesDefauts();
-            input.value = '';
-        }
-    }
-
-    supprimerTypeDefaut(index) {
-        this.typesDefauts.splice(index, 1);
-        this.saveData('typesDefauts', this.typesDefauts);
-        this.loadTypesDefauts();
-    }
-
-    // Theme Management
-    initTheme() {
-        const savedTheme = this.loadData('theme') || 'light';
-        if (savedTheme === 'dark') {
-            document.documentElement.setAttribute('data-theme', 'dark');
-            document.getElementById('themeToggle').textContent = '◑';
-        } else {
-            document.getElementById('themeToggle').textContent = '◐';
-        }
-    }
-
-    toggleTheme() {
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-
-        document.documentElement.setAttribute('data-theme', newTheme);
-        document.getElementById('themeToggle').textContent = newTheme === 'dark' ? '◑' : '◐';
-
-        this.saveData('theme', newTheme);
-    }
-
-    // Formulaire inline Management
+    // ========== GESTION DES DÉFAUTS ==========
     openDefautForm(editIndex = -1) {
         this.editingDefautIndex = editIndex;
         const formContainer = document.getElementById('defautFormContainer');
         const formTitle = document.getElementById('defautFormTitle');
 
         if (editIndex >= 0) {
-            // Mode édition
             formTitle.textContent = 'Modifier le Défaut';
             const defaut = this.defauts[editIndex];
             document.getElementById('typeDefaut').value = defaut.type;
@@ -318,7 +284,6 @@ class RapportDeControle {
             this.selectedPhotos = [...defaut.photos];
             document.querySelector('.form-actions button[type="submit"]').textContent = 'Modifier';
         } else {
-            // Mode ajout
             formTitle.textContent = 'Ajouter un Défaut';
             document.getElementById('defautForm').reset();
             this.selectedPhotos = [];
@@ -327,8 +292,6 @@ class RapportDeControle {
 
         formContainer.style.display = 'block';
         this.updatePhotosPreview();
-
-        // Scroll vers le formulaire
         formContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
@@ -340,17 +303,92 @@ class RapportDeControle {
         this.updatePhotosPreview();
     }
 
-    // Drag and Drop Setup
+    addDefaut(e) {
+        e.preventDefault();
+
+        const type = document.getElementById('typeDefaut').value;
+        const quantite = document.getElementById('quantite').value;
+        const commentaire = document.getElementById('commentaire').value;
+
+        if (type && quantite) {
+            const defaut = {
+                id: this.editingDefautIndex >= 0 ? this.defauts[this.editingDefautIndex].id : Date.now(),
+                type: type,
+                quantite: parseInt(quantite),
+                commentaire: commentaire,
+                photos: [...this.selectedPhotos]
+            };
+
+            if (this.editingDefautIndex >= 0) {
+                this.defauts[this.editingDefautIndex] = defaut;
+            } else {
+                this.defauts.push(defaut);
+            }
+
+            this.updateDefautsList();
+            this.closeDefautForm();
+        }
+    }
+
+    updateDefautsList() {
+        const liste = document.getElementById('defautsList');
+        liste.innerHTML = '';
+
+        if (this.defauts.length === 0) {
+            liste.innerHTML = '<p style="text-align: center; color: var(--text-light); padding: 2rem;">Aucun défaut ajouté</p>';
+            return;
+        }
+
+        this.defauts.forEach((defaut, index) => {
+            const div = document.createElement('div');
+            div.className = 'defaut-item';
+
+            let photosHtml = '';
+            if (defaut.photos.length > 0) {
+                photosHtml = `
+                    <div class="defaut-photos">
+                        ${defaut.photos.map(photo =>
+                            `<img src="${photo.data}" alt="${photo.name}" class="defaut-photo">`
+                        ).join('')}
+                    </div>
+                `;
+            }
+
+            div.innerHTML = `
+                <div class="defaut-header">
+                    <div class="defaut-type">${defaut.type}</div>
+                    <div class="defaut-actions">
+                        <button class="btn btn-edit" onclick="app.openDefautForm(${index})">Modifier</button>
+                        <button class="btn btn-danger" onclick="app.supprimerDefaut(${index})">Supprimer</button>
+                    </div>
+                </div>
+                <div class="defaut-details">
+                    Quantité: ${defaut.quantite} pièces
+                    ${defaut.commentaire ? `<br>Observation: ${defaut.commentaire}` : ''}
+                </div>
+                ${photosHtml}
+            `;
+
+            liste.appendChild(div);
+        });
+    }
+
+    supprimerDefaut(index) {
+        if (confirm('Êtes-vous sûr de vouloir supprimer ce défaut ?')) {
+            this.defauts.splice(index, 1);
+            this.updateDefautsList();
+        }
+    }
+
+    // ========== GESTION DES PHOTOS ==========
     setupDragAndDrop() {
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('photos');
 
-        // Click to select files
         dropZone.addEventListener('click', () => {
             fileInput.click();
         });
 
-        // Drag events
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
             dropZone.classList.add('drag-over');
@@ -370,7 +408,6 @@ class RapportDeControle {
         });
     }
 
-    // Photos Management
     handlePhotoSelection(e) {
         const files = Array.from(e.target.files);
         this.processFiles(files);
@@ -396,7 +433,6 @@ class RapportDeControle {
         const img = new Image();
 
         img.onload = () => {
-            // Calculer les nouvelles dimensions (max 800px pour la plus grande dimension)
             const maxSize = 800;
             let { width, height } = img;
 
@@ -414,11 +450,8 @@ class RapportDeControle {
 
             canvas.width = width;
             canvas.height = height;
-
-            // Dessiner l'image redimensionnée
             ctx.drawImage(img, 0, 0, width, height);
 
-            // Convertir en base64 avec compression (qualité 0.7)
             const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
             callback(compressedDataUrl);
         };
@@ -446,127 +479,206 @@ class RapportDeControle {
         this.updatePhotosPreview();
     }
 
-    // Défauts Management
-    addDefaut(e) {
-        e.preventDefault();
+    // ========== GESTION DES CLIENTS ==========
+    async loadClients() {
+        const { data, error } = await supabaseClient
+            .from('clients')
+            .select('*')
+            .order('nom', { ascending: true });
 
-        const type = document.getElementById('typeDefaut').value;
-        const quantite = document.getElementById('quantite').value;
-        const commentaire = document.getElementById('commentaire').value;
-
-        if (type && quantite) {
-            const defaut = {
-                id: this.editingDefautIndex >= 0 ? this.defauts[this.editingDefautIndex].id : Date.now(),
-                type: type,
-                quantite: parseInt(quantite),
-                commentaire: commentaire,
-                photos: [...this.selectedPhotos]
-            };
-
-            if (this.editingDefautIndex >= 0) {
-                // Mode édition
-                this.defauts[this.editingDefautIndex] = defaut;
-            } else {
-                // Mode ajout
-                this.defauts.push(defaut);
-            }
-
-            this.updateDefautsList();
-            this.closeDefautForm();
+        if (error) {
+            console.error('Erreur lors du chargement des clients:', error);
+            return;
         }
+
+        this.clients = data;
+        this.updateClientsUI();
     }
 
-    updateDefautsList() {
-        const liste = document.getElementById('defautsList');
-        const defautsHeader = document.querySelector('.defauts-header');
-        const defautsCard = defautsHeader.nextElementSibling.nextElementSibling; // Skip form container
-
-        liste.innerHTML = '';
-
-        // Masquer ou afficher la section des défauts selon s'il y en a
-        // Le header (avec le bouton Ajouter) reste toujours visible
-        defautsHeader.style.display = 'flex';
-
-        const defautsTitle = document.getElementById('defautsTitle');
-
-        if (this.defauts.length === 0) {
-            defautsCard.style.display = 'none';
-            defautsTitle.style.display = 'none';
-        } else {
-            defautsCard.style.display = 'block';
-            defautsTitle.style.display = 'block';
+    updateClientsUI() {
+        // Mettre à jour le select dans le formulaire
+        const clientSelect = document.getElementById('client');
+        if (clientSelect) {
+            clientSelect.innerHTML = '<option value="">Sélectionner un client</option>';
+            this.clients.forEach(client => {
+                const option = document.createElement('option');
+                option.value = client.nom;
+                option.textContent = client.nom;
+                clientSelect.appendChild(option);
+            });
         }
 
-        // Vérifier s'il y a des photos et masquer/afficher le bouton générer PDF
-        this.updateGeneratePdfButton();
-
-        this.defauts.forEach((defaut, index) => {
-            const div = document.createElement('div');
-            div.className = 'defaut-item';
-
-            let photosHtml = '';
-            if (defaut.photos.length > 0) {
-                photosHtml = `
-                    <div class="defaut-photos">
-                        ${defaut.photos.map(photo =>
-                            `<img src="${photo.data}" alt="${photo.name}" class="defaut-photo">`
-                        ).join('')}
-                    </div>
+        // Mettre à jour la liste dans les paramètres
+        const listeClients = document.getElementById('listeClients');
+        if (listeClients) {
+            listeClients.innerHTML = '';
+            this.clients.forEach(client => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <span>${client.nom}</span>
+                    <button class="btn-delete" onclick="app.supprimerClient('${client.id}')" title="Supprimer">×</button>
                 `;
-            }
-
-            div.innerHTML = `
-                <div class="defaut-header">
-                    <div class="defaut-type">${defaut.type}</div>
-                    <div class="defaut-actions">
-                        <button class="btn btn-edit" onclick="app.openDefautForm(${index})">Modifier</button>
-                        <button class="btn btn-danger" onclick="app.supprimerDefaut(${index})">Supprimer</button>
-                    </div>
-                </div>
-                <div class="defaut-details">
-                    Quantité: ${defaut.quantite} pièces
-                    ${defaut.commentaire ? `<br>Commentaire: ${defaut.commentaire}` : ''}
-                </div>
-                ${photosHtml}
-            `;
-
-            liste.appendChild(div);
-        });
+                listeClients.appendChild(li);
+            });
+        }
     }
 
-    supprimerDefaut(index) {
-        this.defauts.splice(index, 1);
-        this.updateDefautsList();
+    async ajouterClient() {
+        const input = document.getElementById('nouveauClient');
+        const nom = input.value.trim();
+
+        if (!nom) return;
+
+        // Vérifier si le client existe déjà
+        if (this.clients.find(c => c.nom === nom)) {
+            this.showNotification('Ce client existe déjà', 'error');
+            return;
+        }
+
+        const { data, error } = await supabaseClient
+            .from('clients')
+            .insert([{ nom }])
+            .select();
+
+        if (error) {
+            console.error('Erreur lors de l\'ajout du client:', error);
+            this.showNotification('Erreur lors de l\'ajout du client', 'error');
+            return;
+        }
+
+        input.value = '';
+        this.showNotification('Client ajouté avec succès', 'success');
+        await this.loadClients();
     }
 
-    // Générer un numéro de rapport unique
-    generateReportNumber() {
-        const lastReport = this.rapports.length > 0 ? this.rapports[this.rapports.length - 1] : null;
-        const lastNumber = lastReport ? parseInt(lastReport.numero.replace('RC', '')) : 0;
-        const newNumber = String(lastNumber + 1).padStart(4, '0');
-        return newNumber;
+    async supprimerClient(id) {
+        if (!confirm('Êtes-vous sûr de vouloir supprimer ce client ?')) return;
+
+        const { error } = await supabaseClient
+            .from('clients')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            console.error('Erreur lors de la suppression du client:', error);
+            this.showNotification('Erreur lors de la suppression du client', 'error');
+            return;
+        }
+
+        this.showNotification('Client supprimé avec succès', 'success');
+        await this.loadClients();
     }
 
-    // Sauvegarder un rapport dans l'historique
-    saveRapportToHistory(reportNumber, ordeFabrication, reference, client, defauts, pdfData) {
-        const rapport = {
-            numero: `RC${reportNumber}`,
-            ordeFabrication: ordeFabrication,
-            reference: reference,
-            client: client,
-            date: new Date().toISOString(),
-            dateFormatted: new Date().toLocaleDateString('fr-FR'),
-            defauts: defauts,
-            pdfData: pdfData // Stocker les données du PDF pour re-téléchargement
-        };
+    // ========== GESTION DES TYPES DE DÉFAUTS ==========
+    async loadTypesDefauts() {
+        const { data, error } = await supabaseClient
+            .from('types_defauts')
+            .select('*')
+            .order('nom', { ascending: true });
 
-        this.rapports.push(rapport);
-        this.saveData('rapports', this.rapports);
-        this.updateRapportsList();
+        if (error) {
+            console.error('Erreur lors du chargement des types de défauts:', error);
+            return;
+        }
+
+        this.typesDefauts = data;
+        this.updateTypesDefautsUI();
     }
 
-    // Mettre à jour la liste des rapports
-    updateRapportsList() {
+    updateTypesDefautsUI() {
+        // Mettre à jour le select dans le formulaire
+        const typeDefautSelect = document.getElementById('typeDefaut');
+        if (typeDefautSelect) {
+            typeDefautSelect.innerHTML = '<option value="">Sélectionner un type</option>';
+            this.typesDefauts.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type.nom;
+                option.textContent = type.nom;
+                typeDefautSelect.appendChild(option);
+            });
+        }
+
+        // Mettre à jour la liste dans les paramètres
+        const listeTypesDefauts = document.getElementById('listeTypesDefauts');
+        if (listeTypesDefauts) {
+            listeTypesDefauts.innerHTML = '';
+            this.typesDefauts.forEach(type => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <span>${type.nom}</span>
+                    <button class="btn-delete" onclick="app.supprimerTypeDefaut('${type.id}')" title="Supprimer">×</button>
+                `;
+                listeTypesDefauts.appendChild(li);
+            });
+        }
+    }
+
+    async ajouterTypeDefaut() {
+        const input = document.getElementById('nouveauDefaut');
+        const nom = input.value.trim();
+
+        if (!nom) return;
+
+        // Vérifier si le type existe déjà
+        if (this.typesDefauts.find(t => t.nom === nom)) {
+            this.showNotification('Ce type de défaut existe déjà', 'error');
+            return;
+        }
+
+        const { data, error } = await supabaseClient
+            .from('types_defauts')
+            .insert([{ nom }])
+            .select();
+
+        if (error) {
+            console.error('Erreur lors de l\'ajout du type de défaut:', error);
+            this.showNotification('Erreur lors de l\'ajout du type de défaut', 'error');
+            return;
+        }
+
+        input.value = '';
+        this.showNotification('Type de défaut ajouté avec succès', 'success');
+        await this.loadTypesDefauts();
+    }
+
+    async supprimerTypeDefaut(id) {
+        if (!confirm('Êtes-vous sûr de vouloir supprimer ce type de défaut ?')) return;
+
+        const { error } = await supabaseClient
+            .from('types_defauts')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            console.error('Erreur lors de la suppression du type de défaut:', error);
+            this.showNotification('Erreur lors de la suppression du type de défaut', 'error');
+            return;
+        }
+
+        this.showNotification('Type de défaut supprimé avec succès', 'success');
+        await this.loadTypesDefauts();
+    }
+
+    // ========== GESTION DES RAPPORTS ==========
+    async loadRapports() {
+        const { data, error } = await supabaseClient
+            .from('rapports')
+            .select(`
+                *,
+                defauts (*)
+            `)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Erreur lors du chargement des rapports:', error);
+            return;
+        }
+
+        this.rapports = data;
+        this.updateRapportsUI();
+    }
+
+    updateRapportsUI() {
         const container = document.getElementById('listeRapports');
         if (!container) return;
 
@@ -583,29 +695,34 @@ class RapportDeControle {
             return;
         }
 
-        // Afficher les rapports du plus récent au plus ancien
-        this.rapports.slice().reverse().forEach((rapport, reverseIndex) => {
-            const index = this.rapports.length - 1 - reverseIndex;
+        this.rapports.forEach((rapport) => {
             const card = document.createElement('div');
             card.className = 'card rapport-card';
+
+            const dateObj = new Date(rapport.date_controle);
+            const dateFormatted = dateObj.toLocaleDateString('fr-FR');
+
             card.innerHTML = `
                 <div class="rapport-card-content">
                     <div class="rapport-info">
                         <div class="rapport-numero">${rapport.numero}</div>
                         <div class="rapport-details">
-                            <span class="rapport-label">Ordre de fabrication:</span> ${rapport.ordeFabrication}
+                            <span class="rapport-label">OF:</span> ${rapport.ordre_fabrication}
                         </div>
                         <div class="rapport-details">
-                            <span class="rapport-label">Client:</span> ${rapport.client}
+                            <span class="rapport-label">Phase:</span> ${rapport.phase || 'N/A'}
                         </div>
-                        <div class="rapport-date">${rapport.dateFormatted}</div>
+                        <div class="rapport-details">
+                            <span class="rapport-label">Référence:</span> ${rapport.reference || 'N/A'}
+                        </div>
+                        <div class="rapport-details">
+                            <span class="rapport-label">Client:</span> ${rapport.client || 'N/A'}
+                        </div>
+                        <div class="rapport-date">${dateFormatted}</div>
                     </div>
                     <div class="rapport-actions">
-                        <button class="btn-icon-only btn-download" onclick="app.telechargerRapport(${index})" title="Télécharger">
+                        <button class="btn-icon-only btn-download" onclick="app.regeneratePDF('${rapport.id}')" title="Télécharger le PDF">
                             ⬇
-                        </button>
-                        <button class="btn-icon-only btn-delete-icon" onclick="app.supprimerRapport(${index})" title="Supprimer">
-                            ×
                         </button>
                     </div>
                 </div>
@@ -614,363 +731,269 @@ class RapportDeControle {
         });
     }
 
-    // Télécharger un rapport existant
-    telechargerRapport(index) {
-        const rapport = this.rapports[index];
-        if (!rapport || !rapport.pdfData) {
-            alert('Erreur : rapport introuvable');
-            return;
+    async generateReportNumber() {
+        // Récupérer le dernier rapport
+        const { data, error } = await supabaseClient
+            .from('rapports')
+            .select('numero')
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+        if (error) {
+            console.error('Erreur lors de la génération du numéro:', error);
+            return 'RC0001';
         }
 
-        // Convertir le data URI en blob et télécharger
-        const link = document.createElement('a');
-        link.href = rapport.pdfData;
-        link.download = `${rapport.numero}_${rapport.ordeFabrication}_${rapport.reference}.pdf`;
-        link.click();
-    }
-
-    // Supprimer un rapport
-    supprimerRapport(index) {
-        if (confirm('Êtes-vous sûr de vouloir supprimer ce rapport ?')) {
-            this.rapports.splice(index, 1);
-            this.saveData('rapports', this.rapports);
-            this.updateRapportsList();
+        if (!data || data.length === 0) {
+            return 'RC0001';
         }
+
+        const lastNumber = parseInt(data[0].numero.replace('RC', ''));
+        const newNumber = String(lastNumber + 1).padStart(4, '0');
+        return `RC${newNumber}`;
     }
 
-    // Ajouter le pied de page à une page spécifique
-    addFooterToPage(doc, pageNumber, totalPages, terracottaOrange, lightGray, primaryColor) {
-        // Ligne de séparation
-        doc.setDrawColor(...lightGray);
-        doc.setLineWidth(0.3);
-        doc.line(15, 282, 195, 282);
-
-        // Référence du document à gauche
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...terracottaOrange);
-        doc.text('FOR-AJ-001', 15, 287);
-
-        // Copyright au centre
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...lightGray);
-        doc.text('© 2025 Ajust\'82 - Tous droits réservés', 105, 287, { align: 'center' });
-
-        // Numéro de page à droite
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...primaryColor);
-        doc.text(`Page ${pageNumber} / ${totalPages}`, 195, 287, { align: 'right' });
-    }
-
-    // PDF Generation
-    async genererPDF() {
+    async saveRapport(reportNumber, pdfData) {
         const ordeFabrication = document.getElementById('ordeFabrication').value;
+        const phase = document.getElementById('phase').value;
         const reference = document.getElementById('reference').value;
+        const designation = document.getElementById('designation').value;
         const client = document.getElementById('client').value;
 
-        if (!ordeFabrication || !reference || !client) {
-            alert('Veuillez remplir tous les champs obligatoires (Ordre de Fabrication, Référence, Client)');
+        // Insérer le rapport
+        const { data: rapport, error: rapportError } = await supabaseClient
+            .from('rapports')
+            .insert([{
+                numero: reportNumber,
+                ordre_fabrication: ordeFabrication,
+                phase: phase,
+                reference: reference,
+                designation: designation,
+                client: client,
+                controleur_id: this.currentUser.id,
+                controleur_name: this.userProfile.full_name,
+                status: 'en_attente'
+            }])
+            .select()
+            .single();
+
+        if (rapportError) {
+            console.error('Erreur lors de la sauvegarde du rapport:', rapportError);
+            throw rapportError;
+        }
+
+        // Insérer les défauts
+        if (this.defauts.length > 0) {
+            const defautsToInsert = this.defauts.map(defaut => ({
+                rapport_id: rapport.id,
+                type: defaut.type,
+                quantite: defaut.quantite,
+                commentaire: defaut.commentaire,
+                photos: defaut.photos
+            }));
+
+            const { error: defautsError } = await supabaseClient
+                .from('defauts')
+                .insert(defautsToInsert);
+
+            if (defautsError) {
+                console.error('Erreur lors de la sauvegarde des défauts:', defautsError);
+                throw defautsError;
+            }
+        }
+
+        return rapport;
+    }
+
+    // ========== GÉNÉRATION PDF ==========
+    async genererPDF() {
+        const ordeFabrication = document.getElementById('ordeFabrication').value;
+        const phase = document.getElementById('phase').value;
+        const reference = document.getElementById('reference').value;
+
+        if (!ordeFabrication || !phase || !reference) {
+            this.showNotification('Veuillez remplir tous les champs obligatoires (OF, Phase, Référence)', 'error');
             return;
         }
 
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-
-        // Colors
-        const primaryColor = [52, 58, 64];
-        const lightGray = [108, 117, 125];
-        const veryLightGray = [248, 249, 250];
-        const terracottaOrange = [161, 58, 32]; // Couleur orange terracotta
-        const white = [255, 255, 255];
-
-        // Charger le logo
         try {
-            const logoImg = new Image();
-            logoImg.src = 'Logo-Ajust.png';
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
 
-            await new Promise((resolve, reject) => {
-                logoImg.onload = () => {
-                    try {
-                        // Logo en haut à gauche (30mm de largeur)
-                        doc.addImage(logoImg, 'PNG', 15, 10, 40, 15);
-                        resolve();
-                    } catch (error) {
-                        console.error('Erreur lors de l\'ajout du logo:', error);
-                        resolve(); // Continue même si le logo échoue
-                    }
-                };
-                logoImg.onerror = () => {
-                    console.error('Erreur de chargement du logo');
-                    resolve(); // Continue même si le logo échoue
-                };
-            });
-        } catch (error) {
-            console.error('Erreur avec le logo:', error);
-        }
+            const primaryColor = [52, 58, 64];
+            const lightGray = [108, 117, 125];
+            const veryLightGray = [248, 249, 250];
+            const terracottaOrange = [161, 58, 32];
+            const white = [255, 255, 255];
 
-        // Générer le numéro de rapport
-        const reportNumber = this.generateReportNumber();
+            const reportNumber = await this.generateReportNumber();
 
-        // Titre à gauche sous le logo
-        doc.setTextColor(...primaryColor);
-        doc.setFontSize(16);
-        doc.setFont('helvetica', 'bold');
-        doc.text('RAPPORT DE CONTRÔLE', 15, 18);
-        doc.text('QUALITÉ À RÉCEPTION', 15, 25);
-
-        // Numéro de rapport à droite
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...terracottaOrange);
-        doc.text(`RC N°${reportNumber}`, 195, 18, { align: 'right' });
-
-        // Générer le code-barres
-        try {
-            const canvas = document.createElement('canvas');
-            JsBarcode(canvas, reportNumber, {
-                format: "CODE128",
-                width: 1.5,
-                height: 30,
-                displayValue: false,
-                margin: 0
-            });
-            const barcodeImg = canvas.toDataURL('image/png');
-            doc.addImage(barcodeImg, 'PNG', 165, 21, 30, 8);
-        } catch (error) {
-            console.error('Erreur lors de la génération du code-barres:', error);
-        }
-
-        // Section informations générales avec bande orange
-        let yPosition = 33;
-
-        // Bande orange pour le titre
-        doc.setFillColor(...terracottaOrange);
-        doc.rect(15, yPosition, 180, 8, 'F');
-
-        doc.setTextColor(...white);
-        doc.setFontSize(11);
-        doc.setFont('helvetica', 'bold');
-        doc.text('INFORMATIONS GÉNÉRALES', 20, yPosition + 5.5);
-
-        yPosition += 10;
-
-        // Tableau des informations générales
-        const currentDate = new Date();
-        const tableData = [
-            ['Ordre de fabrication', ordeFabrication],
-            ['Référence', reference],
-            ['Client', client],
-            ['Date du contrôle', currentDate.toLocaleDateString('fr-FR')],
-            ['Heure', currentDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })]
-        ];
-
-        doc.setTextColor(...primaryColor);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
-
-        const cellHeight = 7;
-        const col1Width = 60;
-        const col2Width = 120;
-
-        tableData.forEach((row, index) => {
-            const rowY = yPosition + (index * cellHeight);
-
-            // Alternance de couleur de fond
-            if (index % 2 === 0) {
-                doc.setFillColor(250, 250, 250);
-                doc.rect(15, rowY, col1Width + col2Width, cellHeight, 'F');
-            }
-
-            // Bordures
-            doc.setDrawColor(...veryLightGray);
-            doc.setLineWidth(0.1);
-            doc.rect(15, rowY, col1Width, cellHeight, 'S');
-            doc.rect(15 + col1Width, rowY, col2Width, cellHeight, 'S');
-
-            // Texte colonne 1 (label) en gras
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(...lightGray);
-            doc.text(row[0], 18, rowY + 4.5);
-
-            // Texte colonne 2 (valeur)
-            doc.setFont('helvetica', 'normal');
             doc.setTextColor(...primaryColor);
-            doc.text(row[1], 18 + col1Width, rowY + 4.5);
-        });
+            doc.setFontSize(16);
+            doc.setFont('helvetica', 'bold');
+            doc.text('RAPPORT DE CONTRÔLE', 15, 18);
+            doc.text('QUALITÉ À RÉCEPTION', 15, 25);
 
-        // Section défauts
-        yPosition += (tableData.length * cellHeight) + 15;
+            doc.setFontSize(12);
+            doc.setTextColor(...terracottaOrange);
+            doc.text(`RC N°${reportNumber}`, 195, 18, { align: 'right' });
 
-        // Bande orange pour le titre des défauts
-        doc.setFillColor(...terracottaOrange);
-        doc.rect(15, yPosition, 180, 8, 'F');
+            let yPosition = 33;
+            doc.setFillColor(...terracottaOrange);
+            doc.rect(15, yPosition, 180, 8, 'F');
+            doc.setTextColor(...white);
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'bold');
+            doc.text('INFORMATIONS GÉNÉRALES', 20, yPosition + 5.5);
 
-        doc.setTextColor(...white);
-        doc.setFontSize(11);
-        doc.setFont('helvetica', 'bold');
-        doc.text('DÉFAUTS IDENTIFIÉS', 20, yPosition + 5.5);
+            yPosition += 10;
 
-        yPosition += 15;
+            const currentDate = new Date();
+            const tableData = [
+                ['OF Ajust\'82', ordeFabrication],
+                ['Phase', phase],
+                ['Référence', reference],
+                ['Désignation', document.getElementById('designation').value || 'N/A'],
+                ['Client', document.getElementById('client').value || 'N/A'],
+                ['Contrôleur', this.userProfile.full_name],
+                ['Date', currentDate.toLocaleDateString('fr-FR')],
+                ['Heure', currentDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })]
+            ];
 
-        if (this.defauts.length === 0) {
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'italic');
-            doc.setTextColor(...lightGray);
-            doc.text('Aucun défaut détecté lors du contrôle.', 20, yPosition);
-        } else {
-            for (let index = 0; index < this.defauts.length; index++) {
-                const defaut = this.defauts[index];
+            doc.setTextColor(...primaryColor);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
 
-                // Calculer la hauteur nécessaire pour ce défaut
-                const defautStartY = yPosition;
-                let estimatedHeight = 8 + 6; // Titre + quantité
+            const cellHeight = 7;
+            const col1Width = 60;
+            const col2Width = 120;
 
-                if (defaut.commentaire) {
-                    const commentaireLines = doc.splitTextToSize(`Observation : ${defaut.commentaire}`, 165);
-                    estimatedHeight += commentaireLines.length * 5 + 5;
+            tableData.forEach((row, index) => {
+                const rowY = yPosition + (index * cellHeight);
+
+                if (index % 2 === 0) {
+                    doc.setFillColor(250, 250, 250);
+                    doc.rect(15, rowY, col1Width + col2Width, cellHeight, 'F');
                 }
 
-                if (defaut.photos.length > 0) {
-                    estimatedHeight += 5 + (Math.ceil(defaut.photos.length / 2) * 75);
-                }
+                doc.setDrawColor(...veryLightGray);
+                doc.setLineWidth(0.1);
+                doc.rect(15, rowY, col1Width, cellHeight, 'S');
+                doc.rect(15 + col1Width, rowY, col2Width, cellHeight, 'S');
 
-                estimatedHeight += 10; // Espacement après le défaut
-
-                // Si pas assez de place, passer à la page suivante
-                if (yPosition + estimatedHeight > 270 && yPosition > 100) {
-                    doc.addPage();
-                    yPosition = 20;
-                }
-
-                // Numéro du défaut
-                doc.setFontSize(11);
                 doc.setFont('helvetica', 'bold');
-                doc.setTextColor(...primaryColor);
-                doc.text(`${index + 1}. ${defaut.type}`, 20, yPosition);
-
-                yPosition += 7;
-
-                // Détails
-                doc.setFontSize(9);
-                doc.setFont('helvetica', 'normal');
                 doc.setTextColor(...lightGray);
-                doc.text(`Qté : ${defaut.quantite} pièces`, 20, yPosition);
-                yPosition += 5;
+                doc.text(row[0], 18, rowY + 4.5);
 
-                if (defaut.commentaire) {
-                    const commentaireLines = doc.splitTextToSize(`Observation : ${defaut.commentaire}`, 165);
-                    doc.text(commentaireLines, 20, yPosition);
-                    yPosition += commentaireLines.length * 4 + 3;
-                }
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(...primaryColor);
+                doc.text(row[1], 18 + col1Width, rowY + 4.5);
+            });
 
-                // Ajouter les photos avec format d'origine (maximum 2 par ligne)
-                if (defaut.photos.length > 0) {
-                    yPosition += 3;
+            yPosition += (tableData.length * cellHeight) + 15;
+            doc.setFillColor(...terracottaOrange);
+            doc.rect(15, yPosition, 180, 8, 'F');
+            doc.setTextColor(...white);
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'bold');
+            doc.text('DÉFAUTS IDENTIFIÉS', 20, yPosition + 5.5);
 
-                    for (let photoIndex = 0; photoIndex < defaut.photos.length; photoIndex += 2) {
-                        // Vérifier si on a assez d'espace pour les photos
-                        if (yPosition > 210) {
-                            doc.addPage();
-                            yPosition = 20;
+            yPosition += 15;
+
+            if (this.defauts.length === 0) {
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'italic');
+                doc.setTextColor(...lightGray);
+                doc.text('Aucun défaut détecté.', 20, yPosition);
+            } else {
+                for (let index = 0; index < this.defauts.length; index++) {
+                    const defaut = this.defauts[index];
+
+                    if (yPosition > 250) {
+                        doc.addPage();
+                        yPosition = 20;
+                    }
+
+                    doc.setFontSize(11);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(...primaryColor);
+                    doc.text(`${index + 1}. ${defaut.type}`, 20, yPosition);
+                    yPosition += 7;
+
+                    doc.setFontSize(9);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setTextColor(...lightGray);
+                    doc.text(`Qté : ${defaut.quantite} pièces`, 20, yPosition);
+                    yPosition += 5;
+
+                    if (defaut.commentaire) {
+                        const commentaireLines = doc.splitTextToSize(`Observation : ${defaut.commentaire}`, 165);
+                        doc.text(commentaireLines, 20, yPosition);
+                        yPosition += commentaireLines.length * 4 + 3;
+                    }
+
+                    if (defaut.photos && defaut.photos.length > 0) {
+                        yPosition += 3;
+
+                        for (let photoIndex = 0; photoIndex < defaut.photos.length; photoIndex += 2) {
+                            if (yPosition > 210) {
+                                doc.addPage();
+                                yPosition = 20;
+                            }
+
+                            const photosInThisRow = Math.min(2, defaut.photos.length - photoIndex);
+
+                            for (let i = 0; i < photosInThisRow; i++) {
+                                const photo = defaut.photos[photoIndex + i];
+                                const xPosition = 20 + (i * 85);
+
+                                try {
+                                    doc.addImage(photo.data, 'JPEG', xPosition, yPosition, 70, 70);
+                                } catch (error) {
+                                    console.error('Erreur image:', error);
+                                }
+                            }
+
+                            yPosition += 72;
                         }
+                    }
 
-                        const photosInThisRow = Math.min(2, defaut.photos.length - photoIndex);
+                    yPosition += 6;
 
-                        for (let i = 0; i < photosInThisRow; i++) {
-                            const photo = defaut.photos[photoIndex + i];
-
-                            // Créer une image temporaire pour obtenir les dimensions
-                            const img = new Image();
-                            img.src = photo.data;
-
-                            await new Promise((resolve) => {
-                                img.onload = () => {
-                                    try {
-                                        // Calculer les dimensions en préservant le ratio
-                                        const maxWidth = 70;
-                                        const maxHeight = 70;
-                                        let imgWidth = img.width;
-                                        let imgHeight = img.height;
-
-                                        // Redimensionner si nécessaire tout en conservant le ratio
-                                        const ratio = Math.min(maxWidth / imgWidth, maxHeight / imgHeight);
-                                        if (ratio < 1) {
-                                            imgWidth *= ratio;
-                                            imgHeight *= ratio;
-                                        }
-
-                                        const xPosition = 20 + (i * 85);
-
-                                        // Bordure simple
-                                        doc.setDrawColor(...lightGray);
-                                        doc.setLineWidth(0.2);
-                                        doc.rect(xPosition, yPosition, imgWidth, imgHeight, 'S');
-
-                                        doc.addImage(photo.data, 'JPEG', xPosition, yPosition, imgWidth, imgHeight);
-                                        resolve();
-                                    } catch (error) {
-                                        console.error('Erreur lors de l\'ajout de l\'image:', error);
-                                        doc.setFont('helvetica', 'italic');
-                                        doc.setFontSize(8);
-                                        doc.setTextColor(...lightGray);
-                                        doc.text(`[Image non disponible]`, 20 + (i * 85), yPosition + 10);
-                                        resolve();
-                                    }
-                                };
-                                img.onerror = () => {
-                                    console.error('Erreur de chargement de l\'image');
-                                    resolve();
-                                };
-                            });
-                        }
-
-                        yPosition += 72;
+                    if (index < this.defauts.length - 1) {
+                        doc.setDrawColor(...veryLightGray);
+                        doc.setLineWidth(0.3);
+                        doc.line(20, yPosition, 190, yPosition);
+                        yPosition += 6;
                     }
                 }
-
-                yPosition += 6; // Espacement entre défauts
-
-                // Ligne de séparation entre défauts
-                if (index < this.defauts.length - 1) {
-                    doc.setDrawColor(...veryLightGray);
-                    doc.setLineWidth(0.3);
-                    doc.line(20, yPosition, 190, yPosition);
-                    yPosition += 6;
-                }
             }
+
+            await this.saveRapport(reportNumber, null);
+
+            const fileName = `${reportNumber}_${ordeFabrication}_${reference}_${new Date().toISOString().split('T')[0]}.pdf`;
+            doc.save(fileName);
+
+            this.resetForm();
+            this.showPdfModal(fileName);
+            await this.loadRapports();
+
+        } catch (error) {
+            console.error('Erreur PDF:', error);
+            this.showNotification('Erreur lors de la génération du PDF', 'error');
         }
+    }
 
-        // Ajouter les pieds de page à toutes les pages
-        const totalPages = doc.internal.getNumberOfPages();
-        for (let i = 1; i <= totalPages; i++) {
-            doc.setPage(i);
-            this.addFooterToPage(doc, i, totalPages, terracottaOrange, lightGray, primaryColor);
-        }
-
-        // Convertir le PDF en base64 pour le stocker
-        const pdfData = doc.output('datauristring');
-
-        // Sauvegarder dans l'historique
-        this.saveRapportToHistory(reportNumber, ordeFabrication, reference, client, this.defauts, pdfData);
-
-        // Sauvegarde
-        const fileName = `RC${reportNumber}_${ordeFabrication}_${reference}_${new Date().toISOString().split('T')[0]}.pdf`;
-        doc.save(fileName);
-
-        // Remettre à zéro le formulaire
-        this.resetForm();
-
-        // Afficher le popup de confirmation
-        this.showPdfModal(fileName);
+    async regeneratePDF(rapportId) {
+        this.showNotification('Fonctionnalité à venir', 'info');
     }
 
     resetForm() {
-        // Remettre à zéro tous les champs du formulaire principal
         document.getElementById('ordeFabrication').value = '';
+        document.getElementById('phase').value = '';
         document.getElementById('reference').value = '';
+        document.getElementById('designation').value = '';
         document.getElementById('client').value = '';
-
-        // Vider la liste des défauts
         this.defauts = [];
         this.updateDefautsList();
     }
@@ -984,38 +1007,251 @@ class RapportDeControle {
         document.getElementById('pdfModal').style.display = 'none';
     }
 
-    calculateDefautHeight(defaut) {
-        let height = 25; // Base height
-        if (defaut.commentaire) {
-            const lines = Math.ceil(defaut.commentaire.length / 80);
-            height += lines * 6 + 5;
+    // ========== ESPACE ADMIN ==========
+    async loadAdminRapports() {
+        const filterStatus = document.getElementById('filterStatus')?.value || '';
+
+        let query = supabaseClient
+            .from('rapports')
+            .select('*, defauts (*)')
+            .order('created_at', { ascending: false });
+
+        if (filterStatus) {
+            query = query.eq('status', filterStatus);
         }
-        if (defaut.photos.length > 0) {
-            height += 8 + (defaut.photos.length * 58); // 50 + 8 spacing per photo
+
+        const { data, error } = await query;
+
+        if (error) {
+            console.error('Erreur rapports admin:', error);
+            return;
         }
-        return height;
+
+        this.updateAdminRapportsUI(data);
     }
 
-    updateGeneratePdfButton() {
-        const generateBtn = document.getElementById('genererPDF');
-        const hasPhotos = this.defauts.some(defaut => defaut.photos && defaut.photos.length > 0);
+    updateAdminRapportsUI(rapports) {
+        const container = document.getElementById('adminRapportsList');
+        if (!container) return;
 
-        if (hasPhotos) {
-            generateBtn.style.display = 'inline-block';
-        } else {
-            generateBtn.style.display = 'none';
+        container.innerHTML = '';
+
+        if (rapports.length === 0) {
+            container.innerHTML = '<div class="card" style="text-align: center; padding: 2rem; color: var(--text-light);"><p>Aucun rapport trouvé</p></div>';
+            return;
         }
+
+        rapports.forEach(rapport => {
+            const card = document.createElement('div');
+            card.className = 'card rapport-card';
+
+            const dateFormatted = new Date(rapport.date_controle).toLocaleDateString('fr-FR');
+
+            let statusLabel = 'En attente';
+            if (rapport.status === 'traite') statusLabel = 'Traité';
+            if (rapport.status === 'resolu') statusLabel = 'Résolu';
+
+            card.innerHTML = `
+                <div class="rapport-card-content">
+                    <div class="rapport-info">
+                        <div class="rapport-numero">${rapport.numero}</div>
+                        <div class="rapport-details"><span class="rapport-label">OF:</span> ${rapport.ordre_fabrication}</div>
+                        <div class="rapport-details"><span class="rapport-label">Contrôleur:</span> ${rapport.controleur_name}</div>
+                        <div class="rapport-details"><span class="rapport-label">Défauts:</span> ${rapport.defauts ? rapport.defauts.length : 0}</div>
+                        <span class="rapport-status status-${rapport.status}">${statusLabel}</span>
+                        <div class="rapport-date">${dateFormatted}</div>
+                    </div>
+                    <div class="rapport-actions">
+                        <button class="btn-icon-only btn-edit-icon" onclick="app.changeRapportStatus('${rapport.id}')" title="Modifier">✎</button>
+                        <button class="btn-icon-only btn-delete-icon" onclick="app.supprimerRapport('${rapport.id}')" title="Supprimer">×</button>
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    async changeRapportStatus(rapportId) {
+        const newStatus = prompt('Nouveau statut (en_attente, traite, resolu):');
+
+        if (!newStatus || !['en_attente', 'traite', 'resolu'].includes(newStatus)) {
+            this.showNotification('Statut invalide', 'error');
+            return;
+        }
+
+        const { error } = await supabaseClient
+            .from('rapports')
+            .update({ status: newStatus })
+            .eq('id', rapportId);
+
+        if (error) {
+            this.showNotification('Erreur mise à jour', 'error');
+            return;
+        }
+
+        this.showNotification('Statut mis à jour', 'success');
+        await this.loadAdminRapports();
+    }
+
+    async supprimerRapport(rapportId) {
+        if (!confirm('Supprimer ce rapport ?')) return;
+
+        const { error } = await supabaseClient.from('rapports').delete().eq('id', rapportId);
+
+        if (error) {
+            this.showNotification('Erreur suppression', 'error');
+            return;
+        }
+
+        this.showNotification('Rapport supprimé', 'success');
+        await this.loadAdminRapports();
+    }
+
+    // ========== GESTION UTILISATEURS ==========
+    async loadUsers() {
+        const { data, error } = await supabaseClient
+            .from('profiles')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Erreur utilisateurs:', error);
+            return;
+        }
+
+        this.updateUsersUI(data);
+    }
+
+    updateUsersUI(users) {
+        const container = document.getElementById('usersList');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        users.forEach(user => {
+            const div = document.createElement('div');
+            div.className = 'user-item';
+
+            div.innerHTML = `
+                <div class="user-item-info">
+                    <h4>${user.full_name}</h4>
+                    <p>Identifiant: ${user.username} - Rôle: ${user.role === 'admin' ? 'Administrateur' : 'Utilisateur'}</p>
+                </div>
+                <div class="user-item-actions">
+                    ${user.id !== this.currentUser.id ? `<button class="btn btn-danger" onclick="app.deleteUser('${user.id}')">Supprimer</button>` : ''}
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    async addUser(e) {
+        e.preventDefault();
+
+        const username = document.getElementById('newUserUsername').value;
+        const fullName = document.getElementById('newUserName').value;
+        const password = document.getElementById('newUserPassword').value;
+        const role = document.getElementById('newUserRole').value;
+
+        // Vérifier si le username existe déjà
+        const { data: existingUser, error: checkError } = await supabaseClient
+            .from('profiles')
+            .select('username')
+            .eq('username', username)
+            .single();
+
+        if (existingUser) {
+            this.showNotification('Cet identifiant existe déjà', 'error');
+            return;
+        }
+
+        // Créer un email fictif basé sur le username (pour Supabase Auth)
+        const email = `${username}@rapportcontrole.local`;
+
+        const { data, error } = await supabaseClient.auth.admin.createUser({
+            email,
+            password,
+            email_confirm: true,
+            user_metadata: {
+                username: username,
+                full_name: fullName,
+                role: role
+            }
+        });
+
+        if (error) {
+            this.showNotification('Erreur: ' + error.message, 'error');
+            return;
+        }
+
+        this.showNotification('Utilisateur créé', 'success');
+        document.getElementById('addUserForm').reset();
+        await this.loadUsers();
+    }
+
+    async deleteUser(userId) {
+        if (!confirm('Supprimer cet utilisateur ?')) return;
+
+        const { error } = await supabaseClient.auth.admin.deleteUser(userId);
+
+        if (error) {
+            this.showNotification('Erreur: ' + error.message, 'error');
+            return;
+        }
+
+        this.showNotification('Utilisateur supprimé', 'success');
+        await this.loadUsers();
+    }
+
+    // ========== UTILITAIRES ==========
+    initTheme() {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        if (savedTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            const toggle = document.getElementById('themeToggle');
+            if (toggle) toggle.textContent = '◑';
+        }
+    }
+
+    toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+        document.documentElement.setAttribute('data-theme', newTheme);
+        document.getElementById('themeToggle').textContent = newTheme === 'dark' ? '◑' : '◐';
+
+        localStorage.setItem('theme', newTheme);
+    }
+
+    showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.textContent = message;
+
+        document.body.appendChild(notification);
+
+        setTimeout(() => notification.classList.add('show'), 100);
+
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => document.body.removeChild(notification), 300);
+        }, 3000);
     }
 }
 
-// Initialize the application
-const app = new RapportDeControle();
+// ========== INITIALISATION ==========
+document.addEventListener('DOMContentLoaded', () => {
+    app = new RapportDeControleApp();
+});
 
-// Close modal when clicking outside of it
 window.onclick = function(event) {
     const pdfModal = document.getElementById('pdfModal');
+    const rapportModal = document.getElementById('rapportModal');
 
     if (event.target === pdfModal) {
         app.closePdfModal();
     }
-}
+    if (event.target === rapportModal) {
+        rapportModal.style.display = 'none';
+    }
+};

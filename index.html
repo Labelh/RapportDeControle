@@ -3,52 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rapport de Contrôle</title>
+    <title>Rapport de Contrôle Qualité</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 </head>
 <body>
-    <div class="container">
-        <nav class="navbar">
-            <div class="nav-brand">
-                <h1>Rapport de Contrôle</h1>
+    <!-- Page de Connexion -->
+    <div id="login-page" class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>Rapport de Contrôle Qualité</h1>
+                <p>Connectez-vous pour accéder à l'application</p>
             </div>
-            <ul class="nav-menu">
-                <li><a href="#" class="nav-link active" data-page="rapport">Nouveau Rapport</a></li>
-                <li><a href="#" class="nav-link" data-page="historique">Historique</a></li>
-                <li><a href="#" class="nav-link" data-page="parametres">Paramètres</a></li>
-                <li><button id="themeToggle" class="theme-toggle">◐</button></li>
-            </ul>
-        </nav>
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="loginUsername">Identifiant</label>
+                    <input type="text" id="loginUsername" required placeholder="Votre identifiant">
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Mot de passe</label>
+                    <input type="password" id="loginPassword" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Se connecter</button>
+                <div id="loginError" class="error-message" style="display: none;"></div>
+            </form>
+        </div>
+    </div>
 
+    <!-- Application principale -->
+    <div id="app-container" class="app-container" style="display: none;">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h1>Contrôle Qualité</h1>
+                <button class="sidebar-toggle" id="sidebarToggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-page="rapport">
+                    <span class="nav-icon">📝</span>
+                    <span class="nav-text">Nouveau Rapport</span>
+                </a>
+                <a href="#" class="nav-item" data-page="historique">
+                    <span class="nav-icon">📋</span>
+                    <span class="nav-text">Historique</span>
+                </a>
+                <a href="#" class="nav-item admin-only" data-page="admin" style="display: none;">
+                    <span class="nav-icon">⚙️</span>
+                    <span class="nav-text">Espace Admin</span>
+                </a>
+                <a href="#" class="nav-item admin-only" data-page="utilisateurs" style="display: none;">
+                    <span class="nav-icon">👥</span>
+                    <span class="nav-text">Utilisateurs</span>
+                </a>
+                <a href="#" class="nav-item admin-only" data-page="parametres" style="display: none;">
+                    <span class="nav-icon">🔧</span>
+                    <span class="nav-text">Paramètres</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">👤</div>
+                    <div class="user-details">
+                        <div class="user-name" id="userName">Utilisateur</div>
+                        <div class="user-role" id="userRole">user</div>
+                    </div>
+                </div>
+                <button id="themeToggle" class="theme-toggle">◐</button>
+                <button id="logoutBtn" class="btn-logout">Déconnexion</button>
+            </div>
+        </aside>
+
+        <!-- Contenu principal -->
         <main class="main-content">
-            <!-- Page Rapport -->
+            <!-- Page Nouveau Rapport -->
             <div id="page-rapport" class="page active">
+                <div class="page-header">
+                    <h2>Nouveau Rapport de Contrôle</h2>
+                </div>
+
                 <div class="card">
-                    <h2>Informations Générales</h2>
-                    <div class="form-group">
-                        <label for="ordeFabrication">Ordre de Fabrication :</label>
-                        <input type="text" id="ordeFabrication" name="ordeFabrication" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="reference">Référence :</label>
-                        <input type="text" id="reference" name="reference" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="client">Client :</label>
-                        <select id="client" name="client" required>
-                            <option value="">Sélectionner un client</option>
-                        </select>
+                    <h3>Informations Générales</h3>
+                    <div class="form-row-grid">
+                        <div class="form-group">
+                            <label for="ordeFabrication">Ordre de Fabrication *</label>
+                            <input type="text" id="ordeFabrication" required placeholder="Ex: 12345">
+                        </div>
+                        <div class="form-group">
+                            <label for="phase">Phase *</label>
+                            <input type="text" id="phase" required placeholder="Ex: Assemblage">
+                        </div>
+                        <div class="form-group">
+                            <label for="reference">Référence *</label>
+                            <input type="text" id="reference" required placeholder="Ex: REF-001">
+                        </div>
+                        <div class="form-group">
+                            <label for="designation">Désignation</label>
+                            <input type="text" id="designation" placeholder="Description du produit">
+                        </div>
+                        <div class="form-group">
+                            <label for="client">Client</label>
+                            <select id="client">
+                                <option value="">Sélectionner un client</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
                 <div class="defauts-header">
-                    <h2 id="defautsTitle">Défauts</h2>
-                    <button id="addDefaut" class="btn btn-green">Ajouter un Défaut</button>
+                    <h3 id="defautsTitle">Défauts Identifiés</h3>
+                    <button id="addDefaut" class="btn btn-green">+ Ajouter un Défaut</button>
                 </div>
 
-                <!-- Formulaire inline pour ajouter un défaut -->
                 <div id="defautFormContainer" class="defaut-form-container" style="display: none;">
                     <div class="card">
                         <div class="card-header-inline">
@@ -58,22 +131,22 @@
                         <form id="defautForm">
                             <div class="form-row">
                                 <div class="form-group form-group-flex">
-                                    <label for="typeDefaut">Type de Défaut :</label>
+                                    <label for="typeDefaut">Type de Défaut *</label>
                                     <select id="typeDefaut" required>
                                         <option value="">Sélectionner un type</option>
                                     </select>
                                 </div>
                                 <div class="form-group form-group-flex">
-                                    <label for="quantite">Quantité :</label>
+                                    <label for="quantite">Quantité *</label>
                                     <input type="number" id="quantite" min="1" required>
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label for="commentaire">Commentaire :</label>
-                                <textarea id="commentaire" rows="2"></textarea>
+                                <label for="commentaire">Observation</label>
+                                <textarea id="commentaire" rows="3" placeholder="Détails complémentaires..."></textarea>
                             </div>
                             <div class="form-group">
-                                <label>Photos :</label>
+                                <label>Photos</label>
                                 <div id="dropZone" class="drop-zone">
                                     <div class="drop-zone-content">
                                         <div class="drop-zone-icon">📁</div>
@@ -95,9 +168,7 @@
                 </div>
 
                 <div class="card">
-                    <div class="defauts-section">
-                        <div id="defautsList" class="defauts-list"></div>
-                    </div>
+                    <div id="defautsList" class="defauts-list"></div>
                 </div>
 
                 <button id="genererPDF" class="btn btn-success generate-pdf-btn">Générer le Rapport PDF</button>
@@ -105,45 +176,100 @@
 
             <!-- Page Historique -->
             <div id="page-historique" class="page">
-                <div class="card">
+                <div class="page-header">
                     <h2>Historique des Rapports</h2>
                 </div>
                 <div id="listeRapports" class="rapports-list"></div>
             </div>
 
+            <!-- Page Espace Admin -->
+            <div id="page-admin" class="page">
+                <div class="page-header">
+                    <h2>Espace Administration</h2>
+                    <p>Gestion des non-conformités</p>
+                </div>
+
+                <div class="admin-filters">
+                    <select id="filterStatus" class="filter-select">
+                        <option value="">Tous les statuts</option>
+                        <option value="en_attente">En attente</option>
+                        <option value="traite">Traité</option>
+                        <option value="resolu">Résolu</option>
+                    </select>
+                </div>
+
+                <div id="adminRapportsList" class="admin-rapports-list"></div>
+            </div>
+
+            <!-- Page Gestion Utilisateurs -->
+            <div id="page-utilisateurs" class="page">
+                <div class="page-header">
+                    <h2>Gestion des Utilisateurs</h2>
+                </div>
+
+                <div class="card">
+                    <h3>Ajouter un utilisateur</h3>
+                    <form id="addUserForm">
+                        <div class="form-row-grid">
+                            <div class="form-group">
+                                <label for="newUserUsername">Identifiant *</label>
+                                <input type="text" id="newUserUsername" required placeholder="identifiant">
+                            </div>
+                            <div class="form-group">
+                                <label for="newUserName">Nom complet *</label>
+                                <input type="text" id="newUserName" required placeholder="Prénom Nom">
+                            </div>
+                            <div class="form-group">
+                                <label for="newUserPassword">Mot de passe *</label>
+                                <input type="password" id="newUserPassword" required placeholder="••••••••" minlength="6">
+                            </div>
+                            <div class="form-group">
+                                <label for="newUserRole">Rôle *</label>
+                                <select id="newUserRole" required>
+                                    <option value="user">Utilisateur</option>
+                                    <option value="admin">Administrateur</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Ajouter l'utilisateur</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h3>Liste des utilisateurs</h3>
+                    <div id="usersList" class="users-list"></div>
+                </div>
+            </div>
+
             <!-- Page Paramètres -->
             <div id="page-parametres" class="page">
+                <div class="page-header">
+                    <h2>Paramètres</h2>
+                </div>
+
                 <div class="card">
-                    <h2>Clients</h2>
+                    <h3>Clients</h3>
                     <div class="clients-list">
                         <ul id="listeClients"></ul>
                     </div>
                     <div class="form-group">
-                        <label for="nouveauClient">Nouveau Client :</label>
+                        <label for="nouveauClient">Nouveau Client</label>
                         <input type="text" id="nouveauClient" placeholder="Nom du client">
                         <button id="ajouterClient" class="btn btn-secondary">Ajouter</button>
                     </div>
                 </div>
 
                 <div class="card">
-                    <h2>Types de Défauts</h2>
+                    <h3>Types de Défauts</h3>
                     <div class="defauts-types-list">
                         <ul id="listeTypesDefauts"></ul>
                     </div>
                     <div class="form-group">
-                        <label for="nouveauDefaut">Nouveau Type de Défaut :</label>
+                        <label for="nouveauDefaut">Nouveau Type de Défaut</label>
                         <input type="text" id="nouveauDefaut" placeholder="Type de défaut">
                         <button id="ajouterTypeDefaut" class="btn btn-secondary">Ajouter</button>
                     </div>
                 </div>
-
-                <div class="card">
-                    <h2>Sauvegarde & Partage</h2>
-                    <p>Générez un lien pour sauvegarder et partager vos paramètres (clients, types de défauts, thème).</p>
-                    <button id="genererLien" class="btn btn-primary">📋 Générer le lien de sauvegarde</button>
-                    <p><small>💡 Astuce : Utilisez Ctrl+S pour générer rapidement le lien</small></p>
-                </div>
-
             </div>
         </main>
     </div>
@@ -160,6 +286,18 @@
         </div>
     </div>
 
+    <!-- Modal de détails du rapport (Admin) -->
+    <div id="rapportModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Détails du Rapport</h3>
+                <button class="close-modal" id="closeRapportModal">&times;</button>
+            </div>
+            <div id="rapportModalContent"></div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
