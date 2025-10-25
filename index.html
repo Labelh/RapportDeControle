@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contrôle Qualité Réception</title>
+    <title>Gestion des Non-Conformités</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -14,7 +14,7 @@
     <div id="login-page" class="login-container">
         <div class="login-card">
             <div class="login-header">
-                <h1>Contrôle Qualité Réception</h1>
+                <h1>Gestion des Non-Conformités</h1>
                 <p>Connectez-vous pour accéder à l'application</p>
             </div>
             <form id="loginForm" class="login-form">
@@ -39,7 +39,7 @@
             <div class="sidebar-header">
                 <div class="sidebar-logo">
                     <img src="Logo-Ajust.png" alt="Logo" class="logo-img">
-                    <h1>Contrôle Qualité<br>Réception</h1>
+                    <h1>Gestion<br>Non-Conformités</h1>
                 </div>
                 <button class="sidebar-toggle" id="sidebarToggle">
                     <span></span>
@@ -49,17 +49,17 @@
             </div>
 
             <nav class="sidebar-nav">
-                <a href="#" class="nav-item active" data-page="rapport">
+                <a href="#" class="nav-item active" data-page="nouvelle-nc">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <span class="nav-text">Nouvelle NC</span>
+                </a>
+                <a href="#" class="nav-item" data-page="mes-nc">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                     </svg>
-                    <span class="nav-text">Nouveau Rapport</span>
-                </a>
-                <a href="#" class="nav-item" data-page="historique">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <span class="nav-text">Historique</span>
+                    <span class="nav-text">Mes NC</span>
                 </a>
                 <a href="#" class="nav-item admin-only" data-page="admin" style="display: none;">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -184,7 +184,7 @@
                     <div id="defautsList" class="defauts-list"></div>
                 </div>
 
-                <button id="genererPDF" class="btn btn-success generate-pdf-btn">Générer le Rapport PDF</button>
+                <button id="validerRapport" class="btn btn-success generate-pdf-btn">Valider le Rapport</button>
             </div>
 
             <!-- Page Historique -->

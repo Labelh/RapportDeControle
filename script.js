@@ -1,6 +1,6 @@
 // ============================================
-// APPLICATION DE RAPPORT DE CONTRÔLE QUALITÉ
-// Avec authentification Supabase
+// APPLICATION DE GESTION DES NON-CONFORMITÉS
+// Avec authentification Supabase et réponses clients
 // ============================================
 
 // ========== INITIALISATION SUPABASE ==========
@@ -705,8 +705,17 @@ class RapportDeControleApp {
             const dateFormatted = dateObj.toLocaleDateString('fr-FR');
 
             let statusLabel = 'En attente';
-            if (rapport.status === 'traite') statusLabel = 'Traité';
-            if (rapport.status === 'resolu') statusLabel = 'Résolu';
+            let statusClass = 'en_attente';
+            if (rapport.status === 'en_cours') {
+                statusLabel = 'En cours';
+                statusClass = 'en_cours';
+            } else if (rapport.status === 'attente_client') {
+                statusLabel = 'Attente client';
+                statusClass = 'attente_client';
+            } else if (rapport.status === 'cloture') {
+                statusLabel = 'Clôturé';
+                statusClass = 'cloture';
+            }
 
             // Bouton modifier seulement si statut en_attente
             const editButton = rapport.status === 'en_attente'
@@ -729,7 +738,7 @@ class RapportDeControleApp {
                         <div class="rapport-details">
                             <span class="rapport-label">Client:</span> ${rapport.client || 'N/A'}
                         </div>
-                        <span class="rapport-status status-${rapport.status}">${statusLabel}</span>
+                        <span class="rapport-status status-${statusClass}">${statusLabel}</span>
                         <div class="rapport-date">${dateFormatted}</div>
                     </div>
                     <div class="rapport-actions">
@@ -990,7 +999,10 @@ class RapportDeControleApp {
             validerBtn.textContent = 'Mettre à jour le Rapport';
 
             // Passer à la page de rapport
-            this.switchPage('rapport');
+            document.querySelectorAll('.nav-item').forEach(l => l.classList.remove('active'));
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelector('[data-page="rapport"]').classList.add('active');
+            document.getElementById('page-rapport').classList.add('active');
 
             this.showNotification('Rapport chargé pour modification', 'info');
 
@@ -1307,8 +1319,17 @@ class RapportDeControleApp {
             const dateFormatted = new Date(rapport.date_controle).toLocaleDateString('fr-FR');
 
             let statusLabel = 'En attente';
-            if (rapport.status === 'traite') statusLabel = 'Traité';
-            if (rapport.status === 'resolu') statusLabel = 'Résolu';
+            let statusClass = 'en_attente';
+            if (rapport.status === 'en_cours') {
+                statusLabel = 'En cours';
+                statusClass = 'en_cours';
+            } else if (rapport.status === 'attente_client') {
+                statusLabel = 'Attente client';
+                statusClass = 'attente_client';
+            } else if (rapport.status === 'cloture') {
+                statusLabel = 'Clôturé';
+                statusClass = 'cloture';
+            }
 
             // Générer le bouton PDF seulement si le statut est en_attente
             const pdfButton = rapport.status === 'en_attente'
@@ -1322,7 +1343,7 @@ class RapportDeControleApp {
                         <div class="rapport-details"><span class="rapport-label">OF:</span> ${rapport.ordre_fabrication}</div>
                         <div class="rapport-details"><span class="rapport-label">Contrôleur:</span> ${rapport.controleur_name}</div>
                         <div class="rapport-details"><span class="rapport-label">Défauts:</span> ${rapport.defauts ? rapport.defauts.length : 0}</div>
-                        <span class="rapport-status status-${rapport.status}">${statusLabel}</span>
+                        <span class="rapport-status status-${statusClass}">${statusLabel}</span>
                         <div class="rapport-date">${dateFormatted}</div>
                     </div>
                     <div class="rapport-actions">
@@ -1337,25 +1358,88 @@ class RapportDeControleApp {
     }
 
     async changeRapportStatus(rapportId) {
-        const newStatus = prompt('Nouveau statut (en_attente, traite, resolu):');
-
-        if (!newStatus || !['en_attente', 'traite', 'resolu'].includes(newStatus)) {
-            this.showNotification('Statut invalide', 'error');
-            return;
-        }
-
-        const { error } = await supabaseClient
+        // Récupérer le rapport actuel
+        const { data: rapport } = await supabaseClient
             .from('rapports')
-            .update({ status: newStatus })
-            .eq('id', rapportId);
+            .select('*')
+            .eq('id', rapportId)
+            .single();
 
-        if (error) {
-            this.showNotification('Erreur mise à jour', 'error');
-            return;
-        }
+        if (!rapport) return;
 
-        this.showNotification('Statut mis à jour', 'success');
-        await this.loadAdminRapports();
+        // Créer un formulaire modal pour modifier le statut et ajouter la réponse client
+        const modal = document.createElement('div');
+        modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;';
+
+        modal.innerHTML = `
+            <div style="background:white;padding:2rem;border-radius:8px;max-width:600px;width:90%;">
+                <h3 style="margin-top:0;">Modifier NC ${rapport.numero}</h3>
+                <div style="margin-bottom:1rem;">
+                    <label style="display:block;margin-bottom:0.5rem;font-weight:bold;">Statut</label>
+                    <select id="modalStatus" style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:4px;">
+                        <option value="en_attente" ${rapport.status === 'en_attente' ? 'selected' : ''}>En attente</option>
+                        <option value="en_cours" ${rapport.status === 'en_cours' ? 'selected' : ''}>En cours</option>
+                        <option value="attente_client" ${rapport.status === 'attente_client' ? 'selected' : ''}>Attente client</option>
+                        <option value="cloture" ${rapport.status === 'cloture' ? 'selected' : ''}>Clôturé</option>
+                    </select>
+                </div>
+                <div style="margin-bottom:1rem;">
+                    <label style="display:block;margin-bottom:0.5rem;font-weight:bold;">Réponse client</label>
+                    <textarea id="modalReponse" rows="3" style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:4px;">${rapport.reponse_client || ''}</textarea>
+                </div>
+                <div style="margin-bottom:1rem;">
+                    <label style="display:block;margin-bottom:0.5rem;font-weight:bold;">Action corrective</label>
+                    <textarea id="modalAction" rows="2" style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:4px;">${rapport.action_corrective || ''}</textarea>
+                </div>
+                <div style="display:flex;gap:1rem;justify-content:flex-end;">
+                    <button id="modalCancel" style="padding:0.5rem 1rem;border:1px solid #ddd;background:white;border-radius:4px;cursor:pointer;">Annuler</button>
+                    <button id="modalSave" style="padding:0.5rem 1rem;border:none;background:#a13a20;color:white;border-radius:4px;cursor:pointer;">Enregistrer</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        document.getElementById('modalCancel').onclick = () => {
+            document.body.removeChild(modal);
+        };
+
+        document.getElementById('modalSave').onclick = async () => {
+            const newStatus = document.getElementById('modalStatus').value;
+            const reponseClient = document.getElementById('modalReponse').value;
+            const actionCorrective = document.getElementById('modalAction').value;
+
+            const updateData = {
+                status: newStatus,
+                reponse_client: reponseClient || null,
+                action_corrective: actionCorrective || null
+            };
+
+            // Si on passe à attente_client et qu'il y a une réponse, enregistrer la date
+            if (reponseClient && !rapport.date_reponse_client) {
+                updateData.date_reponse_client = new Date().toISOString();
+            }
+
+            // Si on clôture, enregistrer la date et l'utilisateur
+            if (newStatus === 'cloture' && rapport.status !== 'cloture') {
+                updateData.date_cloture = new Date().toISOString();
+                updateData.valide_par = this.currentUser.id;
+            }
+
+            const { error } = await supabaseClient
+                .from('rapports')
+                .update(updateData)
+                .eq('id', rapportId);
+
+            if (error) {
+                this.showNotification('Erreur mise à jour', 'error');
+                return;
+            }
+
+            this.showNotification('NC mise à jour', 'success');
+            document.body.removeChild(modal);
+            await this.loadAdminRapports();
+        };
     }
 
     async supprimerRapport(rapportId) {
