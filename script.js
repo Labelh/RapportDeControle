@@ -1170,7 +1170,7 @@ class RapportDeControleApp {
     }
 
     async genererPDF(rapportId = null) {
-        let ordeFabrication, phase, reference, designation, client, controleurName, dateControle, reportNumber, defauts;
+        let ordeFabrication, reference, designation, client, controleurName, dateControle, reportNumber, defauts;
 
         if (rapportId) {
             // Générer PDF depuis l'admin pour un rapport existant
@@ -1196,7 +1196,6 @@ class RapportDeControleApp {
             }
 
             ordeFabrication = rapport.ordre_fabrication;
-            phase = rapport.phase;
             reference = rapport.reference;
             designation = rapport.designation;
             client = rapport.client;
@@ -1264,7 +1263,6 @@ class RapportDeControleApp {
             const dateObj = new Date(dateControle);
             const tableData = [
                 ['OF Ajust\'82', ordeFabrication],
-                ['Phase', phase],
                 ['Référence', reference],
                 ['Désignation', designation || 'N/A'],
                 ['Client', client || 'N/A'],
