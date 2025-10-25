@@ -1204,14 +1204,6 @@ class RapportDeControleApp {
             reportNumber = rapport.numero;
             defauts = defautsData;
 
-            // Mettre à jour le statut à "traite" uniquement si en_attente
-            if (rapport.status === 'en_attente') {
-                await supabaseClient
-                    .from('rapports')
-                    .update({ status: 'traite' })
-                    .eq('id', rapportId);
-            }
-
         } else {
             // Ancienne logique (devrait être rarement utilisée maintenant)
             ordeFabrication = document.getElementById('ordeFabrication').value;
@@ -1422,7 +1414,7 @@ class RapportDeControleApp {
                 this.resetForm();
             }
 
-            this.showPdfModal(fileName);
+            this.showNotification('PDF généré avec succès', 'success');
             await this.loadRapports();
 
             // Si c'est un rapport admin, recharger aussi la liste admin et le badge
