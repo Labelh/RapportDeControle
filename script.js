@@ -80,6 +80,10 @@ class RapportDeControleApp {
         document.getElementById('userName').textContent = this.userProfile.full_name;
         document.getElementById('userRole').textContent = this.userProfile.role;
 
+        // Afficher les initiales dans l'avatar
+        const initials = this.getInitials(this.userProfile.full_name);
+        document.getElementById('userAvatar').textContent = initials;
+
         // Afficher les menus admin si nécessaire
         if (this.userProfile.role === 'admin') {
             document.querySelectorAll('.admin-only').forEach(el => {
@@ -96,6 +100,15 @@ class RapportDeControleApp {
         this.loadClients();
         this.loadTypesDefauts();
         this.loadRapports();
+    }
+
+    getInitials(fullName) {
+        if (!fullName) return 'U';
+        const names = fullName.trim().split(' ');
+        if (names.length === 1) {
+            return names[0].substring(0, 2).toUpperCase();
+        }
+        return (names[0][0] + names[names.length - 1][0]).toUpperCase();
     }
 
     async updateNotifBadge() {
@@ -743,10 +756,14 @@ class RapportDeControleApp {
                 statusClass = 'cloture';
             }
 
-            // Bouton modifier seulement si statut en_attente
-            const editButton = rapport.status === 'en_attente'
-                ? `<button class="btn-icon-only btn-edit-icon" onclick="app.editerRapport('${rapport.id}')" title="Modifier">✎</button>`
-                : '';
+            // Boutons selon statut
+            let actionButtons = '';
+            if (rapport.status === 'en_attente') {
+                actionButtons = `
+                    <button class="btn btn-secondary btn-sm" onclick="app.editerRapport('${rapport.id}')">Modifier</button>
+                    <button class="btn btn-danger btn-sm" onclick="app.supprimerRapportUser('${rapport.id}')">Supprimer</button>
+                `;
+            }
 
             card.innerHTML = `
                 <div class="rapport-card-content">
@@ -768,10 +785,7 @@ class RapportDeControleApp {
                         <div class="rapport-date">${dateFormatted}</div>
                     </div>
                     <div class="rapport-actions">
-                        ${editButton}
-                        <button class="btn-icon-only btn-download" onclick="app.regeneratePDF('${rapport.id}')" title="Télécharger le PDF">
-                            ⬇
-                        </button>
+                        ${actionButtons}
                     </div>
                 </div>
             `;
@@ -1043,6 +1057,72 @@ class RapportDeControleApp {
         } catch (error) {
             console.error('Erreur lors du chargement du rapport:', error);
             this.showNotification('Erreur lors du chargement du rapport', 'error');
+        }
+    }
+
+    async supprimerRapportUser(rapportId) {
+        // Demander confirmation
+        if (!confirm('Êtes-vous sûr de vouloir supprimer ce rapport ?')) {
+            return;
+        }
+
+        try {
+            // Charger le rapport pour vérification
+            const { data: rapport, error: rapportError } = await supabaseClient
+                .from('rapports')
+                .select('*')
+                .eq('id', rapportId)
+                .single();
+
+            if (rapportError) {
+                throw rapportError;
+            }
+
+            // Vérifier que le rapport peut être supprimé
+            if (rapport.status !== 'en_attente') {
+                this.showNotification('Seuls les rapports en attente peuvent être supprimés', 'error');
+                return;
+            }
+
+            // Vérifier que c'est bien le rapport de l'utilisateur
+            if (rapport.controleur_id !== this.currentUser.id) {
+                this.showNotification('Vous ne pouvez supprimer que vos propres rapports', 'error');
+                return;
+            }
+
+            // Supprimer les défauts associés d'abord
+            const { error: defautsError } = await supabaseClient
+                .from('defauts')
+                .delete()
+                .eq('rapport_id', rapportId);
+
+            if (defautsError) {
+                throw defautsError;
+            }
+
+            // Supprimer le rapport
+            const { error: deleteError } = await supabaseClient
+                .from('rapports')
+                .delete()
+                .eq('id', rapportId);
+
+            if (deleteError) {
+                throw deleteError;
+            }
+
+            this.showNotification('Rapport supprimé avec succès', 'success');
+
+            // Recharger la liste des rapports
+            await this.loadRapports();
+
+            // Mettre à jour le badge de notification si admin
+            if (this.userProfile.role === 'admin') {
+                await this.updateNotifBadge();
+            }
+
+        } catch (error) {
+            console.error('Erreur lors de la suppression du rapport:', error);
+            this.showNotification('Erreur lors de la suppression du rapport', 'error');
         }
     }
 

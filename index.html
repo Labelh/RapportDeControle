@@ -39,19 +39,12 @@
             <div class="sidebar-header">
                 <div class="sidebar-logo">
                     <svg class="logo-svg" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
-                        <!-- Clipboard background -->
-                        <rect x="12" y="8" width="36" height="48" rx="3" fill="#a13a20" opacity="0.9"/>
-                        <!-- Clipboard clip -->
-                        <rect x="22" y="4" width="16" height="6" rx="2" fill="#636e72"/>
-                        <rect x="24" y="6" width="12" height="4" rx="1" fill="#f8f9fa"/>
-                        <!-- Warning symbol -->
-                        <path d="M 30 18 L 24 34 L 36 34 Z" fill="#fab1a0" stroke="#fff" stroke-width="1.5"/>
-                        <circle cx="30" cy="30" r="1.5" fill="#fff"/>
-                        <line x1="30" y1="23" x2="30" y2="28" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
-                        <!-- Document lines -->
-                        <line x1="18" y1="40" x2="42" y2="40" stroke="#f8f9fa" stroke-width="1.5" opacity="0.7"/>
-                        <line x1="18" y1="45" x2="38" y2="45" stroke="#f8f9fa" stroke-width="1.5" opacity="0.7"/>
-                        <line x1="18" y1="50" x2="42" y2="50" stroke="#f8f9fa" stroke-width="1.5" opacity="0.7"/>
+                        <!-- Circle background -->
+                        <circle cx="30" cy="30" r="26" fill="#a13a20"/>
+                        <!-- Check mark -->
+                        <path d="M 17 28 L 26 37 L 43 20" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                        <!-- Decorative arc -->
+                        <circle cx="30" cy="30" r="26" fill="none" stroke="#fab1a0" stroke-width="2" opacity="0.5"/>
                     </svg>
                     <h1>Rapport de<br>Contrôle</h1>
                 </div>
@@ -98,14 +91,16 @@
 
             <div class="sidebar-footer">
                 <div class="user-info">
-                    <div class="user-avatar">👤</div>
+                    <div class="user-avatar" id="userAvatar">U</div>
                     <div class="user-details">
                         <div class="user-name" id="userName">Utilisateur</div>
                         <div class="user-role" id="userRole">user</div>
                     </div>
                 </div>
-                <button id="themeToggle" class="theme-toggle">◐</button>
-                <button id="logoutBtn" class="btn-logout">Déconnexion</button>
+                <div class="footer-actions">
+                    <button id="themeToggle" class="icon-btn" title="Changer le thème">◐</button>
+                    <button id="logoutBtn" class="icon-btn" title="Déconnexion">⎋</button>
+                </div>
             </div>
         </aside>
 
@@ -120,7 +115,6 @@
 
                 <div class="card">
                     <div class="card-section-header">
-                        <span class="section-icon">📋</span>
                         <h3>Informations du Rapport</h3>
                     </div>
                     <div class="form-row-grid">
@@ -129,8 +123,8 @@
                             <input type="text" id="ordeFabrication" required placeholder="Ex: OF-12345">
                         </div>
                         <div class="form-group">
-                            <label for="ofClient">OF Client</label>
-                            <input type="text" id="ofClient" placeholder="Ex: OFC-456">
+                            <label for="ofClient">OF Client *</label>
+                            <input type="text" id="ofClient" required placeholder="Ex: OFC-456">
                         </div>
                         <div class="form-group">
                             <label for="phase">Phase *</label>
@@ -193,7 +187,6 @@
 
                 <div id="defautsListCard" class="card" style="display: none;">
                     <div class="card-section-header">
-                        <span class="section-icon">✓</span>
                         <h3>Défauts ajoutés</h3>
                     </div>
                     <div id="defautsList" class="defauts-list"></div>

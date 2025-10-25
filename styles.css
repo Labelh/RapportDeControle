@@ -199,25 +199,26 @@ body {
     display: flex;
     align-items: center;
     gap: 1rem;
-    padding: 1rem 1.5rem;
+    padding: 0.75rem 1.25rem;
+    margin: 0.35rem 0.75rem;
     color: rgba(255, 255, 255, 0.7);
     text-decoration: none;
     transition: var(--transition);
     cursor: pointer;
-    border-left: 3px solid transparent;
-    margin: 0.25rem 0;
+    border-radius: 10px;
+    border: 1px solid transparent;
 }
 
 .nav-item:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(161, 58, 32, 0.15);
     color: white;
-    border-left-color: rgba(255, 255, 255, 0.3);
+    border-color: var(--accent-orange);
 }
 
 .nav-item.active {
-    background: linear-gradient(90deg, rgba(161, 58, 32, 0.2) 0%, transparent 100%);
+    background: var(--accent-orange);
     color: white;
-    border-left-color: var(--accent-orange);
+    border-color: var(--accent-orange);
 }
 
 .nav-icon {
@@ -311,7 +312,10 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: white;
+    letter-spacing: 0.5px;
 }
 
 .user-details {
@@ -330,37 +334,32 @@ body {
     text-transform: uppercase;
 }
 
-.theme-toggle {
+.footer-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.icon-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.6);
+    padding: 0.5rem;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: var(--transition);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon-btn:hover {
     background: rgba(255, 255, 255, 0.1);
-    border: none;
     color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 1.2rem;
-    transition: var(--transition);
-    width: 100%;
-    margin-bottom: 0.5rem;
-}
-
-.theme-toggle:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
-
-.btn-logout {
-    width: 100%;
-    padding: 0.75rem;
-    background: rgba(231, 76, 60, 0.8);
-    border: none;
-    color: white;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: var(--transition);
-}
-
-.btn-logout:hover {
-    background: #e74c3c;
+    border-color: rgba(255, 255, 255, 0.4);
 }
 
 /* ========== CONTENU PRINCIPAL ========== */
@@ -494,7 +493,7 @@ body {
 .btn {
     padding: 0.75rem 1.5rem;
     border: none;
-    border-radius: 6px;
+    border-radius: 10px;
     font-size: 0.95rem;
     cursor: pointer;
     font-weight: 500;
@@ -546,6 +545,11 @@ body {
 
 .btn-green:hover {
     opacity: 0.9;
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
 }
 
 .btn-danger {
