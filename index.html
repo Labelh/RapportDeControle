@@ -38,8 +38,22 @@
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="sidebar-logo">
-                    <img src="Logo-Ajust.png" alt="Logo" class="logo-img">
-                    <h1>Gestion<br>Non-Conformités</h1>
+                    <svg class="logo-svg" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Clipboard background -->
+                        <rect x="12" y="8" width="36" height="48" rx="3" fill="#a13a20" opacity="0.9"/>
+                        <!-- Clipboard clip -->
+                        <rect x="22" y="4" width="16" height="6" rx="2" fill="#636e72"/>
+                        <rect x="24" y="6" width="12" height="4" rx="1" fill="#f8f9fa"/>
+                        <!-- Warning symbol -->
+                        <path d="M 30 18 L 24 34 L 36 34 Z" fill="#fab1a0" stroke="#fff" stroke-width="1.5"/>
+                        <circle cx="30" cy="30" r="1.5" fill="#fff"/>
+                        <line x1="30" y1="23" x2="30" y2="28" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
+                        <!-- Document lines -->
+                        <line x1="18" y1="40" x2="42" y2="40" stroke="#f8f9fa" stroke-width="1.5" opacity="0.7"/>
+                        <line x1="18" y1="45" x2="38" y2="45" stroke="#f8f9fa" stroke-width="1.5" opacity="0.7"/>
+                        <line x1="18" y1="50" x2="42" y2="50" stroke="#f8f9fa" stroke-width="1.5" opacity="0.7"/>
+                    </svg>
+                    <h1>Rapport de<br>Contrôle</h1>
                 </div>
                 <button class="sidebar-toggle" id="sidebarToggle">
                     <span></span>
@@ -112,7 +126,11 @@
                     <div class="form-row-grid">
                         <div class="form-group">
                             <label for="ordeFabrication">Ordre de Fabrication *</label>
-                            <input type="text" id="ordeFabrication" required placeholder="Ex: 12345">
+                            <input type="text" id="ordeFabrication" required placeholder="Ex: OF-12345">
+                        </div>
+                        <div class="form-group">
+                            <label for="ofClient">OF Client</label>
+                            <input type="text" id="ofClient" placeholder="Ex: OFC-456">
                         </div>
                         <div class="form-group">
                             <label for="phase">Phase *</label>
@@ -129,14 +147,9 @@
                             </select>
                         </div>
                     </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-section-header">
-                        <span class="section-icon">⚠️</span>
-                        <h3>Défauts à signaler</h3>
+                    <div class="card-footer-actions">
+                        <button id="addDefaut" class="btn btn-green">+ Ajouter un Défaut</button>
                     </div>
-                    <button id="addDefaut" class="btn btn-green btn-block">+ Ajouter un Défaut</button>
                 </div>
 
                 <div id="defautFormContainer" class="defaut-form-container" style="display: none;">
@@ -163,16 +176,10 @@
                                 <textarea id="commentaire" rows="3" placeholder="Détails complémentaires..."></textarea>
                             </div>
                             <div class="form-group">
-                                <label>Photos</label>
-                                <div id="dropZone" class="drop-zone">
-                                    <div class="drop-zone-content">
-                                        <div class="drop-zone-icon">📁</div>
-                                        <div class="drop-zone-text">
-                                            <strong>Glissez vos photos ici</strong><br>
-                                            ou cliquez pour sélectionner
-                                        </div>
-                                    </div>
+                                <label>Photos (optionnel)</label>
+                                <div id="dropZone" class="drop-zone-compact">
                                     <input type="file" id="photos" multiple accept="image/*" hidden>
+                                    <span class="drop-zone-compact-text">📎 Cliquer pour ajouter des photos</span>
                                 </div>
                                 <div id="photosPreview" class="photos-preview"></div>
                             </div>

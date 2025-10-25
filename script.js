@@ -803,6 +803,7 @@ class RapportDeControleApp {
 
     async saveRapport(reportNumber, pdfData) {
         const ordeFabrication = document.getElementById('ordeFabrication').value;
+        const ofClient = document.getElementById('ofClient').value;
         const phase = document.getElementById('phase').value;
         const reference = document.getElementById('reference').value;
         const client = document.getElementById('client').value;
@@ -813,6 +814,7 @@ class RapportDeControleApp {
             .insert([{
                 numero: reportNumber,
                 ordre_fabrication: ordeFabrication,
+                of_client: ofClient,
                 phase: phase,
                 reference: reference,
                 designation: null,
@@ -876,6 +878,7 @@ class RapportDeControleApp {
                     .from('rapports')
                     .update({
                         ordre_fabrication: ordeFabrication,
+                        of_client: document.getElementById('ofClient').value,
                         phase,
                         reference,
                         designation: null,
@@ -927,6 +930,7 @@ class RapportDeControleApp {
                     .insert([{
                         numero: reportNumber,
                         ordre_fabrication: ordeFabrication,
+                        of_client: document.getElementById('ofClient').value,
                         phase,
                         reference,
                         designation: null,
@@ -1007,6 +1011,7 @@ class RapportDeControleApp {
 
             // Remplir le formulaire
             document.getElementById('ordeFabrication').value = rapport.ordre_fabrication;
+            document.getElementById('ofClient').value = rapport.of_client || '';
             document.getElementById('phase').value = rapport.phase;
             document.getElementById('reference').value = rapport.reference;
             document.getElementById('client').value = rapport.client || '';
@@ -1287,6 +1292,7 @@ class RapportDeControleApp {
 
     resetForm() {
         document.getElementById('ordeFabrication').value = '';
+        document.getElementById('ofClient').value = '';
         document.getElementById('phase').value = '';
         document.getElementById('reference').value = '';
         document.getElementById('client').value = '';

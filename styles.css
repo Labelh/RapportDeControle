@@ -159,11 +159,10 @@ body {
     gap: 1rem;
 }
 
-.logo-img {
+.logo-svg {
     width: 50px;
     height: 50px;
-    object-fit: contain;
-    border-radius: 8px;
+    flex-shrink: 0;
 }
 
 .sidebar-header h1 {
@@ -279,6 +278,14 @@ body {
 
 .btn-block {
     width: 100%;
+}
+
+.card-footer-actions {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-light);
+    display: flex;
+    justify-content: flex-end;
 }
 
 .sidebar-footer {
@@ -742,6 +749,30 @@ body {
 .drop-zone-text {
     color: var(--text-light);
     font-size: 1rem;
+}
+
+/* Drop zone compact (discret) */
+.drop-zone-compact {
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    background: var(--background-white);
+    cursor: pointer;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.drop-zone-compact:hover,
+.drop-zone-compact.drag-over {
+    border-color: var(--accent-orange);
+    background: rgba(161, 58, 32, 0.03);
+}
+
+.drop-zone-compact-text {
+    color: var(--text-light);
+    font-size: 0.9rem;
 }
 
 .drop-zone-text strong {
