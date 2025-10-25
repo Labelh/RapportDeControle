@@ -1586,6 +1586,9 @@ class RapportDeControleApp {
 
         if (!rapport) return;
 
+        // Capturer le contexte pour les callbacks
+        const self = this;
+
         // Créer un formulaire modal pour modifier le statut et ajouter la réponse client
         const modal = document.createElement('div');
         modal.className = 'modal-overlay';
@@ -1641,7 +1644,7 @@ class RapportDeControleApp {
             // Si on clôture, enregistrer la date et l'utilisateur
             if (newStatus === 'cloture' && rapport.status !== 'cloture') {
                 updateData.date_cloture = new Date().toISOString();
-                updateData.valide_par = this.currentUser.id;
+                updateData.valide_par = self.currentUser.id;
             }
 
             const { error } = await supabaseClient
@@ -1650,14 +1653,15 @@ class RapportDeControleApp {
                 .eq('id', rapportId);
 
             if (error) {
-                this.showNotification('Erreur mise à jour', 'error');
+                console.error('Erreur mise à jour:', error);
+                self.showNotification('Erreur mise à jour: ' + error.message, 'error');
                 return;
             }
 
-            this.showNotification('NC mise à jour', 'success');
+            self.showNotification('NC mise à jour', 'success');
             document.body.removeChild(modal);
-            await this.loadAdminRapports();
-            await this.updateNotifBadge();
+            await self.loadAdminRapports();
+            await self.updateNotifBadge();
         };
     }
 
