@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Création Utilisateur - Diagnostic</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #0a0a0a;
+            padding: 30px;
+            border: 2px solid #00ff00;
+            border-radius: 8px;
+        }
+        h1 { color: #00ff00; margin-bottom: 20px; }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #151515;
+            border-left: 3px solid #00ff00;
+        }
+        .log {
+            background: #000;
+            padding: 15px;
+            margin: 10px 0;
+            border: 1px solid #333;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .log-item {
+            margin: 5px 0;
+            padding: 5px;
+        }
+        .log-item.info { color: #00bfff; }
+        .log-item.success { color: #00ff00; }
+        .log-item.error { color: #ff0000; }
+        .log-item.warning { color: #ffa500; }
+        button {
+            background: #00ff00;
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            margin: 10px 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+        button:hover { background: #00cc00; }
+        input, select {
+            background: #000;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            padding: 10px;
+            margin: 5px 0;
+            width: 100%;
+            font-family: 'Courier New', monospace;
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #00ff00;
+        }
+        code {
+            background: #000;
+            padding: 2px 6px;
+            border: 1px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔬 Test Création Utilisateur - Diagnostic Complet</h1>
+
+        <div class="section">
+            <h3>📋 Informations de connexion</h3>
+            <div id="configInfo"></div>
+        </div>
+
+        <div class="section">
+            <h3>1️⃣ Test de connexion Supabase</h3>
+            <button onclick="testConnection()">Tester la connexion</button>
+        </div>
+
+        <div class="section">
+            <h3>2️⃣ Vérifier la structure de la table profiles</h3>
+            <button onclick="checkTableStructure()">Vérifier la table</button>
+        </div>
+
+        <div class="section">
+            <h3>3️⃣ Créer un utilisateur (avec logs détaillés)</h3>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="testUsername" value="test_user" placeholder="Username">
+            </div>
+            <div class="form-group">
+                <label>Nom complet</label>
+                <input type="text" id="testFullName" value="Utilisateur Test" placeholder="Nom complet">
+            </div>
+            <div class="form-group">
+                <label>Mot de passe</label>
+                <input type="password" id="testPassword" value="Test123!" placeholder="Mot de passe">
+            </div>
+            <div class="form-group">
+                <label>Rôle</label>
+                <select id="testRole">
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            <button onclick="createUser()">Créer l'utilisateur</button>
+            <button onclick="clearLogs()">Effacer les logs</button>
+        </div>
+
+        <div class="section">
+            <h3>📊 Console de logs</h3>
+            <div id="logs" class="log"></div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logsDiv = document.getElementById('logs');
+            const logItem = document.createElement('div');
+            logItem.className = `log-item ${type}`;
+            logItem.textContent = `[${timestamp}] ${message}`;
+            logsDiv.appendChild(logItem);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+            console.log(`[${type.toUpperCase()}]`, message);
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        // Afficher la config
+        document.getElementById('configInfo').innerHTML = `
+            <p><strong>URL:</strong> <code>${SUPABASE_CONFIG.url}</code></p>
+            <p><strong>Anon Key:</strong> <code>${SUPABASE_CONFIG.anonKey.substring(0, 30)}...</code></p>
+        `;
+
+        async function testConnection() {
+            log('🔌 Test de connexion à Supabase...', 'info');
+
+            try {
+                const { data, error } = await supabaseClient.auth.getSession();
+
+                if (error) {
+                    log(`❌ Erreur de connexion: ${error.message}`, 'error');
+                    return;
+                }
+
+                log('✅ Connexion Supabase OK', 'success');
+                log(`Session: ${data.session ? 'Connecté' : 'Non connecté'}`, 'info');
+            } catch (err) {
+                log(`❌ Exception: ${err.message}`, 'error');
+            }
+        }
+
+        async function checkTableStructure() {
+            log('🔍 Vérification de la structure de la table profiles...', 'info');
+
+            try {
+                // Essayer de récupérer les colonnes en faisant une requête
+                const { data, error } = await supabaseClient
+                    .from('profiles')
+                    .select('*')
+                    .limit(1);
+
+                if (error) {
+                    log(`❌ Erreur lors de la lecture de la table: ${error.message}`, 'error');
+                    log(`Code: ${error.code}`, 'error');
+                    log(`Détails: ${error.details}`, 'error');
+                    return;
+                }
+
+                log('✅ Table profiles accessible', 'success');
+
+                if (data && data.length > 0) {
+                    log(`📊 Colonnes détectées: ${Object.keys(data[0]).join(', ')}`, 'info');
+                } else {
+                    log('ℹ️ Table vide, impossible de détecter les colonnes', 'info');
+                }
+            } catch (err) {
+                log(`❌ Exception: ${err.message}`, 'error');
+            }
+        }
+
+        async function createUser() {
+            const username = document.getElementById('testUsername').value.trim();
+            const fullName = document.getElementById('testFullName').value.trim();
+            const password = document.getElementById('testPassword').value;
+            const role = document.getElementById('testRole').value;
+
+            log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
+            log('🚀 DÉBUT DE LA CRÉATION D\'UTILISATEUR', 'info');
+            log(`Username: ${username}`, 'info');
+            log(`Full Name: ${fullName}`, 'info');
+            log(`Role: ${role}`, 'info');
+            log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
+
+            try {
+                // ÉTAPE 1 : Vérifier si le username existe déjà
+                log('📝 Étape 1: Vérification username existant...', 'info');
+                const { data: existingUser, error: checkError } = await supabaseClient
+                    .from('profiles')
+                    .select('username')
+                    .eq('username', username)
+                    .maybeSingle();
+
+                if (checkError) {
+                    log(`❌ Erreur vérification: ${checkError.message}`, 'error');
+                    log(`Code: ${checkError.code}`, 'error');
+                    return;
+                }
+
+                if (existingUser) {
+                    log(`⚠️ Le username "${username}" existe déjà`, 'warning');
+                    return;
+                }
+                log('✅ Username disponible', 'success');
+
+                // ÉTAPE 2 : Créer l'email
+                const email = `${username}@rapportcontrole.app`;
+                log(`📧 Étape 2: Email généré: ${email}`, 'info');
+
+                // ÉTAPE 3 : Créer le compte Auth
+                log('🔐 Étape 3: Création du compte Auth...', 'info');
+                const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+                    email,
+                    password,
+                    options: {
+                        emailRedirectTo: undefined,
+                        data: {
+                            username: username,
+                            full_name: fullName
+                        }
+                    }
+                });
+
+                if (authError) {
+                    log(`❌ Erreur Auth: ${authError.message}`, 'error');
+                    log(`Code Auth: ${authError.status}`, 'error');
+                    log(`Détails Auth: ${JSON.stringify(authError)}`, 'error');
+                    return;
+                }
+
+                if (!authData.user) {
+                    log('❌ Aucun utilisateur créé dans Auth', 'error');
+                    return;
+                }
+
+                log(`✅ Compte Auth créé - UUID: ${authData.user.id}`, 'success');
+                log(`Email confirmé: ${authData.user.email_confirmed_at ? 'OUI' : 'NON'}`, 'info');
+
+                // ÉTAPE 4 : Attendre un peu
+                log('⏳ Étape 4: Attente de 1 seconde...', 'info');
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                // ÉTAPE 5 : Créer le profil
+                log('👤 Étape 5: Création du profil...', 'info');
+                log(`Données profil: id=${authData.user.id}, username=${username}, full_name=${fullName}, role=${role}`, 'info');
+
+                const { data: profileData, error: profileError } = await supabaseClient
+                    .from('profiles')
+                    .insert([{
+                        id: authData.user.id,
+                        username,
+                        full_name: fullName,
+                        role
+                    }])
+                    .select();
+
+                if (profileError) {
+                    log(`❌ Erreur Profil: ${profileError.message}`, 'error');
+                    log(`Code Profil: ${profileError.code}`, 'error');
+                    log(`Détails Profil: ${profileError.details || 'N/A'}`, 'error');
+                    log(`Hint Profil: ${profileError.hint || 'N/A'}`, 'error');
+                    return;
+                }
+
+                log('✅ Profil créé avec succès!', 'success');
+                log(`Données profil: ${JSON.stringify(profileData)}`, 'success');
+                log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'success');
+                log('🎉 UTILISATEUR CRÉÉ AVEC SUCCÈS!', 'success');
+                log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'success');
+
+            } catch (err) {
+                log(`❌ Exception inattendue: ${err.message}`, 'error');
+                log(`Stack: ${err.stack}`, 'error');
+            }
+        }
+
+        // Log initial
+        log('✅ Page de diagnostic chargée', 'success');
+        log('Cliquez sur les boutons pour lancer les tests', 'info');
+    </script>
+</body>
+</html>
