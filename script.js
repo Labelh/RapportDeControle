@@ -754,10 +754,29 @@ class RapportDeControleApp {
             return;
         }
 
-        this.rapports.forEach((rapport) => {
-            const card = document.createElement('div');
-            card.className = 'card rapport-card';
+        // Créer le tableau
+        const table = document.createElement('table');
+        table.className = 'rapports-table';
 
+        table.innerHTML = `
+            <thead>
+                <tr>
+                    <th>N°</th>
+                    <th>OF</th>
+                    <th>Phase</th>
+                    <th>Référence</th>
+                    <th>Client</th>
+                    <th>Statut</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        `;
+
+        const tbody = table.querySelector('tbody');
+
+        this.rapports.forEach((rapport) => {
             const dateObj = new Date(rapport.date_controle);
             const dateFormatted = dateObj.toLocaleDateString('fr-FR');
 
@@ -772,43 +791,38 @@ class RapportDeControleApp {
             } else if (rapport.status === 'cloture') {
                 statusLabel = 'Clôturé';
                 statusClass = 'cloture';
+            } else if (rapport.status === 'traite') {
+                statusLabel = 'Traité';
+                statusClass = 'traite';
+            } else if (rapport.status === 'resolu') {
+                statusLabel = 'Résolu';
+                statusClass = 'resolu';
             }
 
             // Boutons selon statut
             let actionButtons = '';
             if (rapport.status === 'en_attente') {
                 actionButtons = `
-                    <button class="btn btn-secondary btn-sm" onclick="app.editerRapport('${rapport.id}')">Modifier</button>
-                    <button class="btn btn-danger btn-sm" onclick="app.supprimerRapportUser('${rapport.id}')">Supprimer</button>
+                    <button class="btn-icon-only btn-edit-icon" onclick="app.editerRapport('${rapport.id}')" title="Modifier">✎</button>
+                    <button class="btn-icon-only btn-delete-icon" onclick="app.supprimerRapportUser('${rapport.id}')" title="Supprimer">🗑</button>
                 `;
             }
 
-            card.innerHTML = `
-                <div class="rapport-card-content">
-                    <div class="rapport-info">
-                        <div class="rapport-numero">${rapport.numero}</div>
-                        <div class="rapport-details">
-                            <span class="rapport-label">OF:</span> ${rapport.ordre_fabrication}
-                        </div>
-                        <div class="rapport-details">
-                            <span class="rapport-label">Phase:</span> ${rapport.phase || 'N/A'}
-                        </div>
-                        <div class="rapport-details">
-                            <span class="rapport-label">Référence:</span> ${rapport.reference || 'N/A'}
-                        </div>
-                        <div class="rapport-details">
-                            <span class="rapport-label">Client:</span> ${rapport.client || 'N/A'}
-                        </div>
-                        <span class="rapport-status status-${statusClass}">${statusLabel}</span>
-                        <div class="rapport-date">${dateFormatted}</div>
-                    </div>
-                    <div class="rapport-actions">
-                        ${actionButtons}
-                    </div>
-                </div>
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><div class="rapport-numero">${rapport.numero}</div></td>
+                <td>${rapport.ordre_fabrication}</td>
+                <td>${rapport.phase || 'N/A'}</td>
+                <td>${rapport.reference || 'N/A'}</td>
+                <td>${rapport.client || 'N/A'}</td>
+                <td><span class="rapport-status status-${statusClass}">${statusLabel}</span></td>
+                <td>${dateFormatted}</td>
+                <td><div class="rapport-actions">${actionButtons}</div></td>
             `;
-            container.appendChild(card);
+            tbody.appendChild(tr);
         });
+
+        container.appendChild(table);
     }
 
     async generateReportNumber() {
@@ -1447,10 +1461,31 @@ class RapportDeControleApp {
             return;
         }
 
-        rapports.forEach(rapport => {
-            const card = document.createElement('div');
-            card.className = 'card rapport-card';
+        // Créer le tableau
+        const table = document.createElement('table');
+        table.className = 'rapports-table';
 
+        table.innerHTML = `
+            <thead>
+                <tr>
+                    <th>N°</th>
+                    <th>OF</th>
+                    <th>Phase</th>
+                    <th>Référence</th>
+                    <th>Client</th>
+                    <th>Contrôleur</th>
+                    <th>Défauts</th>
+                    <th>Statut</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        `;
+
+        const tbody = table.querySelector('tbody');
+
+        rapports.forEach(rapport => {
             const dateFormatted = new Date(rapport.date_controle).toLocaleDateString('fr-FR');
 
             let statusLabel = 'En attente';
@@ -1464,31 +1499,42 @@ class RapportDeControleApp {
             } else if (rapport.status === 'cloture') {
                 statusLabel = 'Clôturé';
                 statusClass = 'cloture';
+            } else if (rapport.status === 'traite') {
+                statusLabel = 'Traité';
+                statusClass = 'traite';
+            } else if (rapport.status === 'resolu') {
+                statusLabel = 'Résolu';
+                statusClass = 'resolu';
             }
 
             // Bouton PDF pour tous les rapports
-            const pdfButtonText = rapport.status === 'en_attente' ? 'Générer PDF' : 'Regénérer PDF';
-            const pdfButton = `<button class="btn btn-primary" onclick="app.genererPDF('${rapport.id}')" style="margin-bottom: 0.5rem;">📄 ${pdfButtonText}</button>`;
+            const pdfIcon = rapport.status === 'en_attente' ? '📄' : '↻';
+            const pdfTitle = rapport.status === 'en_attente' ? 'Générer PDF' : 'Regénérer PDF';
+            const pdfButton = `<button class="btn-icon-only btn-download" onclick="app.genererPDF('${rapport.id}')" title="${pdfTitle}">${pdfIcon}</button>`;
 
-            card.innerHTML = `
-                <div class="rapport-card-content">
-                    <div class="rapport-info">
-                        <div class="rapport-numero">${rapport.numero}</div>
-                        <div class="rapport-details"><span class="rapport-label">OF:</span> ${rapport.ordre_fabrication}</div>
-                        <div class="rapport-details"><span class="rapport-label">Contrôleur:</span> ${rapport.controleur_name}</div>
-                        <div class="rapport-details"><span class="rapport-label">Défauts:</span> ${rapport.defauts ? rapport.defauts.length : 0}</div>
-                        <span class="rapport-status status-${statusClass}">${statusLabel}</span>
-                        <div class="rapport-date">${dateFormatted}</div>
-                    </div>
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><div class="rapport-numero">${rapport.numero}</div></td>
+                <td>${rapport.ordre_fabrication}</td>
+                <td>${rapport.phase || 'N/A'}</td>
+                <td>${rapport.reference || 'N/A'}</td>
+                <td>${rapport.client || 'N/A'}</td>
+                <td>${rapport.controleur_name}</td>
+                <td>${rapport.defauts ? rapport.defauts.length : 0}</td>
+                <td><span class="rapport-status status-${statusClass}">${statusLabel}</span></td>
+                <td>${dateFormatted}</td>
+                <td>
                     <div class="rapport-actions">
                         ${pdfButton}
                         <button class="btn-icon-only btn-edit-icon" onclick="app.changeRapportStatus('${rapport.id}')" title="Modifier">✎</button>
                         <button class="btn-icon-only btn-delete-icon" onclick="app.supprimerRapport('${rapport.id}')" title="Supprimer">🗑</button>
                     </div>
-                </div>
+                </td>
             `;
-            container.appendChild(card);
+            tbody.appendChild(tr);
         });
+
+        container.appendChild(table);
     }
 
     async changeRapportStatus(rapportId) {

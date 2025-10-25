@@ -838,8 +838,72 @@ body {
 /* ========== HISTORIQUE & ADMIN ========== */
 .rapports-list,
 .admin-rapports-list {
-    display: grid;
-    gap: 1rem;
+    display: block;
+}
+
+.rapports-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: transparent;
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.rapports-table thead {
+    background: var(--background-white);
+}
+
+.rapports-table thead th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-dark);
+    border-bottom: 2px solid var(--border-light);
+    font-size: 0.9rem;
+}
+
+.rapports-table tbody tr {
+    background: var(--background-white);
+    border-bottom: 1px solid var(--border-light);
+    transition: var(--transition);
+}
+
+.rapports-table tbody tr:hover {
+    background: var(--background-light);
+}
+
+.rapports-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.rapports-table tbody td {
+    padding: 1rem;
+    color: var(--text-dark);
+    font-size: 0.9rem;
+    vertical-align: middle;
+}
+
+.rapports-table .rapport-numero {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--accent-orange);
+}
+
+.rapports-table .rapport-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.rapports-table .rapport-status {
+    display: inline-block;
+    padding: 0.3rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
 }
 
 .rapport-card {
@@ -909,6 +973,11 @@ body {
 .status-resolu {
     background: rgba(40, 167, 69, 0.2);
     color: var(--accent-green);
+}
+
+.status-traite {
+    background: rgba(23, 162, 184, 0.2);
+    color: var(--accent-green-blue);
 }
 
 .rapport-actions {

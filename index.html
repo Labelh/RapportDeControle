@@ -20,11 +20,11 @@
             <form id="loginForm" class="login-form">
                 <div class="form-group">
                     <label for="loginUsername">Identifiant</label>
-                    <input type="text" id="loginUsername" required placeholder="Votre identifiant">
+                    <input type="text" id="loginUsername" required>
                 </div>
                 <div class="form-group">
                     <label for="loginPassword">Mot de passe</label>
-                    <input type="password" id="loginPassword" required placeholder="••••••••">
+                    <input type="password" id="loginPassword" required>
                 </div>
                 <button type="submit" class="btn btn-primary btn-block">Se connecter</button>
                 <div id="loginError" class="error-message" style="display: none;"></div>
@@ -120,19 +120,19 @@
                     <div class="form-row-grid">
                         <div class="form-group">
                             <label for="ordeFabrication">Ordre de Fabrication *</label>
-                            <input type="text" id="ordeFabrication" required placeholder="Ex: OF-12345">
+                            <input type="text" id="ordeFabrication" required>
                         </div>
                         <div class="form-group">
                             <label for="ofClient">OF Client *</label>
-                            <input type="text" id="ofClient" required placeholder="Ex: OFC-456">
+                            <input type="text" id="ofClient" required>
                         </div>
                         <div class="form-group">
                             <label for="phase">Phase *</label>
-                            <input type="text" id="phase" required placeholder="Ex: Assemblage">
+                            <input type="text" id="phase" required>
                         </div>
                         <div class="form-group">
                             <label for="reference">Référence Produit *</label>
-                            <input type="text" id="reference" required placeholder="Ex: REF-001">
+                            <input type="text" id="reference" required>
                         </div>
                         <div class="form-group">
                             <label for="client">Client</label>
@@ -167,7 +167,7 @@
                             </div>
                             <div class="form-group">
                                 <label for="commentaire">Observation</label>
-                                <textarea id="commentaire" rows="3" placeholder="Détails complémentaires..."></textarea>
+                                <textarea id="commentaire" rows="3"></textarea>
                             </div>
                             <div class="form-group">
                                 <label>Photos (optionnel)</label>
@@ -234,15 +234,15 @@
                         <div class="form-row-grid">
                             <div class="form-group">
                                 <label for="newUserUsername">Identifiant *</label>
-                                <input type="text" id="newUserUsername" required placeholder="identifiant">
+                                <input type="text" id="newUserUsername" required>
                             </div>
                             <div class="form-group">
                                 <label for="newUserName">Nom complet *</label>
-                                <input type="text" id="newUserName" required placeholder="Prénom Nom">
+                                <input type="text" id="newUserName" required>
                             </div>
                             <div class="form-group">
                                 <label for="newUserPassword">Mot de passe *</label>
-                                <input type="password" id="newUserPassword" required placeholder="••••••••" minlength="6">
+                                <input type="password" id="newUserPassword" required minlength="6">
                             </div>
                             <div class="form-group">
                                 <label for="newUserRole">Rôle *</label>
@@ -275,7 +275,7 @@
                     </div>
                     <div class="form-group">
                         <label for="nouveauClient">Nouveau Client</label>
-                        <input type="text" id="nouveauClient" placeholder="Nom du client">
+                        <input type="text" id="nouveauClient">
                         <button id="ajouterClient" class="btn btn-secondary">Ajouter</button>
                     </div>
                 </div>
@@ -287,7 +287,7 @@
                     </div>
                     <div class="form-group">
                         <label for="nouveauDefaut">Nouveau Type de Défaut</label>
-                        <input type="text" id="nouveauDefaut" placeholder="Type de défaut">
+                        <input type="text" id="nouveauDefaut">
                         <button id="ajouterTypeDefaut" class="btn btn-secondary">Ajouter</button>
                     </div>
                 </div>
