@@ -782,7 +782,12 @@ class RapportDeControleApp {
 
             let statusLabel = 'En attente';
             let statusClass = 'en_attente';
-            if (rapport.status === 'en_cours') {
+
+            // Si réponse client existe, afficher "Traité"
+            if (rapport.reponse_client && rapport.reponse_client.trim() !== '') {
+                statusLabel = 'Traité';
+                statusClass = 'traite';
+            } else if (rapport.status === 'en_cours') {
                 statusLabel = 'En cours';
                 statusClass = 'en_cours';
             } else if (rapport.status === 'attente_client') {
@@ -808,6 +813,20 @@ class RapportDeControleApp {
                 `;
             }
 
+            // Compter le nombre total de photos
+            let totalPhotos = 0;
+            if (rapport.defauts && Array.isArray(rapport.defauts)) {
+                rapport.defauts.forEach(defaut => {
+                    if (defaut.photos && Array.isArray(defaut.photos)) {
+                        totalPhotos += defaut.photos.length;
+                    }
+                });
+            }
+
+            const photosButton = totalPhotos > 0
+                ? `<button class="btn-icon-only" onclick="app.viewRapportPhotos('${rapport.id}')" title="Voir ${totalPhotos} photo(s)">📷</button>`
+                : '';
+
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><div class="rapport-numero">${rapport.numero}</div></td>
@@ -817,7 +836,7 @@ class RapportDeControleApp {
                 <td>${rapport.client || 'N/A'}</td>
                 <td><span class="rapport-status status-${statusClass}">${statusLabel}</span></td>
                 <td>${dateFormatted}</td>
-                <td><div class="rapport-actions">${actionButtons}</div></td>
+                <td><div class="rapport-actions">${photosButton}${actionButtons}</div></td>
             `;
             tbody.appendChild(tr);
         });
@@ -1490,7 +1509,12 @@ class RapportDeControleApp {
 
             let statusLabel = 'En attente';
             let statusClass = 'en_attente';
-            if (rapport.status === 'en_cours') {
+
+            // Si réponse client existe, afficher "Traité"
+            if (rapport.reponse_client && rapport.reponse_client.trim() !== '') {
+                statusLabel = 'Traité';
+                statusClass = 'traite';
+            } else if (rapport.status === 'en_cours') {
                 statusLabel = 'En cours';
                 statusClass = 'en_cours';
             } else if (rapport.status === 'attente_client') {
@@ -1512,6 +1536,20 @@ class RapportDeControleApp {
             const pdfTitle = rapport.status === 'en_attente' ? 'Générer PDF' : 'Regénérer PDF';
             const pdfButton = `<button class="btn-icon-only btn-download" onclick="app.genererPDF('${rapport.id}')" title="${pdfTitle}">${pdfIcon}</button>`;
 
+            // Compter le nombre total de photos
+            let totalPhotos = 0;
+            if (rapport.defauts && Array.isArray(rapport.defauts)) {
+                rapport.defauts.forEach(defaut => {
+                    if (defaut.photos && Array.isArray(defaut.photos)) {
+                        totalPhotos += defaut.photos.length;
+                    }
+                });
+            }
+
+            const photosButton = totalPhotos > 0
+                ? `<button class="btn-icon-only" onclick="app.viewRapportPhotos('${rapport.id}')" title="Voir ${totalPhotos} photo(s)">📷</button>`
+                : '';
+
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><div class="rapport-numero">${rapport.numero}</div></td>
@@ -1525,6 +1563,7 @@ class RapportDeControleApp {
                 <td>${dateFormatted}</td>
                 <td>
                     <div class="rapport-actions">
+                        ${photosButton}
                         ${pdfButton}
                         <button class="btn-icon-only btn-edit-icon" onclick="app.changeRapportStatus('${rapport.id}')" title="Modifier">✎</button>
                         <button class="btn-icon-only btn-delete-icon" onclick="app.supprimerRapport('${rapport.id}')" title="Supprimer">🗑</button>
@@ -1549,14 +1588,13 @@ class RapportDeControleApp {
 
         // Créer un formulaire modal pour modifier le statut et ajouter la réponse client
         const modal = document.createElement('div');
-        modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;';
-
+        modal.className = 'modal-overlay';
         modal.innerHTML = `
-            <div style="background:white;padding:2rem;border-radius:8px;max-width:600px;width:90%;">
-                <h3 style="margin-top:0;">Modifier NC ${rapport.numero}</h3>
+            <div class="modal-box">
+                <h3 style="margin-top:0;color:var(--text-dark);">Modifier NC ${rapport.numero}</h3>
                 <div style="margin-bottom:1rem;">
-                    <label style="display:block;margin-bottom:0.5rem;font-weight:bold;">Statut</label>
-                    <select id="modalStatus" style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:4px;">
+                    <label style="display:block;margin-bottom:0.5rem;font-weight:bold;color:var(--text-dark);">Statut</label>
+                    <select id="modalStatus" class="modal-input">
                         <option value="en_attente" ${rapport.status === 'en_attente' ? 'selected' : ''}>En attente</option>
                         <option value="en_cours" ${rapport.status === 'en_cours' ? 'selected' : ''}>En cours</option>
                         <option value="attente_client" ${rapport.status === 'attente_client' ? 'selected' : ''}>Attente client</option>
@@ -1564,16 +1602,16 @@ class RapportDeControleApp {
                     </select>
                 </div>
                 <div style="margin-bottom:1rem;">
-                    <label style="display:block;margin-bottom:0.5rem;font-weight:bold;">Réponse client</label>
-                    <textarea id="modalReponse" rows="3" style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:4px;">${rapport.reponse_client || ''}</textarea>
+                    <label style="display:block;margin-bottom:0.5rem;font-weight:bold;color:var(--text-dark);">Réponse client</label>
+                    <textarea id="modalReponse" rows="3" class="modal-input">${rapport.reponse_client || ''}</textarea>
                 </div>
                 <div style="margin-bottom:1rem;">
-                    <label style="display:block;margin-bottom:0.5rem;font-weight:bold;">Action corrective</label>
-                    <textarea id="modalAction" rows="2" style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:4px;">${rapport.action_corrective || ''}</textarea>
+                    <label style="display:block;margin-bottom:0.5rem;font-weight:bold;color:var(--text-dark);">Action corrective</label>
+                    <textarea id="modalAction" rows="2" class="modal-input">${rapport.action_corrective || ''}</textarea>
                 </div>
                 <div style="display:flex;gap:1rem;justify-content:flex-end;">
-                    <button id="modalCancel" style="padding:0.5rem 1rem;border:1px solid #ddd;background:white;border-radius:4px;cursor:pointer;">Annuler</button>
-                    <button id="modalSave" style="padding:0.5rem 1rem;border:none;background:#a13a20;color:white;border-radius:4px;cursor:pointer;">Enregistrer</button>
+                    <button id="modalCancel" class="btn btn-secondary">Annuler</button>
+                    <button id="modalSave" class="btn btn-primary">Enregistrer</button>
                 </div>
             </div>
         `;
@@ -1636,6 +1674,102 @@ class RapportDeControleApp {
         this.showNotification('Rapport supprimé', 'success');
         await this.loadAdminRapports();
         await this.updateNotifBadge();
+    }
+
+    async viewRapportPhotos(rapportId) {
+        // Charger le rapport avec ses défauts
+        const { data: rapport, error } = await supabaseClient
+            .from('rapports')
+            .select('*, defauts (*)')
+            .eq('id', rapportId)
+            .single();
+
+        if (error || !rapport) {
+            this.showNotification('Erreur lors du chargement des photos', 'error');
+            return;
+        }
+
+        // Collecter toutes les photos
+        const allPhotos = [];
+        if (rapport.defauts && Array.isArray(rapport.defauts)) {
+            rapport.defauts.forEach(defaut => {
+                if (defaut.photos && Array.isArray(defaut.photos)) {
+                    defaut.photos.forEach(photo => {
+                        allPhotos.push({
+                            data: photo.data,
+                            name: photo.name,
+                            defautType: defaut.type
+                        });
+                    });
+                }
+            });
+        }
+
+        if (allPhotos.length === 0) {
+            this.showNotification('Aucune photo disponible', 'info');
+            return;
+        }
+
+        // Créer le carrousel
+        this.showPhotoCarousel(allPhotos, rapport.numero);
+    }
+
+    showPhotoCarousel(photos, rapportNumero) {
+        let currentIndex = 0;
+
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.id = 'photoCarouselModal';
+
+        const updateCarousel = () => {
+            const photo = photos[currentIndex];
+            const carouselContent = modal.querySelector('.carousel-content');
+            carouselContent.innerHTML = `
+                <img src="${photo.data}" alt="${photo.name}" class="carousel-image">
+                <div class="carousel-info">
+                    <p><strong>Défaut:</strong> ${photo.defautType}</p>
+                    <p><strong>Photo:</strong> ${currentIndex + 1} / ${photos.length}</p>
+                </div>
+            `;
+        };
+
+        modal.innerHTML = `
+            <div class="carousel-modal">
+                <div class="carousel-header">
+                    <h3>Photos - Rapport ${rapportNumero}</h3>
+                    <button class="close-carousel" id="closeCarousel">×</button>
+                </div>
+                <div class="carousel-content"></div>
+                <div class="carousel-controls">
+                    <button class="carousel-btn" id="prevPhoto">‹</button>
+                    <button class="carousel-btn" id="nextPhoto">›</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+        updateCarousel();
+
+        document.getElementById('closeCarousel').onclick = () => {
+            document.body.removeChild(modal);
+        };
+
+        document.getElementById('prevPhoto').onclick = () => {
+            currentIndex = (currentIndex - 1 + photos.length) % photos.length;
+            updateCarousel();
+        };
+
+        document.getElementById('nextPhoto').onclick = () => {
+            currentIndex = (currentIndex + 1) % photos.length;
+            updateCarousel();
+        };
+
+        // Fermer en cliquant en dehors
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                document.body.removeChild(modal);
+            }
+        };
     }
 
     // ========== GESTION UTILISATEURS ==========
