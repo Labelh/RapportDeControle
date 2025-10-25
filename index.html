@@ -53,19 +53,20 @@
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                     </svg>
-                    <span class="nav-text">Nouvelle NC</span>
+                    <span class="nav-text">Nouveau Rapport</span>
                 </a>
                 <a href="#" class="nav-item" data-page="mes-nc">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                     </svg>
-                    <span class="nav-text">Mes NC</span>
+                    <span class="nav-text">Mes Rapports</span>
                 </a>
                 <a href="#" class="nav-item admin-only" data-page="admin" style="display: none;">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
-                    <span class="nav-text">Espace Admin</span>
+                    <span class="nav-text">Rapports en attente</span>
+                    <span id="notifBadge" class="notif-badge" style="display: none;">0</span>
                 </a>
                 <a href="#" class="nav-item admin-only" data-page="utilisateurs" style="display: none;">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -99,11 +100,15 @@
             <!-- Page Nouvelle NC -->
             <div id="page-nouvelle-nc" class="page active">
                 <div class="page-header">
-                    <h2>Nouvelle Non-Conformité</h2>
+                    <h2>Nouveau Rapport de Contrôle</h2>
+                    <p class="page-description">Créez un nouveau rapport de non-conformité</p>
                 </div>
 
                 <div class="card">
-                    <h3>Informations Générales</h3>
+                    <div class="card-section-header">
+                        <span class="section-icon">📋</span>
+                        <h3>Informations du Rapport</h3>
+                    </div>
                     <div class="form-row-grid">
                         <div class="form-group">
                             <label for="ordeFabrication">Ordre de Fabrication *</label>
@@ -114,12 +119,8 @@
                             <input type="text" id="phase" required placeholder="Ex: Assemblage">
                         </div>
                         <div class="form-group">
-                            <label for="reference">Référence *</label>
+                            <label for="reference">Référence Produit *</label>
                             <input type="text" id="reference" required placeholder="Ex: REF-001">
-                        </div>
-                        <div class="form-group">
-                            <label for="designation">Désignation</label>
-                            <input type="text" id="designation" placeholder="Description du produit">
                         </div>
                         <div class="form-group">
                             <label for="client">Client</label>
@@ -130,9 +131,12 @@
                     </div>
                 </div>
 
-                <div class="defauts-header">
-                    <h3 id="defautsTitle">Défauts Identifiés</h3>
-                    <button id="addDefaut" class="btn btn-green">+ Ajouter un Défaut</button>
+                <div class="card">
+                    <div class="card-section-header">
+                        <span class="section-icon">⚠️</span>
+                        <h3>Défauts à signaler</h3>
+                    </div>
+                    <button id="addDefaut" class="btn btn-green btn-block">+ Ajouter un Défaut</button>
                 </div>
 
                 <div id="defautFormContainer" class="defaut-form-container" style="display: none;">
@@ -180,11 +184,15 @@
                     </div>
                 </div>
 
-                <div class="card">
+                <div id="defautsListCard" class="card" style="display: none;">
+                    <div class="card-section-header">
+                        <span class="section-icon">✓</span>
+                        <h3>Défauts ajoutés</h3>
+                    </div>
                     <div id="defautsList" class="defauts-list"></div>
                 </div>
 
-                <button id="validerRapport" class="btn btn-success generate-pdf-btn">Valider le Rapport</button>
+                <button id="validerRapport" class="btn btn-success generate-pdf-btn" style="display: none;">Valider le Rapport</button>
             </div>
 
             <!-- Page Mes NC -->

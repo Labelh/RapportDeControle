@@ -85,6 +85,8 @@ class RapportDeControleApp {
             document.querySelectorAll('.admin-only').forEach(el => {
                 el.style.display = 'flex';
             });
+            // Charger le compteur de rapports en attente
+            this.updateNotifBadge();
         }
 
         // Initialiser l'application
@@ -94,6 +96,22 @@ class RapportDeControleApp {
         this.loadClients();
         this.loadTypesDefauts();
         this.loadRapports();
+    }
+
+    async updateNotifBadge() {
+        const { data, error } = await supabaseClient
+            .from('rapports')
+            .select('id', { count: 'exact', head: true })
+            .eq('status', 'en_attente');
+
+        if (!error && data !== null) {
+            const count = data.length || 0;
+            const badge = document.getElementById('notifBadge');
+            if (badge) {
+                badge.textContent = count;
+                badge.style.display = count > 0 ? 'inline-block' : 'none';
+            }
+        }
     }
 
     setupLoginForm() {
@@ -334,12 +352,20 @@ class RapportDeControleApp {
 
     updateDefautsList() {
         const liste = document.getElementById('defautsList');
+        const defautsListCard = document.getElementById('defautsListCard');
+        const validerBtn = document.getElementById('validerRapport');
+
         liste.innerHTML = '';
 
+        // Afficher/masquer la carte et le bouton selon s'il y a des défauts
         if (this.defauts.length === 0) {
-            liste.innerHTML = '<p style="text-align: center; color: var(--text-light); padding: 2rem;">Aucun défaut ajouté</p>';
+            defautsListCard.style.display = 'none';
+            validerBtn.style.display = 'none';
             return;
         }
+
+        defautsListCard.style.display = 'block';
+        validerBtn.style.display = 'block';
 
         this.defauts.forEach((defaut, index) => {
             const div = document.createElement('div');
@@ -779,7 +805,6 @@ class RapportDeControleApp {
         const ordeFabrication = document.getElementById('ordeFabrication').value;
         const phase = document.getElementById('phase').value;
         const reference = document.getElementById('reference').value;
-        const designation = document.getElementById('designation').value;
         const client = document.getElementById('client').value;
 
         // Insérer le rapport
@@ -790,7 +815,7 @@ class RapportDeControleApp {
                 ordre_fabrication: ordeFabrication,
                 phase: phase,
                 reference: reference,
-                designation: designation,
+                designation: null,
                 client: client,
                 controleur_id: this.currentUser.id,
                 controleur_name: this.userProfile.full_name,
@@ -853,7 +878,7 @@ class RapportDeControleApp {
                         ordre_fabrication: ordeFabrication,
                         phase,
                         reference,
-                        designation: document.getElementById('designation').value,
+                        designation: null,
                         client: document.getElementById('client').value
                     })
                     .eq('id', this.editingRapportId);
@@ -904,7 +929,7 @@ class RapportDeControleApp {
                         ordre_fabrication: ordeFabrication,
                         phase,
                         reference,
-                        designation: document.getElementById('designation').value,
+                        designation: null,
                         client: document.getElementById('client').value,
                         controleur_id: this.currentUser.id,
                         controleur_name: this.userProfile.full_name,
@@ -944,6 +969,11 @@ class RapportDeControleApp {
             // Recharger les rapports
             await this.loadRapports();
 
+            // Mettre à jour le badge si admin
+            if (this.userProfile.role === 'admin') {
+                await this.updateNotifBadge();
+            }
+
         } catch (error) {
             console.error('Erreur lors de la validation:', error);
             this.showNotification('Erreur lors de la validation du rapport', 'error');
@@ -979,7 +1009,6 @@ class RapportDeControleApp {
             document.getElementById('ordeFabrication').value = rapport.ordre_fabrication;
             document.getElementById('phase').value = rapport.phase;
             document.getElementById('reference').value = rapport.reference;
-            document.getElementById('designation').value = rapport.designation || '';
             document.getElementById('client').value = rapport.client || '';
 
             // Charger les défauts
@@ -1065,7 +1094,7 @@ class RapportDeControleApp {
                 return;
             }
 
-            designation = document.getElementById('designation').value;
+            designation = null;
             client = document.getElementById('client').value;
             controleurName = this.userProfile.full_name;
             dateControle = new Date();
@@ -1240,9 +1269,10 @@ class RapportDeControleApp {
             this.showPdfModal(fileName);
             await this.loadRapports();
 
-            // Si c'est un rapport admin, recharger aussi la liste admin
+            // Si c'est un rapport admin, recharger aussi la liste admin et le badge
             if (rapportId) {
                 await this.loadAdminRapports();
+                await this.updateNotifBadge();
             }
 
         } catch (error) {
@@ -1259,7 +1289,6 @@ class RapportDeControleApp {
         document.getElementById('ordeFabrication').value = '';
         document.getElementById('phase').value = '';
         document.getElementById('reference').value = '';
-        document.getElementById('designation').value = '';
         document.getElementById('client').value = '';
         this.defauts = [];
         this.editingRapportId = null;
@@ -1439,6 +1468,7 @@ class RapportDeControleApp {
             this.showNotification('NC mise à jour', 'success');
             document.body.removeChild(modal);
             await this.loadAdminRapports();
+            await this.updateNotifBadge();
         };
     }
 
@@ -1454,6 +1484,7 @@ class RapportDeControleApp {
 
         this.showNotification('Rapport supprimé', 'success');
         await this.loadAdminRapports();
+        await this.updateNotifBadge();
     }
 
     // ========== GESTION UTILISATEURS ==========
