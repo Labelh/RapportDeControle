@@ -1,5 +1,5 @@
 # Fichiers de configuration contenant des secrets
-config.js
+# config.js
 
 # Fichiers système
 .DS_Store
