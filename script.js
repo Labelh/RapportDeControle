@@ -989,7 +989,6 @@ class RapportDeControleApp {
                         numero: reportNumber,
                         ordre_fabrication: ordeFabrication,
                         of_client: document.getElementById('ofClient').value,
-                        phase,
                         reference,
                         designation: null,
                         client: document.getElementById('client').value,
@@ -1592,11 +1591,7 @@ class RapportDeControleApp {
                 </div>
                 <div style="margin-bottom:1rem;">
                     <label style="display:block;margin-bottom:0.5rem;font-weight:bold;color:var(--text-dark);">Réponse client</label>
-                    <textarea id="modalReponse" rows="3" class="modal-input">${rapport.reponse_client || ''}</textarea>
-                </div>
-                <div style="margin-bottom:1rem;">
-                    <label style="display:block;margin-bottom:0.5rem;font-weight:bold;color:var(--text-dark);">Action corrective</label>
-                    <textarea id="modalAction" rows="2" class="modal-input">${rapport.action_corrective || ''}</textarea>
+                    <textarea id="modalReponse" rows="5" class="modal-input">${rapport.reponse_client || ''}</textarea>
                 </div>
                 <div style="display:flex;gap:1rem;justify-content:flex-end;">
                     <button id="modalCancel" class="btn btn-secondary">Annuler</button>
@@ -1614,12 +1609,10 @@ class RapportDeControleApp {
         document.getElementById('modalSave').onclick = async () => {
             const newStatus = document.getElementById('modalStatus').value;
             const reponseClient = document.getElementById('modalReponse').value;
-            const actionCorrective = document.getElementById('modalAction').value;
 
             const updateData = {
                 status: newStatus,
-                reponse_client: reponseClient || null,
-                action_corrective: actionCorrective || null
+                reponse_client: reponseClient || null
             };
 
             // Si on passe à attente_client et qu'il y a une réponse, enregistrer la date
