@@ -108,26 +108,27 @@ class RapportDeControleApp {
             console.log('🔐 Tentative de connexion avec:', username);
             loginError.style.display = 'none';
 
-            // Récupérer l'email correspondant au username
+            // Vérifier si le profil existe
             const { data: profileData, error: profileError } = await supabaseClient
                 .from('profiles')
-                .select('email')
+                .select('*')
                 .eq('username', username)
                 .single();
 
-            console.log('📧 Recherche email:', profileData, 'Erreur:', profileError);
+            console.log('📧 Recherche profil:', profileData, 'Erreur:', profileError);
 
             if (profileError || !profileData) {
                 console.error('❌ Erreur profil:', profileError);
-                loginError.textContent = 'Identifiant incorrect. Vérifiez que l\'utilisateur existe dans Supabase.';
+                loginError.textContent = 'Identifiant incorrect. Vérifiez que l\'utilisateur existe.';
                 loginError.style.display = 'block';
                 return;
             }
 
-            // Se connecter avec l'email trouvé
-            console.log('🔑 Tentative de connexion avec email:', profileData.email);
+            // Se connecter avec l'email généré automatiquement
+            const email = `${username}@rapportcontrole.app`;
+            console.log('🔑 Tentative de connexion avec email:', email);
             const { data, error } = await supabaseClient.auth.signInWithPassword({
-                email: profileData.email,
+                email,
                 password
             });
 
@@ -135,7 +136,7 @@ class RapportDeControleApp {
 
             if (error) {
                 console.error('❌ Erreur connexion:', error);
-                loginError.textContent = 'Mot de passe incorrect: ' + error.message;
+                loginError.textContent = 'Mot de passe incorrect.';
                 loginError.style.display = 'block';
                 return;
             }
@@ -1153,40 +1154,66 @@ class RapportDeControleApp {
         const password = document.getElementById('newUserPassword').value;
         const role = document.getElementById('newUserRole').value;
 
-        // Vérifier si le username existe déjà
-        const { data: existingUser, error: checkError } = await supabaseClient
-            .from('profiles')
-            .select('username')
-            .eq('username', username)
-            .single();
+        try {
+            // Vérifier si le username existe déjà
+            const { data: existingUser, error: checkError } = await supabaseClient
+                .from('profiles')
+                .select('username')
+                .eq('username', username)
+                .maybeSingle();
 
-        if (existingUser) {
-            this.showNotification('Cet identifiant existe déjà', 'error');
-            return;
-        }
-
-        // Créer un email fictif basé sur le username (pour Supabase Auth)
-        const email = `${username}@rapportcontrole.local`;
-
-        const { data, error } = await supabaseClient.auth.admin.createUser({
-            email,
-            password,
-            email_confirm: true,
-            user_metadata: {
-                username: username,
-                full_name: fullName,
-                role: role
+            if (existingUser) {
+                this.showNotification('Cet identifiant existe déjà', 'error');
+                return;
             }
-        });
 
-        if (error) {
+            // Créer un email basé sur le username (comme GestionDesStocks)
+            const email = `${username}@rapportcontrole.app`;
+
+            // Créer le compte Auth
+            const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+                email,
+                password,
+                options: {
+                    emailRedirectTo: undefined,
+                    data: {
+                        username,
+                        full_name: fullName,
+                    }
+                }
+            });
+
+            if (authError || !authData.user) {
+                this.showNotification('Erreur: ' + (authError?.message || 'Création impossible'), 'error');
+                return;
+            }
+
+            // Attendre un peu que le trigger se déclenche
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Créer le profil manuellement
+            const { error: profileError } = await supabaseClient
+                .from('profiles')
+                .insert([{
+                    id: authData.user.id,
+                    username,
+                    full_name: fullName,
+                    role
+                }]);
+
+            if (profileError) {
+                console.error('Erreur profil:', profileError);
+                this.showNotification('Utilisateur créé mais erreur de profil', 'warning');
+            } else {
+                this.showNotification('Utilisateur créé avec succès', 'success');
+            }
+
+            document.getElementById('addUserForm').reset();
+            await this.loadUsers();
+        } catch (error) {
+            console.error('Erreur création utilisateur:', error);
             this.showNotification('Erreur: ' + error.message, 'error');
-            return;
         }
-
-        this.showNotification('Utilisateur créé', 'success');
-        document.getElementById('addUserForm').reset();
-        await this.loadUsers();
     }
 
     async deleteUser(userId) {

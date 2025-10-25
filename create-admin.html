@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Créer un Administrateur</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 100%;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .message {
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 20px;
+            display: none;
+        }
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .credentials {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        .credentials strong {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Créer un Administrateur</h1>
+        <p class="subtitle">Outil de création du premier compte administrateur</p>
+
+        <form id="createAdminForm">
+            <div class="form-group">
+                <label for="username">Identifiant *</label>
+                <input type="text" id="username" value="admin" required>
+            </div>
+
+            <div class="form-group">
+                <label for="fullName">Nom complet *</label>
+                <input type="text" id="fullName" value="Administrateur" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Mot de passe *</label>
+                <input type="password" id="password" required minlength="6" placeholder="Minimum 6 caractères">
+            </div>
+
+            <div class="form-group">
+                <label for="confirmPassword">Confirmer le mot de passe *</label>
+                <input type="password" id="confirmPassword" required minlength="6">
+            </div>
+
+            <div class="form-group">
+                <label for="role">Rôle</label>
+                <select id="role">
+                    <option value="admin">Administrateur</option>
+                    <option value="user">Utilisateur</option>
+                </select>
+            </div>
+
+            <button type="submit" id="submitBtn">Créer le compte</button>
+        </form>
+
+        <div id="message" class="message"></div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+
+        const form = document.getElementById('createAdminForm');
+        const message = document.getElementById('message');
+        const submitBtn = document.getElementById('submitBtn');
+
+        function showMessage(text, type) {
+            message.textContent = text;
+            message.className = 'message ' + type;
+            message.style.display = 'block';
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const fullName = document.getElementById('fullName').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const role = document.getElementById('role').value;
+
+            // Validation
+            if (password !== confirmPassword) {
+                showMessage('Les mots de passe ne correspondent pas', 'error');
+                return;
+            }
+
+            if (password.length < 6) {
+                showMessage('Le mot de passe doit contenir au moins 6 caractères', 'error');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Création en cours...';
+
+            try {
+                // Vérifier si l'utilisateur existe déjà
+                const { data: existingUser } = await supabaseClient
+                    .from('profiles')
+                    .select('username')
+                    .eq('username', username)
+                    .maybeSingle();
+
+                if (existingUser) {
+                    showMessage('Cet identifiant existe déjà', 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Créer le compte';
+                    return;
+                }
+
+                // Créer l'email automatique
+                const email = `${username}@rapportcontrole.app`;
+
+                console.log('📧 Création du compte avec:', email);
+
+                // Créer le compte Auth
+                const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+                    email,
+                    password,
+                    options: {
+                        emailRedirectTo: undefined,
+                    }
+                });
+
+                if (authError) {
+                    console.error('Erreur Auth:', authError);
+                    showMessage('Erreur Auth: ' + authError.message, 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Créer le compte';
+                    return;
+                }
+
+                if (!authData.user) {
+                    showMessage('Erreur: Aucun utilisateur créé', 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Créer le compte';
+                    return;
+                }
+
+                console.log('✅ Compte Auth créé:', authData.user.id);
+
+                // Attendre un peu
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                // Créer le profil
+                const { error: profileError } = await supabaseClient
+                    .from('profiles')
+                    .insert([{
+                        id: authData.user.id,
+                        username,
+                        full_name: fullName,
+                        role
+                    }]);
+
+                if (profileError) {
+                    console.error('Erreur Profil:', profileError);
+                    showMessage('Compte créé mais erreur profil: ' + profileError.message, 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Créer le compte';
+                    return;
+                }
+
+                console.log('✅ Profil créé avec succès');
+
+                // Succès !
+                message.innerHTML = `
+                    <strong>✅ Compte créé avec succès !</strong>
+                    <div class="credentials">
+                        <strong>Identifiant:</strong> ${username}<br>
+                        <strong>Mot de passe:</strong> ${password}<br>
+                        <strong>Rôle:</strong> ${role}
+                    </div>
+                    <p style="margin-top: 15px; font-size: 14px;">
+                        Vous pouvez maintenant vous connecter à l'application avec ces identifiants.
+                        <br><br>
+                        <a href="index.html" style="color: #667eea; font-weight: 600;">→ Aller à la page de connexion</a>
+                    </p>
+                `;
+                message.className = 'message success';
+                message.style.display = 'block';
+
+                // Réinitialiser le formulaire
+                form.reset();
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Créer le compte';
+
+            } catch (error) {
+                console.error('Erreur:', error);
+                showMessage('Erreur inattendue: ' + error.message, 'error');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Créer le compte';
+            }
+        });
+    </script>
+</body>
+</html>
