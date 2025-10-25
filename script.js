@@ -1169,7 +1169,7 @@ class RapportDeControleApp {
     }
 
     async genererPDF(rapportId = null) {
-        let ordeFabrication, reference, designation, client, controleurName, dateControle, reportNumber, defauts;
+        let ordeFabrication, ofClient, reference, designation, client, controleurName, dateControle, reportNumber, defauts;
 
         if (rapportId) {
             // Générer PDF depuis l'admin pour un rapport existant
@@ -1195,6 +1195,7 @@ class RapportDeControleApp {
             }
 
             ordeFabrication = rapport.ordre_fabrication;
+            ofClient = rapport.of_client;
             reference = rapport.reference;
             designation = rapport.designation;
             client = rapport.client;
@@ -1214,6 +1215,7 @@ class RapportDeControleApp {
         } else {
             // Ancienne logique (devrait être rarement utilisée maintenant)
             ordeFabrication = document.getElementById('ordeFabrication').value;
+            ofClient = document.getElementById('ofClient').value;
             reference = document.getElementById('reference').value;
 
             if (!ordeFabrication || !reference) {
@@ -1239,15 +1241,22 @@ class RapportDeControleApp {
             const terracottaOrange = [161, 58, 32];
             const white = [255, 255, 255];
 
+            // Ajouter le logo Ajust'82 (à gauche)
+            try {
+                doc.addImage('Logo-Ajust.png', 'PNG', 15, 10, 25, 25);
+            } catch (error) {
+                console.warn('Logo non trouvé:', error);
+            }
+
             doc.setTextColor(...primaryColor);
             doc.setFontSize(16);
             doc.setFont('helvetica', 'bold');
-            doc.text('RAPPORT DE CONTRÔLE', 15, 18);
-            doc.text('QUALITÉ À RÉCEPTION', 15, 25);
+            doc.text('RAPPORT DE CONTRÔLE', 45, 18);
+            doc.text('QUALITÉ À RÉCEPTION', 45, 25);
 
             doc.setFontSize(12);
             doc.setTextColor(...terracottaOrange);
-            doc.text(`RC N°${reportNumber}`, 195, 18, { align: 'right' });
+            doc.text(`N°${reportNumber}`, 195, 18, { align: 'right' });
 
             let yPosition = 33;
             doc.setFillColor(...terracottaOrange);
@@ -1261,13 +1270,11 @@ class RapportDeControleApp {
 
             const dateObj = new Date(dateControle);
             const tableData = [
-                ['OF Ajust\'82', ordeFabrication],
+                ['OF Client', ofClient || 'N/A'],
                 ['Référence', reference],
                 ['Désignation', designation || 'N/A'],
                 ['Client', client || 'N/A'],
-                ['Contrôleur', controleurName],
-                ['Date', dateObj.toLocaleDateString('fr-FR')],
-                ['Heure', dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })]
+                ['Date', dateObj.toLocaleDateString('fr-FR')]
             ];
 
             doc.setTextColor(...primaryColor);
@@ -1316,67 +1323,90 @@ class RapportDeControleApp {
                 doc.setTextColor(...lightGray);
                 doc.text('Aucun défaut détecté.', 20, yPosition);
             } else {
-                for (let index = 0; index < defauts.length; index++) {
-                    const defaut = defauts[index];
+                // Affichage en 2 colonnes
+                const colWidth = 90;
+                const margin = 15;
+                const gap = 5;
 
-                    if (yPosition > 250) {
+                for (let index = 0; index < defauts.length; index += 2) {
+                    if (yPosition > 240) {
                         doc.addPage();
                         yPosition = 20;
                     }
 
-                    doc.setFontSize(11);
-                    doc.setFont('helvetica', 'bold');
-                    doc.setTextColor(...primaryColor);
-                    doc.text(`${index + 1}. ${defaut.type}`, 20, yPosition);
-                    yPosition += 7;
+                    const startY = yPosition;
+                    let maxHeight = 0;
 
-                    doc.setFontSize(9);
-                    doc.setFont('helvetica', 'normal');
-                    doc.setTextColor(...lightGray);
-                    doc.text(`Qté : ${defaut.quantite} pièces`, 20, yPosition);
-                    yPosition += 5;
+                    // Traiter jusqu'à 2 défauts par ligne
+                    for (let col = 0; col < 2 && (index + col) < defauts.length; col++) {
+                        const defaut = defauts[index + col];
+                        const xPosition = margin + (col * (colWidth + gap));
+                        let colY = startY;
 
-                    if (defaut.commentaire) {
-                        const commentaireLines = doc.splitTextToSize(`Observation : ${defaut.commentaire}`, 165);
-                        doc.text(commentaireLines, 20, yPosition);
-                        yPosition += commentaireLines.length * 4 + 3;
-                    }
+                        // Titre du défaut
+                        doc.setFontSize(10);
+                        doc.setFont('helvetica', 'bold');
+                        doc.setTextColor(...primaryColor);
+                        const defautTitle = doc.splitTextToSize(`${index + col + 1}. ${defaut.type}`, colWidth - 5);
+                        doc.text(defautTitle, xPosition, colY);
+                        colY += defautTitle.length * 5;
 
-                    if (defaut.photos && defaut.photos.length > 0) {
-                        yPosition += 3;
+                        // Quantité
+                        doc.setFontSize(8);
+                        doc.setFont('helvetica', 'normal');
+                        doc.setTextColor(...lightGray);
+                        doc.text(`Qté : ${defaut.quantite} pièces`, xPosition, colY);
+                        colY += 5;
 
-                        for (let photoIndex = 0; photoIndex < defaut.photos.length; photoIndex += 2) {
-                            if (yPosition > 210) {
-                                doc.addPage();
-                                yPosition = 20;
-                            }
+                        // Commentaire
+                        if (defaut.commentaire) {
+                            const commentaireLines = doc.splitTextToSize(`Obs : ${defaut.commentaire}`, colWidth - 5);
+                            doc.text(commentaireLines, xPosition, colY);
+                            colY += commentaireLines.length * 4 + 2;
+                        }
 
-                            const photosInThisRow = Math.min(2, defaut.photos.length - photoIndex);
-
-                            for (let i = 0; i < photosInThisRow; i++) {
-                                const photo = defaut.photos[photoIndex + i];
-                                const xPosition = 20 + (i * 85);
-
+                        // Photos
+                        if (defaut.photos && defaut.photos.length > 0) {
+                            colY += 2;
+                            for (let photoIndex = 0; photoIndex < Math.min(2, defaut.photos.length); photoIndex++) {
+                                const photo = defaut.photos[photoIndex];
                                 try {
-                                    doc.addImage(photo.data, 'JPEG', xPosition, yPosition, 70, 70);
+                                    doc.addImage(photo.data, 'JPEG', xPosition, colY, 40, 40);
+                                    colY += 42;
                                 } catch (error) {
                                     console.error('Erreur image:', error);
                                 }
                             }
-
-                            yPosition += 72;
                         }
+
+                        colY += 3;
+                        maxHeight = Math.max(maxHeight, colY - startY);
                     }
 
-                    yPosition += 6;
+                    yPosition += maxHeight;
 
-                    if (index < defauts.length - 1) {
+                    // Ligne de séparation
+                    if (index + 2 < defauts.length) {
                         doc.setDrawColor(...veryLightGray);
                         doc.setLineWidth(0.3);
-                        doc.line(20, yPosition, 190, yPosition);
-                        yPosition += 6;
+                        doc.line(margin, yPosition, 195, yPosition);
+                        yPosition += 5;
                     }
                 }
+            }
+
+            // Ajouter numérotation des pages et référence en bas de page
+            const totalPages = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= totalPages; i++) {
+                doc.setPage(i);
+
+                // Référence FOR-AJ-003 à gauche
+                doc.setFontSize(8);
+                doc.setTextColor(...lightGray);
+                doc.text('FOR-AJ-003', 15, 287);
+
+                // Numéro de page à droite
+                doc.text(`Page ${i}/${totalPages}`, 195, 287, { align: 'right' });
             }
 
             // Ne sauvegarder que si c'est un nouveau rapport (pas rapportId)
@@ -1384,7 +1414,7 @@ class RapportDeControleApp {
                 await this.saveRapport(reportNumber, null);
             }
 
-            const fileName = `${reportNumber}_${ordeFabrication}_${reference}_${new Date().toISOString().split('T')[0]}.pdf`;
+            const fileName = `${reportNumber}_${ofClient || ordeFabrication}_${reference}_${new Date().toISOString().split('T')[0]}.pdf`;
             doc.save(fileName);
 
             // Ne réinitialiser le formulaire que si ce n'est pas un rapport admin
