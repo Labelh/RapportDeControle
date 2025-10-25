@@ -181,7 +181,7 @@ class RapportDeControleApp {
                 document.getElementById(`page-${targetPage}`).classList.add('active');
 
                 // Charger les données spécifiques à la page
-                if (targetPage === 'historique') {
+                if (targetPage === 'mes-nc') {
                     this.loadRapports();
                 } else if (targetPage === 'admin') {
                     this.loadAdminRapports();
@@ -998,11 +998,11 @@ class RapportDeControleApp {
             const validerBtn = document.getElementById('validerRapport');
             validerBtn.textContent = 'Mettre à jour le Rapport';
 
-            // Passer à la page de rapport
+            // Passer à la page de nouvelle NC
             document.querySelectorAll('.nav-item').forEach(l => l.classList.remove('active'));
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.querySelector('[data-page="rapport"]').classList.add('active');
-            document.getElementById('page-rapport').classList.add('active');
+            document.querySelector('[data-page="nouvelle-nc"]').classList.add('active');
+            document.getElementById('page-nouvelle-nc').classList.add('active');
 
             this.showNotification('Rapport chargé pour modification', 'info');
 
