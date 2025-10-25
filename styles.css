@@ -91,7 +91,7 @@ body {
 .login-form input {
     width: 100%;
     padding: 0.85rem;
-    border: 2px solid var(--border-light);
+    border: 1px solid var(--border-light);
     border-radius: 8px;
     font-size: 1rem;
     transition: var(--transition);
@@ -442,7 +442,7 @@ body {
 .form-group textarea {
     width: 100%;
     padding: 0.75rem;
-    border: 2px solid var(--border-light);
+    border: 1px solid var(--border-light);
     border-radius: 6px;
     font-size: 0.95rem;
     transition: var(--transition);
@@ -493,7 +493,7 @@ body {
 .btn {
     padding: 0.75rem 1.5rem;
     border: none;
-    border-radius: 10px;
+    border-radius: 6px;
     font-size: 0.95rem;
     cursor: pointer;
     font-weight: 500;
@@ -785,7 +785,7 @@ body {
 }
 
 .photos-preview {
-    display: grid;
+    display: none;
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
     gap: 1rem;
     margin-top: 1rem;
@@ -924,7 +924,7 @@ body {
     font-size: 1.4rem;
     width: 42px;
     height: 42px;
-    border-radius: 50%;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -969,7 +969,7 @@ body {
 
 .filter-select {
     padding: 0.75rem 1rem;
-    border: 2px solid var(--border-light);
+    border: 1px solid var(--border-light);
     border-radius: 6px;
     font-size: 0.95rem;
     background: var(--background-white);

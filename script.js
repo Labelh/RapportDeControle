@@ -304,6 +304,19 @@ class RapportDeControleApp {
 
     // ========== GESTION DES DÉFAUTS ==========
     openDefautForm(editIndex = -1) {
+        // Vérifier que les champs du rapport sont renseignés avant d'ajouter un défaut
+        if (editIndex < 0) { // Seulement pour l'ajout, pas l'édition
+            const ordeFabrication = document.getElementById('ordeFabrication').value.trim();
+            const ofClient = document.getElementById('ofClient').value.trim();
+            const phase = document.getElementById('phase').value.trim();
+            const reference = document.getElementById('reference').value.trim();
+
+            if (!ordeFabrication || !ofClient || !phase || !reference) {
+                this.showNotification('Veuillez remplir tous les champs obligatoires du rapport (OF, OF Client, Phase, Référence)', 'error');
+                return;
+            }
+        }
+
         this.editingDefautIndex = editIndex;
         const formContainer = document.getElementById('defautFormContainer');
         const formTitle = document.getElementById('defautFormTitle');
@@ -504,15 +517,20 @@ class RapportDeControleApp {
         const preview = document.getElementById('photosPreview');
         preview.innerHTML = '';
 
-        this.selectedPhotos.forEach((photo, index) => {
-            const div = document.createElement('div');
-            div.className = 'photo-preview';
-            div.innerHTML = `
-                <img src="${photo.data}" alt="${photo.name}">
-                <button class="remove-photo" onclick="app.removePhoto(${index})">×</button>
-            `;
-            preview.appendChild(div);
-        });
+        if (this.selectedPhotos.length > 0) {
+            preview.style.display = 'grid';
+            this.selectedPhotos.forEach((photo, index) => {
+                const div = document.createElement('div');
+                div.className = 'photo-preview';
+                div.innerHTML = `
+                    <img src="${photo.data}" alt="${photo.name}">
+                    <button class="remove-photo" onclick="app.removePhoto(${index})">🗑</button>
+                `;
+                preview.appendChild(div);
+            });
+        } else {
+            preview.style.display = 'none';
+        }
     }
 
     removePhoto(index) {
@@ -557,7 +575,7 @@ class RapportDeControleApp {
                 const li = document.createElement('li');
                 li.innerHTML = `
                     <span>${client.nom}</span>
-                    <button class="btn-delete" onclick="app.supprimerClient('${client.id}')" title="Supprimer">×</button>
+                    <button class="btn-delete" onclick="app.supprimerClient('${client.id}')" title="Supprimer">🗑</button>
                 `;
                 listeClients.appendChild(li);
             });
@@ -647,7 +665,7 @@ class RapportDeControleApp {
                 const li = document.createElement('li');
                 li.innerHTML = `
                     <span>${type.nom}</span>
-                    <button class="btn-delete" onclick="app.supprimerTypeDefaut('${type.id}')" title="Supprimer">×</button>
+                    <button class="btn-delete" onclick="app.supprimerTypeDefaut('${type.id}')" title="Supprimer">🗑</button>
                 `;
                 listeTypesDefauts.appendChild(li);
             });
@@ -1162,11 +1180,13 @@ class RapportDeControleApp {
             reportNumber = rapport.numero;
             defauts = defautsData;
 
-            // Mettre à jour le statut à "traite"
-            await supabaseClient
-                .from('rapports')
-                .update({ status: 'traite' })
-                .eq('id', rapportId);
+            // Mettre à jour le statut à "traite" uniquement si en_attente
+            if (rapport.status === 'en_attente') {
+                await supabaseClient
+                    .from('rapports')
+                    .update({ status: 'traite' })
+                    .eq('id', rapportId);
+            }
 
         } else {
             // Ancienne logique (devrait être rarement utilisée maintenant)
@@ -1446,10 +1466,9 @@ class RapportDeControleApp {
                 statusClass = 'cloture';
             }
 
-            // Générer le bouton PDF seulement si le statut est en_attente
-            const pdfButton = rapport.status === 'en_attente'
-                ? `<button class="btn btn-primary" onclick="app.genererPDF('${rapport.id}')" style="margin-bottom: 0.5rem;">📄 Générer PDF</button>`
-                : '';
+            // Bouton PDF pour tous les rapports
+            const pdfButtonText = rapport.status === 'en_attente' ? 'Générer PDF' : 'Regénérer PDF';
+            const pdfButton = `<button class="btn btn-primary" onclick="app.genererPDF('${rapport.id}')" style="margin-bottom: 0.5rem;">📄 ${pdfButtonText}</button>`;
 
             card.innerHTML = `
                 <div class="rapport-card-content">
@@ -1464,7 +1483,7 @@ class RapportDeControleApp {
                     <div class="rapport-actions">
                         ${pdfButton}
                         <button class="btn-icon-only btn-edit-icon" onclick="app.changeRapportStatus('${rapport.id}')" title="Modifier">✎</button>
-                        <button class="btn-icon-only btn-delete-icon" onclick="app.supprimerRapport('${rapport.id}')" title="Supprimer">×</button>
+                        <button class="btn-icon-only btn-delete-icon" onclick="app.supprimerRapport('${rapport.id}')" title="Supprimer">🗑</button>
                     </div>
                 </div>
             `;
