@@ -1,19 +1,23 @@
--- Script SQL pour configurer votre base de données Supabase
--- Exécutez ces commandes dans l'éditeur SQL de Supabase
+-- ============================================
+-- INSTALLATION SUPABASE - RAPPORT DE CONTRÔLE
+-- ============================================
+-- Exécutez ce script dans Supabase SQL Editor
 
--- 1. Créer la table des profils utilisateurs (extension de auth.users)
-CREATE TABLE public.profiles (
-    id UUID REFERENCES auth.users(id) PRIMARY KEY,
+-- ============================================
+-- 1. CRÉER LES TABLES
+-- ============================================
+
+-- Table des profils utilisateurs
+CREATE TABLE IF NOT EXISTS public.profiles (
+    id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
     username TEXT UNIQUE NOT NULL,
-    email TEXT UNIQUE NOT NULL,
     full_name TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 2. Créer la table des rapports
-CREATE TABLE public.rapports (
+-- Table des rapports
+CREATE TABLE IF NOT EXISTS public.rapports (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     numero TEXT UNIQUE NOT NULL,
     ordre_fabrication TEXT NOT NULL,
@@ -29,8 +33,8 @@ CREATE TABLE public.rapports (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 3. Créer la table des défauts
-CREATE TABLE public.defauts (
+-- Table des défauts
+CREATE TABLE IF NOT EXISTS public.defauts (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     rapport_id UUID REFERENCES public.rapports(id) ON DELETE CASCADE NOT NULL,
     type TEXT NOT NULL,
@@ -40,182 +44,116 @@ CREATE TABLE public.defauts (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 4. Créer la table des clients
-CREATE TABLE public.clients (
+-- Table des clients
+CREATE TABLE IF NOT EXISTS public.clients (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     nom TEXT UNIQUE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 5. Créer la table des types de défauts
-CREATE TABLE public.types_defauts (
+-- Table des types de défauts
+CREATE TABLE IF NOT EXISTS public.types_defauts (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     nom TEXT UNIQUE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 6. Activer Row Level Security (RLS)
+-- ============================================
+-- 2. ACTIVER RLS (Row Level Security)
+-- ============================================
+
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rapports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.defauts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.clients ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.types_defauts ENABLE ROW LEVEL SECURITY;
 
--- 7. Politiques RLS pour profiles
--- Tout le monde peut lire les profils
-CREATE POLICY "Les profils sont visibles par tous les utilisateurs authentifiés"
-    ON public.profiles FOR SELECT
-    TO authenticated
-    USING (true);
+-- ============================================
+-- 3. CRÉER LES POLITIQUES RLS
+-- ============================================
 
--- Seuls les admins peuvent créer/modifier/supprimer des profils
-CREATE POLICY "Seuls les admins peuvent modifier les profils"
-    ON public.profiles FOR ALL
-    TO authenticated
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.profiles
-            WHERE id = auth.uid() AND role = 'admin'
-        )
-    );
+-- Profils : Lecture pour tous authentifiés, insertion pour anon/authenticated, modifications pour admins
+DROP POLICY IF EXISTS "profiles_select" ON public.profiles;
+DROP POLICY IF EXISTS "profiles_insert" ON public.profiles;
+DROP POLICY IF EXISTS "profiles_update" ON public.profiles;
+DROP POLICY IF EXISTS "profiles_delete" ON public.profiles;
 
--- 8. Politiques RLS pour rapports
--- Tout le monde peut voir tous les rapports
-CREATE POLICY "Les rapports sont visibles par tous"
-    ON public.rapports FOR SELECT
-    TO authenticated
-    USING (true);
+CREATE POLICY "profiles_select" ON public.profiles FOR SELECT TO authenticated USING (true);
+CREATE POLICY "profiles_insert" ON public.profiles FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY "profiles_update" ON public.profiles FOR UPDATE TO authenticated
+    USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+CREATE POLICY "profiles_delete" ON public.profiles FOR DELETE TO authenticated
+    USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
 
--- Les utilisateurs peuvent créer des rapports
-CREATE POLICY "Les utilisateurs peuvent créer des rapports"
-    ON public.rapports FOR INSERT
-    TO authenticated
-    WITH CHECK (controleur_id = auth.uid());
+-- Rapports : Lecture pour tous, création par l'utilisateur, modifications par admins
+DROP POLICY IF EXISTS "rapports_select" ON public.rapports;
+DROP POLICY IF EXISTS "rapports_insert" ON public.rapports;
+DROP POLICY IF EXISTS "rapports_update" ON public.rapports;
+DROP POLICY IF EXISTS "rapports_delete" ON public.rapports;
 
--- Les admins peuvent modifier tous les rapports
-CREATE POLICY "Les admins peuvent modifier les rapports"
-    ON public.rapports FOR UPDATE
-    TO authenticated
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.profiles
-            WHERE id = auth.uid() AND role = 'admin'
-        )
-    );
+CREATE POLICY "rapports_select" ON public.rapports FOR SELECT TO authenticated USING (true);
+CREATE POLICY "rapports_insert" ON public.rapports FOR INSERT TO authenticated WITH CHECK (controleur_id = auth.uid());
+CREATE POLICY "rapports_update" ON public.rapports FOR UPDATE TO authenticated
+    USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+CREATE POLICY "rapports_delete" ON public.rapports FOR DELETE TO authenticated
+    USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
 
--- Les admins peuvent supprimer les rapports
-CREATE POLICY "Les admins peuvent supprimer les rapports"
-    ON public.rapports FOR DELETE
-    TO authenticated
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.profiles
-            WHERE id = auth.uid() AND role = 'admin'
-        )
-    );
+-- Défauts : Lecture pour tous, création par propriétaire du rapport, modifications par admins
+DROP POLICY IF EXISTS "defauts_select" ON public.defauts;
+DROP POLICY IF EXISTS "defauts_insert" ON public.defauts;
+DROP POLICY IF EXISTS "defauts_update" ON public.defauts;
+DROP POLICY IF EXISTS "defauts_delete" ON public.defauts;
 
--- 9. Politiques RLS pour défauts
-CREATE POLICY "Les défauts sont visibles par tous"
-    ON public.defauts FOR SELECT
-    TO authenticated
-    USING (true);
+CREATE POLICY "defauts_select" ON public.defauts FOR SELECT TO authenticated USING (true);
+CREATE POLICY "defauts_insert" ON public.defauts FOR INSERT TO authenticated
+    WITH CHECK (EXISTS (SELECT 1 FROM public.rapports WHERE id = rapport_id AND controleur_id = auth.uid()));
+CREATE POLICY "defauts_update" ON public.defauts FOR UPDATE TO authenticated
+    USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+CREATE POLICY "defauts_delete" ON public.defauts FOR DELETE TO authenticated
+    USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
 
-CREATE POLICY "Les utilisateurs peuvent créer des défauts"
-    ON public.defauts FOR INSERT
-    TO authenticated
-    WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM public.rapports
-            WHERE id = rapport_id AND controleur_id = auth.uid()
-        )
-    );
+-- Clients : Lecture pour tous, gestion par admins
+DROP POLICY IF EXISTS "clients_select" ON public.clients;
+DROP POLICY IF EXISTS "clients_all" ON public.clients;
 
-CREATE POLICY "Les admins peuvent modifier les défauts"
-    ON public.defauts FOR UPDATE
-    TO authenticated
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.profiles
-            WHERE id = auth.uid() AND role = 'admin'
-        )
-    );
+CREATE POLICY "clients_select" ON public.clients FOR SELECT TO authenticated USING (true);
+CREATE POLICY "clients_all" ON public.clients FOR ALL TO authenticated
+    USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
 
-CREATE POLICY "Les admins peuvent supprimer les défauts"
-    ON public.defauts FOR DELETE
-    TO authenticated
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.profiles
-            WHERE id = auth.uid() AND role = 'admin'
-        )
-    );
+-- Types de défauts : Lecture pour tous, gestion par admins
+DROP POLICY IF EXISTS "types_defauts_select" ON public.types_defauts;
+DROP POLICY IF EXISTS "types_defauts_all" ON public.types_defauts;
 
--- 10. Politiques RLS pour clients
-CREATE POLICY "Les clients sont visibles par tous"
-    ON public.clients FOR SELECT
-    TO authenticated
-    USING (true);
+CREATE POLICY "types_defauts_select" ON public.types_defauts FOR SELECT TO authenticated USING (true);
+CREATE POLICY "types_defauts_all" ON public.types_defauts FOR ALL TO authenticated
+    USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
 
-CREATE POLICY "Seuls les admins peuvent gérer les clients"
-    ON public.clients FOR ALL
-    TO authenticated
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.profiles
-            WHERE id = auth.uid() AND role = 'admin'
-        )
-    );
+-- ============================================
+-- 4. INSÉRER LES DONNÉES DE BASE
+-- ============================================
 
--- 11. Politiques RLS pour types_defauts
-CREATE POLICY "Les types de défauts sont visibles par tous"
-    ON public.types_defauts FOR SELECT
-    TO authenticated
-    USING (true);
-
-CREATE POLICY "Seuls les admins peuvent gérer les types de défauts"
-    ON public.types_defauts FOR ALL
-    TO authenticated
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.profiles
-            WHERE id = auth.uid() AND role = 'admin'
-        )
-    );
-
--- 12. Fonction pour créer automatiquement un profil lors de l'inscription
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-    INSERT INTO public.profiles (id, username, email, full_name, role)
-    VALUES (
-        NEW.id,
-        COALESCE(NEW.raw_user_meta_data->>'username', NEW.email),
-        NEW.email,
-        COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email),
-        COALESCE(NEW.raw_user_meta_data->>'role', 'user')
-    );
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- 13. Trigger pour créer le profil automatiquement
-CREATE TRIGGER on_auth_user_created
-    AFTER INSERT ON auth.users
-    FOR EACH ROW
-    EXECUTE FUNCTION public.handle_new_user();
-
--- 14. Insérer des données de base
 INSERT INTO public.clients (nom) VALUES
     ('Client A'),
     ('Client B'),
-    ('Client C');
+    ('Client C')
+ON CONFLICT (nom) DO NOTHING;
 
 INSERT INTO public.types_defauts (nom) VALUES
     ('Rayure'),
     ('Bosselure'),
     ('Peinture défectueuse'),
-    ('Dimension incorrecte');
+    ('Dimension incorrecte')
+ON CONFLICT (nom) DO NOTHING;
 
--- 15. Créer un utilisateur admin par défaut (à exécuter après avoir créé l'utilisateur dans Supabase Auth)
--- Remplacez 'EMAIL_ADMIN' par l'email de votre compte admin
--- UPDATE public.profiles SET role = 'admin' WHERE email = 'EMAIL_ADMIN';
+-- ============================================
+-- ✅ INSTALLATION TERMINÉE
+-- ============================================
+
+-- Vérification :
+SELECT 'Profils' as table_name, COUNT(*) as count FROM public.profiles
+UNION ALL
+SELECT 'Rapports', COUNT(*) FROM public.rapports
+UNION ALL
+SELECT 'Clients', COUNT(*) FROM public.clients
+UNION ALL
+SELECT 'Types défauts', COUNT(*) FROM public.types_defauts;
