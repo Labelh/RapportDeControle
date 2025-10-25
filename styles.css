@@ -210,7 +210,7 @@ body {
 }
 
 .nav-item:hover {
-    background: rgba(161, 58, 32, 0.15);
+    background: transparent;
     color: white;
     border-color: var(--accent-orange);
 }
@@ -407,9 +407,9 @@ body {
 
 /* ========== CARDS ========== */
 .card {
-    background: var(--background-white);
+    background: transparent;
     border-radius: 10px;
-    box-shadow: var(--shadow-light);
+    box-shadow: none;
     padding: 1.5rem;
     margin-bottom: 1.5rem;
     border: 1px solid var(--border-light);

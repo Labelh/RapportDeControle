@@ -308,11 +308,10 @@ class RapportDeControleApp {
         if (editIndex < 0) { // Seulement pour l'ajout, pas l'édition
             const ordeFabrication = document.getElementById('ordeFabrication').value.trim();
             const ofClient = document.getElementById('ofClient').value.trim();
-            const phase = document.getElementById('phase').value.trim();
             const reference = document.getElementById('reference').value.trim();
 
-            if (!ordeFabrication || !ofClient || !phase || !reference) {
-                this.showNotification('Veuillez remplir tous les champs obligatoires du rapport (OF, OF Client, Phase, Référence)', 'error');
+            if (!ordeFabrication || !ofClient || !reference) {
+                this.showNotification('Veuillez remplir tous les champs obligatoires du rapport (OF, OF Client, Référence)', 'error');
                 return;
             }
         }
@@ -763,7 +762,6 @@ class RapportDeControleApp {
                 <tr>
                     <th>N°</th>
                     <th>OF</th>
-                    <th>Phase</th>
                     <th>Référence</th>
                     <th>Client</th>
                     <th>Statut</th>
@@ -831,7 +829,6 @@ class RapportDeControleApp {
             tr.innerHTML = `
                 <td><div class="rapport-numero">${rapport.numero}</div></td>
                 <td>${rapport.ordre_fabrication}</td>
-                <td>${rapport.phase || 'N/A'}</td>
                 <td>${rapport.reference || 'N/A'}</td>
                 <td>${rapport.client || 'N/A'}</td>
                 <td><span class="rapport-status status-${statusClass}">${statusLabel}</span></td>
@@ -869,7 +866,6 @@ class RapportDeControleApp {
     async saveRapport(reportNumber, pdfData) {
         const ordeFabrication = document.getElementById('ordeFabrication').value;
         const ofClient = document.getElementById('ofClient').value;
-        const phase = document.getElementById('phase').value;
         const reference = document.getElementById('reference').value;
         const client = document.getElementById('client').value;
 
@@ -880,7 +876,6 @@ class RapportDeControleApp {
                 numero: reportNumber,
                 ordre_fabrication: ordeFabrication,
                 of_client: ofClient,
-                phase: phase,
                 reference: reference,
                 designation: null,
                 client: client,
@@ -922,11 +917,10 @@ class RapportDeControleApp {
     // ========== GÉNÉRATION PDF ==========
     async validerRapport() {
         const ordeFabrication = document.getElementById('ordeFabrication').value;
-        const phase = document.getElementById('phase').value;
         const reference = document.getElementById('reference').value;
 
-        if (!ordeFabrication || !phase || !reference) {
-            this.showNotification('Veuillez remplir tous les champs obligatoires (OF, Phase, Référence)', 'error');
+        if (!ordeFabrication || !reference) {
+            this.showNotification('Veuillez remplir tous les champs obligatoires (OF, Référence)', 'error');
             return;
         }
 
@@ -944,7 +938,6 @@ class RapportDeControleApp {
                     .update({
                         ordre_fabrication: ordeFabrication,
                         of_client: document.getElementById('ofClient').value,
-                        phase,
                         reference,
                         designation: null,
                         client: document.getElementById('client').value
@@ -1077,7 +1070,6 @@ class RapportDeControleApp {
             // Remplir le formulaire
             document.getElementById('ordeFabrication').value = rapport.ordre_fabrication;
             document.getElementById('ofClient').value = rapport.of_client || '';
-            document.getElementById('phase').value = rapport.phase;
             document.getElementById('reference').value = rapport.reference;
             document.getElementById('client').value = rapport.client || '';
 
@@ -1224,11 +1216,10 @@ class RapportDeControleApp {
         } else {
             // Ancienne logique (devrait être rarement utilisée maintenant)
             ordeFabrication = document.getElementById('ordeFabrication').value;
-            phase = document.getElementById('phase').value;
             reference = document.getElementById('reference').value;
 
-            if (!ordeFabrication || !phase || !reference) {
-                this.showNotification('Veuillez remplir tous les champs obligatoires (OF, Phase, Référence)', 'error');
+            if (!ordeFabrication || !reference) {
+                this.showNotification('Veuillez remplir tous les champs obligatoires (OF, Référence)', 'error');
                 return;
             }
 
@@ -1426,7 +1417,6 @@ class RapportDeControleApp {
     resetForm() {
         document.getElementById('ordeFabrication').value = '';
         document.getElementById('ofClient').value = '';
-        document.getElementById('phase').value = '';
         document.getElementById('reference').value = '';
         document.getElementById('client').value = '';
         this.defauts = [];
@@ -1489,7 +1479,6 @@ class RapportDeControleApp {
                 <tr>
                     <th>N°</th>
                     <th>OF</th>
-                    <th>Phase</th>
                     <th>Référence</th>
                     <th>Client</th>
                     <th>Contrôleur</th>
@@ -1554,7 +1543,6 @@ class RapportDeControleApp {
             tr.innerHTML = `
                 <td><div class="rapport-numero">${rapport.numero}</div></td>
                 <td>${rapport.ordre_fabrication}</td>
-                <td>${rapport.phase || 'N/A'}</td>
                 <td>${rapport.reference || 'N/A'}</td>
                 <td>${rapport.client || 'N/A'}</td>
                 <td>${rapport.controleur_name}</td>
