@@ -18,6 +18,7 @@ class RapportDeControleApp {
         this.selectedPhotos = [];
         this.editingDefautIndex = -1;
         this.rapports = [];
+        this.editingRapportId = null;
 
         this.init();
     }
@@ -235,7 +236,7 @@ class RapportDeControleApp {
         document.getElementById('photos').addEventListener('change', (e) => this.handlePhotoSelection(e));
 
         // Génération PDF
-        document.getElementById('genererPDF').addEventListener('click', () => this.genererPDF());
+        document.getElementById('validerRapport').addEventListener('click', () => this.validerRapport());
         document.getElementById('closePdfModal').addEventListener('click', () => this.closePdfModal());
 
         // Paramètres (admin)
@@ -703,6 +704,15 @@ class RapportDeControleApp {
             const dateObj = new Date(rapport.date_controle);
             const dateFormatted = dateObj.toLocaleDateString('fr-FR');
 
+            let statusLabel = 'En attente';
+            if (rapport.status === 'traite') statusLabel = 'Traité';
+            if (rapport.status === 'resolu') statusLabel = 'Résolu';
+
+            // Bouton modifier seulement si statut en_attente
+            const editButton = rapport.status === 'en_attente'
+                ? `<button class="btn-icon-only btn-edit-icon" onclick="app.editerRapport('${rapport.id}')" title="Modifier">✎</button>`
+                : '';
+
             card.innerHTML = `
                 <div class="rapport-card-content">
                     <div class="rapport-info">
@@ -719,9 +729,11 @@ class RapportDeControleApp {
                         <div class="rapport-details">
                             <span class="rapport-label">Client:</span> ${rapport.client || 'N/A'}
                         </div>
+                        <span class="rapport-status status-${rapport.status}">${statusLabel}</span>
                         <div class="rapport-date">${dateFormatted}</div>
                     </div>
                     <div class="rapport-actions">
+                        ${editButton}
                         <button class="btn-icon-only btn-download" onclick="app.regeneratePDF('${rapport.id}')" title="Télécharger le PDF">
                             ⬇
                         </button>
@@ -807,7 +819,7 @@ class RapportDeControleApp {
     }
 
     // ========== GÉNÉRATION PDF ==========
-    async genererPDF() {
+    async validerRapport() {
         const ordeFabrication = document.getElementById('ordeFabrication').value;
         const phase = document.getElementById('phase').value;
         const reference = document.getElementById('reference').value;
@@ -815,6 +827,238 @@ class RapportDeControleApp {
         if (!ordeFabrication || !phase || !reference) {
             this.showNotification('Veuillez remplir tous les champs obligatoires (OF, Phase, Référence)', 'error');
             return;
+        }
+
+        if (this.defauts.length === 0) {
+            this.showNotification('Veuillez ajouter au moins un défaut', 'error');
+            return;
+        }
+
+        try {
+            // Mode édition
+            if (this.editingRapportId) {
+                // Mettre à jour le rapport existant
+                const { error: updateError } = await supabaseClient
+                    .from('rapports')
+                    .update({
+                        ordre_fabrication: ordeFabrication,
+                        phase,
+                        reference,
+                        designation: document.getElementById('designation').value,
+                        client: document.getElementById('client').value
+                    })
+                    .eq('id', this.editingRapportId);
+
+                if (updateError) {
+                    throw updateError;
+                }
+
+                // Supprimer les anciens défauts
+                await supabaseClient
+                    .from('defauts')
+                    .delete()
+                    .eq('rapport_id', this.editingRapportId);
+
+                // Réinsérer les défauts
+                const defautsToInsert = this.defauts.map(defaut => ({
+                    rapport_id: this.editingRapportId,
+                    type: defaut.type,
+                    quantite: defaut.quantite,
+                    commentaire: defaut.commentaire,
+                    photos: defaut.photos
+                }));
+
+                const { error: defautsError } = await supabaseClient
+                    .from('defauts')
+                    .insert(defautsToInsert);
+
+                if (defautsError) {
+                    throw defautsError;
+                }
+
+                this.showNotification('✅ Rapport mis à jour', 'success');
+                this.editingRapportId = null;
+
+                // Réinitialiser le texte du bouton
+                document.getElementById('validerRapport').textContent = 'Valider le Rapport';
+
+            } else {
+                // Mode création
+                const reportNumber = await this.generateReportNumber();
+                const currentDate = new Date();
+
+                // Enregistrer le rapport avec statut "en_attente"
+                const { data, error } = await supabaseClient
+                    .from('rapports')
+                    .insert([{
+                        numero: reportNumber,
+                        ordre_fabrication: ordeFabrication,
+                        phase,
+                        reference,
+                        designation: document.getElementById('designation').value,
+                        client: document.getElementById('client').value,
+                        controleur_id: this.currentUser.id,
+                        controleur_name: this.userProfile.full_name,
+                        date_controle: currentDate.toISOString(),
+                        status: 'en_attente'
+                    }])
+                    .select()
+                    .single();
+
+                if (error) {
+                    throw error;
+                }
+
+                // Enregistrer les défauts
+                const defautsToInsert = this.defauts.map(defaut => ({
+                    rapport_id: data.id,
+                    type: defaut.type,
+                    quantite: defaut.quantite,
+                    commentaire: defaut.commentaire,
+                    photos: defaut.photos
+                }));
+
+                const { error: defautsError } = await supabaseClient
+                    .from('defauts')
+                    .insert(defautsToInsert);
+
+                if (defautsError) {
+                    throw defautsError;
+                }
+
+                this.showNotification('✅ Rapport validé et envoyé à l\'admin', 'success');
+            }
+
+            // Réinitialiser le formulaire
+            this.resetForm();
+
+            // Recharger les rapports
+            await this.loadRapports();
+
+        } catch (error) {
+            console.error('Erreur lors de la validation:', error);
+            this.showNotification('Erreur lors de la validation du rapport', 'error');
+        }
+    }
+
+    async editerRapport(rapportId) {
+        try {
+            // Charger le rapport et ses défauts
+            const { data: rapport, error: rapportError } = await supabaseClient
+                .from('rapports')
+                .select('*, defauts (*)')
+                .eq('id', rapportId)
+                .single();
+
+            if (rapportError) {
+                throw rapportError;
+            }
+
+            // Vérifier que le rapport peut être modifié
+            if (rapport.status !== 'en_attente') {
+                this.showNotification('Ce rapport ne peut plus être modifié', 'error');
+                return;
+            }
+
+            // Vérifier que c'est bien le rapport de l'utilisateur
+            if (rapport.controleur_id !== this.currentUser.id) {
+                this.showNotification('Vous ne pouvez modifier que vos propres rapports', 'error');
+                return;
+            }
+
+            // Remplir le formulaire
+            document.getElementById('ordeFabrication').value = rapport.ordre_fabrication;
+            document.getElementById('phase').value = rapport.phase;
+            document.getElementById('reference').value = rapport.reference;
+            document.getElementById('designation').value = rapport.designation || '';
+            document.getElementById('client').value = rapport.client || '';
+
+            // Charger les défauts
+            this.defauts = rapport.defauts.map(defaut => ({
+                type: defaut.type,
+                quantite: defaut.quantite,
+                commentaire: defaut.commentaire,
+                photos: defaut.photos || []
+            }));
+            this.updateDefautsList();
+
+            // Stocker l'ID pour la mise à jour
+            this.editingRapportId = rapportId;
+
+            // Changer le texte du bouton
+            const validerBtn = document.getElementById('validerRapport');
+            validerBtn.textContent = 'Mettre à jour le Rapport';
+
+            // Passer à la page de rapport
+            this.switchPage('rapport');
+
+            this.showNotification('Rapport chargé pour modification', 'info');
+
+        } catch (error) {
+            console.error('Erreur lors du chargement du rapport:', error);
+            this.showNotification('Erreur lors du chargement du rapport', 'error');
+        }
+    }
+
+    async genererPDF(rapportId = null) {
+        let ordeFabrication, phase, reference, designation, client, controleurName, dateControle, reportNumber, defauts;
+
+        if (rapportId) {
+            // Générer PDF depuis l'admin pour un rapport existant
+            const { data: rapport, error: rapportError } = await supabaseClient
+                .from('rapports')
+                .select('*')
+                .eq('id', rapportId)
+                .single();
+
+            if (rapportError) {
+                this.showNotification('Erreur lors du chargement du rapport', 'error');
+                return;
+            }
+
+            const { data: defautsData, error: defautsError } = await supabaseClient
+                .from('defauts')
+                .select('*')
+                .eq('rapport_id', rapportId);
+
+            if (defautsError) {
+                this.showNotification('Erreur lors du chargement des défauts', 'error');
+                return;
+            }
+
+            ordeFabrication = rapport.ordre_fabrication;
+            phase = rapport.phase;
+            reference = rapport.reference;
+            designation = rapport.designation;
+            client = rapport.client;
+            controleurName = rapport.controleur_name;
+            dateControle = new Date(rapport.date_controle);
+            reportNumber = rapport.numero;
+            defauts = defautsData;
+
+            // Mettre à jour le statut à "traite"
+            await supabaseClient
+                .from('rapports')
+                .update({ status: 'traite' })
+                .eq('id', rapportId);
+
+        } else {
+            // Ancienne logique (devrait être rarement utilisée maintenant)
+            ordeFabrication = document.getElementById('ordeFabrication').value;
+            phase = document.getElementById('phase').value;
+            reference = document.getElementById('reference').value;
+
+            if (!ordeFabrication || !phase || !reference) {
+                this.showNotification('Veuillez remplir tous les champs obligatoires (OF, Phase, Référence)', 'error');
+                return;
+            }
+
+            designation = document.getElementById('designation').value;
+            client = document.getElementById('client').value;
+            controleurName = this.userProfile.full_name;
+            dateControle = new Date();
+            reportNumber = await this.generateReportNumber();
+            defauts = this.defauts;
         }
 
         try {
@@ -826,8 +1070,6 @@ class RapportDeControleApp {
             const veryLightGray = [248, 249, 250];
             const terracottaOrange = [161, 58, 32];
             const white = [255, 255, 255];
-
-            const reportNumber = await this.generateReportNumber();
 
             doc.setTextColor(...primaryColor);
             doc.setFontSize(16);
@@ -849,16 +1091,16 @@ class RapportDeControleApp {
 
             yPosition += 10;
 
-            const currentDate = new Date();
+            const dateObj = new Date(dateControle);
             const tableData = [
                 ['OF Ajust\'82', ordeFabrication],
                 ['Phase', phase],
                 ['Référence', reference],
-                ['Désignation', document.getElementById('designation').value || 'N/A'],
-                ['Client', document.getElementById('client').value || 'N/A'],
-                ['Contrôleur', this.userProfile.full_name],
-                ['Date', currentDate.toLocaleDateString('fr-FR')],
-                ['Heure', currentDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })]
+                ['Désignation', designation || 'N/A'],
+                ['Client', client || 'N/A'],
+                ['Contrôleur', controleurName],
+                ['Date', dateObj.toLocaleDateString('fr-FR')],
+                ['Heure', dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })]
             ];
 
             doc.setTextColor(...primaryColor);
@@ -901,14 +1143,14 @@ class RapportDeControleApp {
 
             yPosition += 15;
 
-            if (this.defauts.length === 0) {
+            if (defauts.length === 0) {
                 doc.setFontSize(10);
                 doc.setFont('helvetica', 'italic');
                 doc.setTextColor(...lightGray);
                 doc.text('Aucun défaut détecté.', 20, yPosition);
             } else {
-                for (let index = 0; index < this.defauts.length; index++) {
-                    const defaut = this.defauts[index];
+                for (let index = 0; index < defauts.length; index++) {
+                    const defaut = defauts[index];
 
                     if (yPosition > 250) {
                         doc.addPage();
@@ -961,7 +1203,7 @@ class RapportDeControleApp {
 
                     yPosition += 6;
 
-                    if (index < this.defauts.length - 1) {
+                    if (index < defauts.length - 1) {
                         doc.setDrawColor(...veryLightGray);
                         doc.setLineWidth(0.3);
                         doc.line(20, yPosition, 190, yPosition);
@@ -970,14 +1212,26 @@ class RapportDeControleApp {
                 }
             }
 
-            await this.saveRapport(reportNumber, null);
+            // Ne sauvegarder que si c'est un nouveau rapport (pas rapportId)
+            if (!rapportId) {
+                await this.saveRapport(reportNumber, null);
+            }
 
             const fileName = `${reportNumber}_${ordeFabrication}_${reference}_${new Date().toISOString().split('T')[0]}.pdf`;
             doc.save(fileName);
 
-            this.resetForm();
+            // Ne réinitialiser le formulaire que si ce n'est pas un rapport admin
+            if (!rapportId) {
+                this.resetForm();
+            }
+
             this.showPdfModal(fileName);
             await this.loadRapports();
+
+            // Si c'est un rapport admin, recharger aussi la liste admin
+            if (rapportId) {
+                await this.loadAdminRapports();
+            }
 
         } catch (error) {
             console.error('Erreur PDF:', error);
@@ -996,7 +1250,11 @@ class RapportDeControleApp {
         document.getElementById('designation').value = '';
         document.getElementById('client').value = '';
         this.defauts = [];
+        this.editingRapportId = null;
         this.updateDefautsList();
+
+        // Réinitialiser le texte du bouton
+        document.getElementById('validerRapport').textContent = 'Valider le Rapport';
     }
 
     showPdfModal(fileName) {
@@ -1052,6 +1310,11 @@ class RapportDeControleApp {
             if (rapport.status === 'traite') statusLabel = 'Traité';
             if (rapport.status === 'resolu') statusLabel = 'Résolu';
 
+            // Générer le bouton PDF seulement si le statut est en_attente
+            const pdfButton = rapport.status === 'en_attente'
+                ? `<button class="btn btn-primary" onclick="app.genererPDF('${rapport.id}')" style="margin-bottom: 0.5rem;">📄 Générer PDF</button>`
+                : '';
+
             card.innerHTML = `
                 <div class="rapport-card-content">
                     <div class="rapport-info">
@@ -1063,6 +1326,7 @@ class RapportDeControleApp {
                         <div class="rapport-date">${dateFormatted}</div>
                     </div>
                     <div class="rapport-actions">
+                        ${pdfButton}
                         <button class="btn-icon-only btn-edit-icon" onclick="app.changeRapportStatus('${rapport.id}')" title="Modifier">✎</button>
                         <button class="btn-icon-only btn-delete-icon" onclick="app.supprimerRapport('${rapport.id}')" title="Supprimer">×</button>
                     </div>
