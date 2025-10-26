@@ -317,19 +317,53 @@ class RapportDeControleApp {
         if (copyCorpsBtn) {
             copyCorpsBtn.addEventListener('click', () => this.copyToClipboard('mailCorps'));
         }
+
+        // Modal détails rapport
+        const closeDetailsModal = document.getElementById('closeDetailsModal');
+        if (closeDetailsModal) {
+            closeDetailsModal.addEventListener('click', () => {
+                document.getElementById('detailsRapportModal').style.display = 'none';
+            });
+        }
+
+        // Retirer les erreurs quand l'utilisateur tape dans les champs
+        const formFields = ['ordeFabrication', 'ofClient', 'numeroCommande', 'reference'];
+        formFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.addEventListener('input', () => {
+                    field.classList.remove('field-error');
+                });
+            }
+        });
     }
 
     // ========== GESTION DES DÉFAUTS ==========
     openDefautForm(editIndex = -1) {
         // Vérifier que les champs du rapport sont renseignés avant d'ajouter un défaut
         if (editIndex < 0) { // Seulement pour l'ajout, pas l'édition
-            const ordeFabrication = document.getElementById('ordeFabrication').value.trim();
-            const ofClient = document.getElementById('ofClient').value.trim();
-            const numeroCommande = document.getElementById('numeroCommande').value.trim();
-            const reference = document.getElementById('reference').value.trim();
+            const ordeFabricationEl = document.getElementById('ordeFabrication');
+            const ofClientEl = document.getElementById('ofClient');
+            const numeroCommandeEl = document.getElementById('numeroCommande');
+            const referenceEl = document.getElementById('reference');
 
-            if (!ordeFabrication || !ofClient || !numeroCommande || !reference) {
-                this.showNotification('Veuillez remplir tous les champs obligatoires du rapport (OF, OF Client, N° Commande, Référence)', 'error');
+            const ordeFabrication = ordeFabricationEl.value.trim();
+            const ofClient = ofClientEl.value.trim();
+            const numeroCommande = numeroCommandeEl.value.trim();
+            const reference = referenceEl.value.trim();
+
+            // Retirer les erreurs précédentes
+            [ordeFabricationEl, ofClientEl, numeroCommandeEl, referenceEl].forEach(el => {
+                el.classList.remove('field-error');
+            });
+
+            let hasError = false;
+            if (!ordeFabrication) { ordeFabricationEl.classList.add('field-error'); hasError = true; }
+            if (!ofClient) { ofClientEl.classList.add('field-error'); hasError = true; }
+            if (!numeroCommande) { numeroCommandeEl.classList.add('field-error'); hasError = true; }
+            if (!reference) { referenceEl.classList.add('field-error'); hasError = true; }
+
+            if (hasError) {
                 return;
             }
         }
@@ -823,7 +857,6 @@ class RapportDeControleApp {
             }
 
             // Icônes SVG
-            const photoIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`;
             const editIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
             const deleteIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`;
 
@@ -831,24 +864,10 @@ class RapportDeControleApp {
             let actionButtons = '';
             if (rapport.status === 'en_attente') {
                 actionButtons = `
-                    <button class="btn-icon-only btn-edit-icon" onclick="app.editerRapport('${rapport.id}')" title="Modifier">${editIcon}</button>
-                    <button class="btn-icon-only btn-delete-icon" onclick="app.supprimerRapportUser('${rapport.id}')" title="Supprimer">${deleteIcon}</button>
+                    <button class="btn-icon-only btn-edit-icon" onclick="event.stopPropagation(); app.editerRapport('${rapport.id}')" title="Modifier">${editIcon}</button>
+                    <button class="btn-icon-only btn-delete-icon" onclick="event.stopPropagation(); app.supprimerRapportUser('${rapport.id}')" title="Supprimer">${deleteIcon}</button>
                 `;
             }
-
-            // Compter le nombre total de photos
-            let totalPhotos = 0;
-            if (rapport.defauts && Array.isArray(rapport.defauts)) {
-                rapport.defauts.forEach(defaut => {
-                    if (defaut.photos && Array.isArray(defaut.photos)) {
-                        totalPhotos += defaut.photos.length;
-                    }
-                });
-            }
-
-            const photosButton = totalPhotos > 0
-                ? `<button class="btn-icon-only" onclick="app.viewRapportPhotos('${rapport.id}')" title="Voir ${totalPhotos} photo(s)">${photoIcon}</button>`
-                : '';
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -858,8 +877,13 @@ class RapportDeControleApp {
                 <td>${rapport.client || 'N/A'}</td>
                 <td><span class="rapport-status status-${statusClass}">${statusLabel}</span></td>
                 <td>${dateFormatted}</td>
-                <td><div class="rapport-actions">${photosButton}${actionButtons}</div></td>
+                <td><div class="rapport-actions">${actionButtons}</div></td>
             `;
+
+            // Ajouter le clic sur la ligne pour ouvrir le modal
+            tr.style.cursor = 'pointer';
+            tr.onclick = () => this.showRapportDetails(rapport.id);
+
             tbody.appendChild(tr);
         });
 
@@ -941,13 +965,28 @@ class RapportDeControleApp {
 
     // ========== GÉNÉRATION PDF ==========
     async validerRapport() {
-        const ordeFabrication = document.getElementById('ordeFabrication').value;
-        const ofClient = document.getElementById('ofClient').value;
-        const numeroCommande = document.getElementById('numeroCommande').value;
-        const reference = document.getElementById('reference').value;
+        const ordeFabricationEl = document.getElementById('ordeFabrication');
+        const ofClientEl = document.getElementById('ofClient');
+        const numeroCommandeEl = document.getElementById('numeroCommande');
+        const referenceEl = document.getElementById('reference');
 
-        if (!ordeFabrication || !ofClient || !numeroCommande || !reference) {
-            this.showNotification('Veuillez remplir tous les champs obligatoires (OF, OF Client, N° Commande, Référence)', 'error');
+        const ordeFabrication = ordeFabricationEl.value;
+        const ofClient = ofClientEl.value;
+        const numeroCommande = numeroCommandeEl.value;
+        const reference = referenceEl.value;
+
+        // Retirer les erreurs précédentes
+        [ordeFabricationEl, ofClientEl, numeroCommandeEl, referenceEl].forEach(el => {
+            el.classList.remove('field-error');
+        });
+
+        let hasError = false;
+        if (!ordeFabrication) { ordeFabricationEl.classList.add('field-error'); hasError = true; }
+        if (!ofClient) { ofClientEl.classList.add('field-error'); hasError = true; }
+        if (!numeroCommande) { numeroCommandeEl.classList.add('field-error'); hasError = true; }
+        if (!reference) { referenceEl.classList.add('field-error'); hasError = true; }
+
+        if (hasError) {
             return;
         }
 
@@ -1607,29 +1646,13 @@ class RapportDeControleApp {
                 statusClass = 'resolu';
             }
 
-            // Bouton PDF pour tous les rapports
+            // Icônes SVG
             const pdfIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
-            const pdfTitle = rapport.status === 'en_attente' ? 'Générer PDF' : 'Regénérer PDF';
-            const pdfButton = `<button class="btn-icon-only btn-download" onclick="app.genererPDF('${rapport.id}')" title="${pdfTitle}">${pdfIcon}</button>`;
-
-            // Compter le nombre total de photos
-            let totalPhotos = 0;
-            if (rapport.defauts && Array.isArray(rapport.defauts)) {
-                rapport.defauts.forEach(defaut => {
-                    if (defaut.photos && Array.isArray(defaut.photos)) {
-                        totalPhotos += defaut.photos.length;
-                    }
-                });
-            }
-
-            const photoIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`;
-            const photosButton = totalPhotos > 0
-                ? `<button class="btn-icon-only" onclick="app.viewRapportPhotos('${rapport.id}')" title="Voir ${totalPhotos} photo(s)">${photoIcon}</button>`
-                : '';
-
             const mailIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>`;
             const editIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
             const deleteIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`;
+
+            const pdfTitle = rapport.status === 'en_attente' ? 'Générer PDF' : 'Regénérer PDF';
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -1642,14 +1665,18 @@ class RapportDeControleApp {
                 <td>${dateFormatted}</td>
                 <td>
                     <div class="rapport-actions">
-                        ${photosButton}
-                        ${pdfButton}
-                        <button class="btn-icon-only" onclick="app.openMailModal('${rapport.id}')" title="Générer un mail">${mailIcon}</button>
-                        <button class="btn-icon-only btn-edit-icon" onclick="app.addReponseClient('${rapport.id}')" title="Réponse client">${editIcon}</button>
-                        <button class="btn-icon-only btn-delete-icon" onclick="app.supprimerRapport('${rapport.id}')" title="Supprimer">${deleteIcon}</button>
+                        <button class="btn-icon-only" onclick="event.stopPropagation(); app.genererPDF('${rapport.id}')" title="${pdfTitle}">${pdfIcon}</button>
+                        <button class="btn-icon-only" onclick="event.stopPropagation(); app.openMailModal('${rapport.id}')" title="Générer un mail">${mailIcon}</button>
+                        <button class="btn-icon-only btn-edit-icon" onclick="event.stopPropagation(); app.addReponseClient('${rapport.id}')" title="Réponse client">${editIcon}</button>
+                        <button class="btn-icon-only btn-delete-icon" onclick="event.stopPropagation(); app.supprimerRapport('${rapport.id}')" title="Supprimer">${deleteIcon}</button>
                     </div>
                 </td>
             `;
+
+            // Ajouter le clic sur la ligne pour ouvrir le modal
+            tr.style.cursor = 'pointer';
+            tr.onclick = () => this.showRapportDetails(rapport.id);
+
             tbody.appendChild(tr);
         });
 
@@ -1956,6 +1983,169 @@ class RapportDeControleApp {
         await this.loadUsers();
     }
 
+    // ========== MODAL DÉTAILS RAPPORT ==========
+    async showRapportDetails(rapportId) {
+        // Charger le rapport avec ses défauts
+        const { data: rapport, error } = await supabaseClient
+            .from('rapports')
+            .select('*, defauts (*)')
+            .eq('id', rapportId)
+            .single();
+
+        if (error || !rapport) {
+            this.showNotification('Erreur lors du chargement du rapport', 'error');
+            return;
+        }
+
+        // Remplir le contenu du modal
+        document.getElementById('detailsRapportNumero').textContent = rapport.numero;
+
+        const statusLabels = {
+            'en_attente': 'En attente',
+            'traite': 'Traité',
+            'resolu': 'Résolu'
+        };
+
+        const dateControle = new Date(rapport.date_controle).toLocaleDateString('fr-FR');
+
+        let defautsHTML = '';
+        if (rapport.defauts && rapport.defauts.length > 0) {
+            rapport.defauts.forEach((defaut, index) => {
+                let photosHTML = '';
+                if (defaut.photos && defaut.photos.length > 0) {
+                    photosHTML = `
+                        <div class="photos-carousel" id="carousel-${index}">
+                            ${defaut.photos.map((photo, photoIndex) => `
+                                <img src="${photo.data}" alt="Photo ${photoIndex + 1}" class="carousel-photo ${photoIndex === 0 ? 'active' : ''}" />
+                            `).join('')}
+                            ${defaut.photos.length > 1 ? `
+                                <button class="carousel-btn carousel-prev" onclick="app.prevPhoto(${index})">❮</button>
+                                <button class="carousel-btn carousel-next" onclick="app.nextPhoto(${index})">❯</button>
+                                <div class="carousel-indicators">
+                                    ${defaut.photos.map((_, i) => `
+                                        <span class="indicator ${i === 0 ? 'active' : ''}" onclick="app.goToPhoto(${index}, ${i})"></span>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }
+
+                defautsHTML += `
+                    <div class="defaut-details-item">
+                        <h5>${index + 1}. ${defaut.type}</h5>
+                        <p><strong>Quantité :</strong> ${defaut.quantite} pièce(s)</p>
+                        ${defaut.commentaire ? `<p><strong>Observation :</strong> ${defaut.commentaire}</p>` : ''}
+                        ${photosHTML}
+                    </div>
+                `;
+            });
+        } else {
+            defautsHTML = '<p>Aucun défaut enregistré</p>';
+        }
+
+        const contentHTML = `
+            <div class="details-section">
+                <h4>Informations Générales</h4>
+                <div class="details-grid">
+                    <div class="details-item">
+                        <label>N° Rapport</label>
+                        <span>${rapport.numero}</span>
+                    </div>
+                    <div class="details-item">
+                        <label>Statut</label>
+                        <span>${statusLabels[rapport.status] || rapport.status}</span>
+                    </div>
+                    <div class="details-item">
+                        <label>Ordre de Fabrication</label>
+                        <span>${rapport.ordre_fabrication}</span>
+                    </div>
+                    <div class="details-item">
+                        <label>OF Client</label>
+                        <span>${rapport.of_client || 'N/A'}</span>
+                    </div>
+                    <div class="details-item">
+                        <label>N° Commande</label>
+                        <span>${rapport.numero_commande || 'N/A'}</span>
+                    </div>
+                    <div class="details-item">
+                        <label>Référence</label>
+                        <span>${rapport.reference || 'N/A'}</span>
+                    </div>
+                    <div class="details-item">
+                        <label>Client</label>
+                        <span>${rapport.client || 'N/A'}</span>
+                    </div>
+                    <div class="details-item">
+                        <label>Date de Contrôle</label>
+                        <span>${dateControle}</span>
+                    </div>
+                    <div class="details-item">
+                        <label>Contrôleur</label>
+                        <span>${rapport.controleur_name}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="details-section">
+                <h4>Non-conformités Détectées</h4>
+                ${defautsHTML}
+            </div>
+
+            ${rapport.reponse_client ? `
+                <div class="details-section">
+                    <h4>Réponse Client</h4>
+                    <p>${rapport.reponse_client}</p>
+                </div>
+            ` : ''}
+        `;
+
+        document.getElementById('detailsRapportContent').innerHTML = contentHTML;
+
+        // Afficher le modal
+        document.getElementById('detailsRapportModal').style.display = 'block';
+    }
+
+    prevPhoto(carouselIndex) {
+        const carousel = document.getElementById(`carousel-${carouselIndex}`);
+        const photos = carousel.querySelectorAll('.carousel-photo');
+        const indicators = carousel.querySelectorAll('.indicator');
+
+        let currentIndex = Array.from(photos).findIndex(photo => photo.classList.contains('active'));
+        photos[currentIndex].classList.remove('active');
+        indicators[currentIndex].classList.remove('active');
+
+        currentIndex = (currentIndex - 1 + photos.length) % photos.length;
+        photos[currentIndex].classList.add('active');
+        indicators[currentIndex].classList.add('active');
+    }
+
+    nextPhoto(carouselIndex) {
+        const carousel = document.getElementById(`carousel-${carouselIndex}`);
+        const photos = carousel.querySelectorAll('.carousel-photo');
+        const indicators = carousel.querySelectorAll('.indicator');
+
+        let currentIndex = Array.from(photos).findIndex(photo => photo.classList.contains('active'));
+        photos[currentIndex].classList.remove('active');
+        indicators[currentIndex].classList.remove('active');
+
+        currentIndex = (currentIndex + 1) % photos.length;
+        photos[currentIndex].classList.add('active');
+        indicators[currentIndex].classList.add('active');
+    }
+
+    goToPhoto(carouselIndex, photoIndex) {
+        const carousel = document.getElementById(`carousel-${carouselIndex}`);
+        const photos = carousel.querySelectorAll('.carousel-photo');
+        const indicators = carousel.querySelectorAll('.indicator');
+
+        photos.forEach(photo => photo.classList.remove('active'));
+        indicators.forEach(indicator => indicator.classList.remove('active'));
+
+        photos[photoIndex].classList.add('active');
+        indicators[photoIndex].classList.add('active');
+    }
+
     // ========== GÉNÉRATION DE MAIL ==========
     async openMailModal(rapportId) {
         // Charger le rapport avec ses défauts
@@ -2082,6 +2272,7 @@ window.onclick = function(event) {
     const pdfModal = document.getElementById('pdfModal');
     const rapportModal = document.getElementById('rapportModal');
     const mailModal = document.getElementById('mailModal');
+    const detailsModal = document.getElementById('detailsRapportModal');
 
     if (event.target === pdfModal) {
         app.closePdfModal();
@@ -2091,5 +2282,8 @@ window.onclick = function(event) {
     }
     if (event.target === mailModal) {
         app.closeMailModal();
+    }
+    if (event.target === detailsModal) {
+        detailsModal.style.display = 'none';
     }
 };
