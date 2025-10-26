@@ -18,6 +18,7 @@ class RapportDeControleApp {
         this.selectedPhotos = [];
         this.editingDefautIndex = -1;
         this.rapports = [];
+        this.adminRapports = [];
         this.editingRapportId = null;
 
         this.init();
@@ -299,6 +300,32 @@ class RapportDeControleApp {
             closeRapportModal.addEventListener('click', () => {
                 document.getElementById('rapportModal').style.display = 'none';
             });
+        }
+
+        // Modal génération mail
+        const openMailModalBtn = document.getElementById('openMailModalBtn');
+        if (openMailModalBtn) {
+            openMailModalBtn.addEventListener('click', () => this.openMailModal());
+        }
+
+        const closeMailModal = document.getElementById('closeMailModal');
+        if (closeMailModal) {
+            closeMailModal.addEventListener('click', () => this.closeMailModal());
+        }
+
+        const generateMailBtn = document.getElementById('generateMailBtn');
+        if (generateMailBtn) {
+            generateMailBtn.addEventListener('click', () => this.generateMailText());
+        }
+
+        const copyObjetBtn = document.getElementById('copyObjetBtn');
+        if (copyObjetBtn) {
+            copyObjetBtn.addEventListener('click', () => this.copyToClipboard('mailObjet'));
+        }
+
+        const copyCorpsBtn = document.getElementById('copyCorpsBtn');
+        if (copyCorpsBtn) {
+            copyCorpsBtn.addEventListener('click', () => this.copyToClipboard('mailCorps'));
         }
     }
 
@@ -1475,6 +1502,9 @@ class RapportDeControleApp {
             return;
         }
 
+        // Stocker les rapports admin pour la génération de mail
+        this.adminRapports = data;
+
         this.updateAdminRapportsUI(data);
     }
 
@@ -1899,6 +1929,113 @@ class RapportDeControleApp {
         await this.loadUsers();
     }
 
+    // ========== GÉNÉRATION DE MAIL ==========
+    openMailModal() {
+        // Réinitialiser les champs
+        document.getElementById('mailCommandeInput').value = '';
+        document.getElementById('mailObjet').value = '';
+        document.getElementById('mailCorps').value = '';
+
+        // Afficher le modal
+        document.getElementById('mailModal').style.display = 'block';
+    }
+
+    closeMailModal() {
+        document.getElementById('mailModal').style.display = 'none';
+    }
+
+    async generateMailText() {
+        const numeroCommande = document.getElementById('mailCommandeInput').value.trim();
+
+        if (!numeroCommande) {
+            this.showNotification('Veuillez saisir un numéro de commande', 'error');
+            return;
+        }
+
+        // Rechercher le rapport correspondant au numéro de commande
+        const rapport = this.findRapportByCommande(numeroCommande);
+
+        if (!rapport) {
+            this.showNotification('Aucun rapport trouvé pour ce numéro de commande', 'error');
+            return;
+        }
+
+        // Générer l'objet du mail
+        const ofClient = rapport.of_client || 'N/A';
+        const objet = `NC ${ofClient} - Commande ${numeroCommande}`;
+
+        // Générer le corps du mail
+        const dateControle = new Date(rapport.date_controle).toLocaleDateString('fr-FR');
+
+        // Récupérer les défauts
+        let defautsText = '';
+        if (rapport.defauts && rapport.defauts.length > 0) {
+            defautsText = rapport.defauts.map((defaut, index) => {
+                let text = `${index + 1}. ${defaut.type} - Quantité : ${defaut.quantite} pièce(s)`;
+                if (defaut.commentaire) {
+                    text += `\n   Observation : ${defaut.commentaire}`;
+                }
+                return text;
+            }).join('\n');
+        }
+
+        const corps = `Bonjour,
+
+Suite au contrôle qualité effectué le ${dateControle}, nous avons identifié des non-conformités sur la commande n°${numeroCommande}.
+
+Détails du rapport de contrôle :
+- N° Rapport : ${rapport.numero}
+- OF Client : ${ofClient}
+- Référence : ${rapport.reference || 'N/A'}
+- Client : ${rapport.client || 'N/A'}
+
+Non-conformités détectées :
+${defautsText}
+
+Nous restons à votre disposition pour toute information complémentaire.
+
+Cordialement,
+${this.userProfile.full_name}`;
+
+        // Remplir les champs
+        document.getElementById('mailObjet').value = objet;
+        document.getElementById('mailCorps').value = corps;
+
+        this.showNotification('Texte généré avec succès', 'success');
+    }
+
+    findRapportByCommande(numeroCommande) {
+        // Combiner les rapports utilisateur et admin
+        const allRapports = [...this.rapports, ...this.adminRapports];
+
+        // Recherche par ordre_fabrication, of_client ou numero
+        const found = allRapports.find(r =>
+            r.ordre_fabrication === numeroCommande ||
+            r.of_client === numeroCommande ||
+            r.numero === numeroCommande
+        );
+
+        return found || null;
+    }
+
+    copyToClipboard(elementId) {
+        const element = document.getElementById(elementId);
+        const text = element.value;
+
+        if (!text) {
+            this.showNotification('Aucun texte à copier', 'error');
+            return;
+        }
+
+        // Utiliser l'API clipboard
+        navigator.clipboard.writeText(text).then(() => {
+            this.showNotification('Texte copié dans le presse-papiers', 'success');
+        }).catch(err => {
+            console.error('Erreur lors de la copie:', err);
+            this.showNotification('Erreur lors de la copie', 'error');
+        });
+    }
+
     // ========== UTILITAIRES ==========
     initTheme() {
         const savedTheme = localStorage.getItem('theme') || 'light';
@@ -1943,11 +2080,15 @@ document.addEventListener('DOMContentLoaded', () => {
 window.onclick = function(event) {
     const pdfModal = document.getElementById('pdfModal');
     const rapportModal = document.getElementById('rapportModal');
+    const mailModal = document.getElementById('mailModal');
 
     if (event.target === pdfModal) {
         app.closePdfModal();
     }
     if (event.target === rapportModal) {
         rapportModal.style.display = 'none';
+    }
+    if (event.target === mailModal) {
+        app.closeMailModal();
     }
 };
