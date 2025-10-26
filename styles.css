@@ -995,6 +995,12 @@ body {
     transition: var(--transition);
 }
 
+.btn-icon-only svg {
+    display: block;
+    width: 18px;
+    height: 18px;
+}
+
 .btn-download {
     color: var(--accent-orange);
 }

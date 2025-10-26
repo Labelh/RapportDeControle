@@ -325,10 +325,11 @@ class RapportDeControleApp {
         if (editIndex < 0) { // Seulement pour l'ajout, pas l'édition
             const ordeFabrication = document.getElementById('ordeFabrication').value.trim();
             const ofClient = document.getElementById('ofClient').value.trim();
+            const numeroCommande = document.getElementById('numeroCommande').value.trim();
             const reference = document.getElementById('reference').value.trim();
 
-            if (!ordeFabrication || !ofClient || !reference) {
-                this.showNotification('Veuillez remplir tous les champs obligatoires du rapport (OF, OF Client, Référence)', 'error');
+            if (!ordeFabrication || !ofClient || !numeroCommande || !reference) {
+                this.showNotification('Veuillez remplir tous les champs obligatoires du rapport (OF, OF Client, N° Commande, Référence)', 'error');
                 return;
             }
         }
@@ -819,12 +820,17 @@ class RapportDeControleApp {
                 statusClass = 'resolu';
             }
 
+            // Icônes SVG
+            const photoIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`;
+            const editIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+            const deleteIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`;
+
             // Boutons selon statut
             let actionButtons = '';
             if (rapport.status === 'en_attente') {
                 actionButtons = `
-                    <button class="btn-icon-only btn-edit-icon" onclick="app.editerRapport('${rapport.id}')" title="Modifier">✎</button>
-                    <button class="btn-icon-only btn-delete-icon" onclick="app.supprimerRapportUser('${rapport.id}')" title="Supprimer">🗑</button>
+                    <button class="btn-icon-only btn-edit-icon" onclick="app.editerRapport('${rapport.id}')" title="Modifier">${editIcon}</button>
+                    <button class="btn-icon-only btn-delete-icon" onclick="app.supprimerRapportUser('${rapport.id}')" title="Supprimer">${deleteIcon}</button>
                 `;
             }
 
@@ -839,7 +845,7 @@ class RapportDeControleApp {
             }
 
             const photosButton = totalPhotos > 0
-                ? `<button class="btn-icon-only" onclick="app.viewRapportPhotos('${rapport.id}')" title="Voir ${totalPhotos} photo(s)">📷</button>`
+                ? `<button class="btn-icon-only" onclick="app.viewRapportPhotos('${rapport.id}')" title="Voir ${totalPhotos} photo(s)">${photoIcon}</button>`
                 : '';
 
             const tr = document.createElement('tr');
@@ -934,10 +940,12 @@ class RapportDeControleApp {
     // ========== GÉNÉRATION PDF ==========
     async validerRapport() {
         const ordeFabrication = document.getElementById('ordeFabrication').value;
+        const ofClient = document.getElementById('ofClient').value;
+        const numeroCommande = document.getElementById('numeroCommande').value;
         const reference = document.getElementById('reference').value;
 
-        if (!ordeFabrication || !reference) {
-            this.showNotification('Veuillez remplir tous les champs obligatoires (OF, Référence)', 'error');
+        if (!ordeFabrication || !ofClient || !numeroCommande || !reference) {
+            this.showNotification('Veuillez remplir tous les champs obligatoires (OF, OF Client, N° Commande, Référence)', 'error');
             return;
         }
 
@@ -954,7 +962,8 @@ class RapportDeControleApp {
                     .from('rapports')
                     .update({
                         ordre_fabrication: ordeFabrication,
-                        of_client: document.getElementById('ofClient').value,
+                        of_client: ofClient,
+                        numero_commande: numeroCommande,
                         reference,
                         designation: null,
                         client: document.getElementById('client').value
@@ -1005,7 +1014,8 @@ class RapportDeControleApp {
                     .insert([{
                         numero: reportNumber,
                         ordre_fabrication: ordeFabrication,
-                        of_client: document.getElementById('ofClient').value,
+                        of_client: ofClient,
+                        numero_commande: numeroCommande,
                         reference,
                         designation: null,
                         client: document.getElementById('client').value,
@@ -1086,6 +1096,7 @@ class RapportDeControleApp {
             // Remplir le formulaire
             document.getElementById('ordeFabrication').value = rapport.ordre_fabrication;
             document.getElementById('ofClient').value = rapport.of_client || '';
+            document.getElementById('numeroCommande').value = rapport.numero_commande || '';
             document.getElementById('reference').value = rapport.reference;
             document.getElementById('client').value = rapport.client || '';
 
@@ -1453,6 +1464,7 @@ class RapportDeControleApp {
     resetForm() {
         document.getElementById('ordeFabrication').value = '';
         document.getElementById('ofClient').value = '';
+        document.getElementById('numeroCommande').value = '';
         document.getElementById('reference').value = '';
         document.getElementById('client').value = '';
         this.defauts = [];
@@ -1559,7 +1571,7 @@ class RapportDeControleApp {
             }
 
             // Bouton PDF pour tous les rapports
-            const pdfIcon = rapport.status === 'en_attente' ? '📄' : '↻';
+            const pdfIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
             const pdfTitle = rapport.status === 'en_attente' ? 'Générer PDF' : 'Regénérer PDF';
             const pdfButton = `<button class="btn-icon-only btn-download" onclick="app.genererPDF('${rapport.id}')" title="${pdfTitle}">${pdfIcon}</button>`;
 
@@ -1573,9 +1585,14 @@ class RapportDeControleApp {
                 });
             }
 
+            const photoIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`;
             const photosButton = totalPhotos > 0
-                ? `<button class="btn-icon-only" onclick="app.viewRapportPhotos('${rapport.id}')" title="Voir ${totalPhotos} photo(s)">📷</button>`
+                ? `<button class="btn-icon-only" onclick="app.viewRapportPhotos('${rapport.id}')" title="Voir ${totalPhotos} photo(s)">${photoIcon}</button>`
                 : '';
+
+            const mailIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>`;
+            const editIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+            const deleteIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`;
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -1590,9 +1607,9 @@ class RapportDeControleApp {
                     <div class="rapport-actions">
                         ${photosButton}
                         ${pdfButton}
-                        <button class="btn-icon-only" onclick="app.openMailModal('${rapport.id}')" title="Générer un mail">✉</button>
-                        <button class="btn-icon-only btn-edit-icon" onclick="app.addReponseClient('${rapport.id}')" title="Réponse client">✎</button>
-                        <button class="btn-icon-only btn-delete-icon" onclick="app.supprimerRapport('${rapport.id}')" title="Supprimer">🗑</button>
+                        <button class="btn-icon-only" onclick="app.openMailModal('${rapport.id}')" title="Générer un mail">${mailIcon}</button>
+                        <button class="btn-icon-only btn-edit-icon" onclick="app.addReponseClient('${rapport.id}')" title="Réponse client">${editIcon}</button>
+                        <button class="btn-icon-only btn-delete-icon" onclick="app.supprimerRapport('${rapport.id}')" title="Supprimer">${deleteIcon}</button>
                     </div>
                 </td>
             `;
@@ -1644,11 +1661,6 @@ class RapportDeControleApp {
             const updateData = {
                 reponse_client: reponseClient || null
             };
-
-            // Si c'est la première fois qu'on ajoute une réponse, enregistrer la date
-            if (reponseClient && !rapport.reponse_client) {
-                updateData.date_reponse_client = new Date().toISOString();
-            }
 
             const { error } = await supabaseClient
                 .from('rapports')
@@ -1917,8 +1929,8 @@ class RapportDeControleApp {
 
         // Générer l'objet du mail
         const ofClient = rapport.of_client || 'N/A';
-        const numeroCommande = rapport.ordre_fabrication;
-        const objet = `NC ${ofClient} - Commande ${numeroCommande}`;
+        const numeroCommande = rapport.numero_commande || rapport.ordre_fabrication;
+        const objet = `${ofClient} - ${numeroCommande}`;
 
         // Générer le corps du mail
         const dateControle = new Date(rapport.date_controle).toLocaleDateString('fr-FR');
