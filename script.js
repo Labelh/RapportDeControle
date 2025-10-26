@@ -1696,7 +1696,9 @@ class RapportDeControleApp {
             const reponseClient = document.getElementById('modalReponse').value.trim();
 
             const updateData = {
-                reponse_client: reponseClient || null
+                reponse_client: reponseClient || null,
+                // Passer automatiquement en "traité" si une réponse est renseignée
+                status: reponseClient ? 'traite' : rapport.status
             };
 
             const { error } = await supabaseClient
@@ -1710,7 +1712,11 @@ class RapportDeControleApp {
                 return;
             }
 
-            self.showNotification('Réponse client enregistrée', 'success');
+            const message = reponseClient
+                ? 'Réponse client enregistrée - Statut passé à "Traité"'
+                : 'Réponse client supprimée';
+
+            self.showNotification(message, 'success');
             document.body.removeChild(modal);
             await self.loadAdminRapports();
             await self.updateNotifBadge();
