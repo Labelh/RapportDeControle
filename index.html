@@ -219,7 +219,6 @@
                         <option value="traite">Traité</option>
                         <option value="resolu">Résolu</option>
                     </select>
-                    <button id="openMailModalBtn" class="btn btn-green">✉ Générer un mail</button>
                 </div>
 
                 <div id="adminRapportsList" class="admin-rapports-list"></div>
@@ -325,19 +324,11 @@
     <div id="mailModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Génération de mail</h3>
+                <h3>Génération de mail - Rapport <span id="mailRapportNumero"></span></h3>
                 <button class="close-modal" id="closeMailModal">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="mail-form">
-                    <div class="form-row-inline">
-                        <div class="form-group form-group-flex">
-                            <label for="mailCommandeInput">N° Commande *</label>
-                            <input type="text" id="mailCommandeInput" placeholder="Saisir le n° de commande">
-                        </div>
-                        <button id="generateMailBtn" class="btn btn-primary">Générer le texte</button>
-                    </div>
-
                     <div class="form-group">
                         <div class="label-with-action">
                             <label for="mailObjet">Objet</label>
@@ -351,7 +342,7 @@
                             <label for="mailCorps">Corps du mail</label>
                             <button id="copyCorpsBtn" class="btn-copy" title="Copier le corps">📋 Copier</button>
                         </div>
-                        <textarea id="mailCorps" rows="10" readonly></textarea>
+                        <textarea id="mailCorps" rows="12" readonly></textarea>
                     </div>
                 </div>
             </div>

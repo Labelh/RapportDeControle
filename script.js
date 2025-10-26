@@ -303,19 +303,9 @@ class RapportDeControleApp {
         }
 
         // Modal génération mail
-        const openMailModalBtn = document.getElementById('openMailModalBtn');
-        if (openMailModalBtn) {
-            openMailModalBtn.addEventListener('click', () => this.openMailModal());
-        }
-
         const closeMailModal = document.getElementById('closeMailModal');
         if (closeMailModal) {
             closeMailModal.addEventListener('click', () => this.closeMailModal());
-        }
-
-        const generateMailBtn = document.getElementById('generateMailBtn');
-        if (generateMailBtn) {
-            generateMailBtn.addEventListener('click', () => this.generateMailText());
         }
 
         const copyObjetBtn = document.getElementById('copyObjetBtn');
@@ -1531,7 +1521,6 @@ class RapportDeControleApp {
                     <th>Référence</th>
                     <th>Client</th>
                     <th>Contrôleur</th>
-                    <th>Défauts</th>
                     <th>Statut</th>
                     <th>Date</th>
                     <th>Actions</th>
@@ -1595,14 +1584,14 @@ class RapportDeControleApp {
                 <td>${rapport.reference || 'N/A'}</td>
                 <td>${rapport.client || 'N/A'}</td>
                 <td>${rapport.controleur_name}</td>
-                <td>${rapport.defauts ? rapport.defauts.length : 0}</td>
                 <td><span class="rapport-status status-${statusClass}">${statusLabel}</span></td>
                 <td>${dateFormatted}</td>
                 <td>
                     <div class="rapport-actions">
                         ${photosButton}
                         ${pdfButton}
-                        <button class="btn-icon-only btn-edit-icon" onclick="app.changeRapportStatus('${rapport.id}')" title="Modifier">✎</button>
+                        <button class="btn-icon-only" onclick="app.openMailModal('${rapport.id}')" title="Générer un mail">✉</button>
+                        <button class="btn-icon-only btn-edit-icon" onclick="app.addReponseClient('${rapport.id}')" title="Réponse client">✎</button>
                         <button class="btn-icon-only btn-delete-icon" onclick="app.supprimerRapport('${rapport.id}')" title="Supprimer">🗑</button>
                     </div>
                 </td>
@@ -1613,7 +1602,7 @@ class RapportDeControleApp {
         container.appendChild(table);
     }
 
-    async changeRapportStatus(rapportId) {
+    async addReponseClient(rapportId) {
         // Récupérer le rapport actuel
         const { data: rapport } = await supabaseClient
             .from('rapports')
@@ -1626,24 +1615,15 @@ class RapportDeControleApp {
         // Capturer le contexte pour les callbacks
         const self = this;
 
-        // Créer un formulaire modal pour modifier le statut et ajouter la réponse client
+        // Créer un formulaire modal simple pour la réponse client
         const modal = document.createElement('div');
         modal.className = 'modal-overlay';
         modal.innerHTML = `
             <div class="modal-box">
-                <h3 style="margin-top:0;color:var(--text-dark);">Modifier NC ${rapport.numero}</h3>
-                <div style="margin-bottom:1rem;">
-                    <label style="display:block;margin-bottom:0.5rem;font-weight:bold;color:var(--text-dark);">Statut</label>
-                    <select id="modalStatus" class="modal-input">
-                        <option value="en_attente" ${rapport.status === 'en_attente' ? 'selected' : ''}>En attente</option>
-                        <option value="en_cours" ${rapport.status === 'en_cours' ? 'selected' : ''}>En cours</option>
-                        <option value="attente_client" ${rapport.status === 'attente_client' ? 'selected' : ''}>Attente client</option>
-                        <option value="cloture" ${rapport.status === 'cloture' ? 'selected' : ''}>Clôturé</option>
-                    </select>
-                </div>
-                <div style="margin-bottom:1rem;">
+                <h3 style="margin-top:0;color:var(--text-dark);">Réponse client - NC ${rapport.numero}</h3>
+                <div style="margin-bottom:1.5rem;">
                     <label style="display:block;margin-bottom:0.5rem;font-weight:bold;color:var(--text-dark);">Réponse client</label>
-                    <textarea id="modalReponse" rows="5" class="modal-input">${rapport.reponse_client || ''}</textarea>
+                    <textarea id="modalReponse" rows="8" class="modal-input" placeholder="Saisir la réponse du client...">${rapport.reponse_client || ''}</textarea>
                 </div>
                 <div style="display:flex;gap:1rem;justify-content:flex-end;">
                     <button id="modalCancel" class="btn btn-secondary">Annuler</button>
@@ -1659,23 +1639,15 @@ class RapportDeControleApp {
         };
 
         document.getElementById('modalSave').onclick = async () => {
-            const newStatus = document.getElementById('modalStatus').value;
-            const reponseClient = document.getElementById('modalReponse').value;
+            const reponseClient = document.getElementById('modalReponse').value.trim();
 
             const updateData = {
-                status: newStatus,
                 reponse_client: reponseClient || null
             };
 
-            // Si on passe à attente_client et qu'il y a une réponse, enregistrer la date
-            if (reponseClient && !rapport.date_reponse_client) {
+            // Si c'est la première fois qu'on ajoute une réponse, enregistrer la date
+            if (reponseClient && !rapport.reponse_client) {
                 updateData.date_reponse_client = new Date().toISOString();
-            }
-
-            // Si on clôture, enregistrer la date et l'utilisateur
-            if (newStatus === 'cloture' && rapport.status !== 'cloture') {
-                updateData.date_cloture = new Date().toISOString();
-                updateData.valide_par = self.currentUser.id;
             }
 
             const { error } = await supabaseClient
@@ -1689,7 +1661,7 @@ class RapportDeControleApp {
                 return;
             }
 
-            self.showNotification('NC mise à jour', 'success');
+            self.showNotification('Réponse client enregistrée', 'success');
             document.body.removeChild(modal);
             await self.loadAdminRapports();
             await self.updateNotifBadge();
@@ -1930,38 +1902,22 @@ class RapportDeControleApp {
     }
 
     // ========== GÉNÉRATION DE MAIL ==========
-    openMailModal() {
-        // Réinitialiser les champs
-        document.getElementById('mailCommandeInput').value = '';
-        document.getElementById('mailObjet').value = '';
-        document.getElementById('mailCorps').value = '';
+    async openMailModal(rapportId) {
+        // Charger le rapport avec ses défauts
+        const { data: rapport, error } = await supabaseClient
+            .from('rapports')
+            .select('*, defauts (*)')
+            .eq('id', rapportId)
+            .single();
 
-        // Afficher le modal
-        document.getElementById('mailModal').style.display = 'block';
-    }
-
-    closeMailModal() {
-        document.getElementById('mailModal').style.display = 'none';
-    }
-
-    async generateMailText() {
-        const numeroCommande = document.getElementById('mailCommandeInput').value.trim();
-
-        if (!numeroCommande) {
-            this.showNotification('Veuillez saisir un numéro de commande', 'error');
-            return;
-        }
-
-        // Rechercher le rapport correspondant au numéro de commande
-        const rapport = this.findRapportByCommande(numeroCommande);
-
-        if (!rapport) {
-            this.showNotification('Aucun rapport trouvé pour ce numéro de commande', 'error');
+        if (error || !rapport) {
+            this.showNotification('Erreur lors du chargement du rapport', 'error');
             return;
         }
 
         // Générer l'objet du mail
         const ofClient = rapport.of_client || 'N/A';
+        const numeroCommande = rapport.ordre_fabrication;
         const objet = `NC ${ofClient} - Commande ${numeroCommande}`;
 
         // Générer le corps du mail
@@ -1998,24 +1954,16 @@ Cordialement,
 ${this.userProfile.full_name}`;
 
         // Remplir les champs
+        document.getElementById('mailRapportNumero').textContent = rapport.numero;
         document.getElementById('mailObjet').value = objet;
         document.getElementById('mailCorps').value = corps;
 
-        this.showNotification('Texte généré avec succès', 'success');
+        // Afficher le modal
+        document.getElementById('mailModal').style.display = 'block';
     }
 
-    findRapportByCommande(numeroCommande) {
-        // Combiner les rapports utilisateur et admin
-        const allRapports = [...this.rapports, ...this.adminRapports];
-
-        // Recherche par ordre_fabrication, of_client ou numero
-        const found = allRapports.find(r =>
-            r.ordre_fabrication === numeroCommande ||
-            r.of_client === numeroCommande ||
-            r.numero === numeroCommande
-        );
-
-        return found || null;
+    closeMailModal() {
+        document.getElementById('mailModal').style.display = 'none';
     }
 
     copyToClipboard(elementId) {
