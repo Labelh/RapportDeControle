@@ -487,10 +487,12 @@ class RapportDeControleApp {
     processFiles(files) {
         files.forEach(file => {
             if (file.type.startsWith('image/')) {
-                this.compressImage(file, (compressedDataUrl) => {
+                this.compressImage(file, (compressedDataUrl, width, height) => {
                     this.selectedPhotos.push({
                         name: file.name,
-                        data: compressedDataUrl
+                        data: compressedDataUrl,
+                        width: width,
+                        height: height
                     });
                     this.updatePhotosPreview();
                 });
@@ -524,7 +526,7 @@ class RapportDeControleApp {
             ctx.drawImage(img, 0, 0, width, height);
 
             const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-            callback(compressedDataUrl);
+            callback(compressedDataUrl, width, height);
         };
 
         img.src = URL.createObjectURL(file);
@@ -1385,18 +1387,53 @@ class RapportDeControleApp {
                             colY += commentaireLines.length * 4 + 2;
                         }
 
-                        // Photos
+                        // Photos - 2 par ligne, plus grosses, aspect ratio conservé
                         if (defaut.photos && defaut.photos.length > 0) {
-                            colY += 2;
-                            for (let photoIndex = 0; photoIndex < Math.min(2, defaut.photos.length); photoIndex++) {
+                            colY += 3;
+                            const maxPhotoSize = 55; // Taille max par photo (plus grosse qu'avant)
+                            const photoGap = 3;
+                            let maxRowHeight = 0;
+
+                            for (let photoIndex = 0; photoIndex < defaut.photos.length; photoIndex++) {
                                 const photo = defaut.photos[photoIndex];
                                 try {
-                                    doc.addImage(photo.data, 'JPEG', xPosition, colY, 40, 40);
-                                    colY += 42;
+                                    // Calculer position : 2 photos par ligne
+                                    const photoCol = photoIndex % 2;
+                                    const photoRow = Math.floor(photoIndex / 2);
+
+                                    // Calculer les dimensions en gardant l'aspect ratio
+                                    let photoWidth = maxPhotoSize;
+                                    let photoHeight = maxPhotoSize;
+
+                                    if (photo.width && photo.height) {
+                                        const aspectRatio = photo.width / photo.height;
+                                        if (aspectRatio > 1) {
+                                            // Photo horizontale
+                                            photoHeight = maxPhotoSize / aspectRatio;
+                                        } else {
+                                            // Photo verticale
+                                            photoWidth = maxPhotoSize * aspectRatio;
+                                        }
+                                    }
+
+                                    const photoX = xPosition + (photoCol * (maxPhotoSize + photoGap));
+                                    const photoY = colY + (photoRow * (maxPhotoSize + photoGap));
+
+                                    // Afficher la photo
+                                    doc.addImage(photo.data, 'JPEG', photoX, photoY, photoWidth, photoHeight);
+
+                                    // Suivre la hauteur max de la rangée actuelle
+                                    if (photoCol === 0 || photoHeight > maxRowHeight) {
+                                        maxRowHeight = Math.max(maxRowHeight, photoHeight);
+                                    }
                                 } catch (error) {
                                     console.error('Erreur image:', error);
                                 }
                             }
+
+                            // Calculer la hauteur totale occupée par les photos
+                            const totalRows = Math.ceil(defaut.photos.length / 2);
+                            colY += totalRows * (maxPhotoSize + photoGap);
                         }
 
                         colY += 3;
@@ -1930,7 +1967,7 @@ class RapportDeControleApp {
         // Générer l'objet du mail
         const ofClient = rapport.of_client || 'N/A';
         const numeroCommande = rapport.numero_commande || rapport.ordre_fabrication;
-        const objet = `${ofClient} - ${numeroCommande}`;
+        const objet = `OF ${ofClient} - Commande N° ${numeroCommande}`;
 
         // Générer le corps du mail
         const dateControle = new Date(rapport.date_controle).toLocaleDateString('fr-FR');
@@ -1952,10 +1989,8 @@ class RapportDeControleApp {
 Suite au contrôle qualité effectué le ${dateControle}, nous avons identifié des non-conformités sur la commande n°${numeroCommande}.
 
 Détails du rapport de contrôle :
-- N° Rapport : ${rapport.numero}
 - OF Client : ${ofClient}
 - Référence : ${rapport.reference || 'N/A'}
-- Client : ${rapport.client || 'N/A'}
 
 Non-conformités détectées :
 ${defautsText}
