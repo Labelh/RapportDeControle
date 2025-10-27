@@ -8,10 +8,16 @@ const { createClient } = supabase;
 const supabaseClient = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
 
 // ========== CONFIGURATION TIMETONIC ==========
-// L'API Timetonic ne supporte pas CORS depuis le navigateur
-// Utiliser un proxy CORS pour contourner ce problème
-const USE_CORS_PROXY = true; // Mettre à false si Timetonic active CORS
-const CORS_PROXY = 'https://corsproxy.io/?';
+// IMPORTANT: L'API Timetonic ne supporte pas CORS depuis le navigateur.
+// Les proxies CORS gratuits ne fonctionnent pas avec les requêtes POST de Timetonic.
+//
+// SOLUTIONS POSSIBLES:
+// 1. Backend intermédiaire (recommandé pour production)
+// 2. Extension navigateur CORS (pour développement uniquement)
+// 3. Attendre que Timetonic active CORS pour votre domaine
+//
+// Pour l'instant, cette fonctionnalité nécessite une solution backend.
+const USE_CORS_PROXY = false; // Ne fonctionne pas avec les proxies gratuits
 const TIMETONIC_API_URL = 'https://timetonic.com/live/api.php';
 
 // ========== CLASSE PRINCIPALE ==========
@@ -2442,9 +2448,9 @@ ${this.userProfile.full_name}`;
         this.showNotification('Configuration Timetonic enregistrée avec succès', 'success');
     }
 
-    // Helper pour faire des requêtes à Timetonic avec ou sans proxy CORS
+    // Helper pour faire des requêtes à Timetonic
     async callTimetonicAPI(params) {
-        const url = USE_CORS_PROXY ? CORS_PROXY + encodeURIComponent(TIMETONIC_API_URL) : TIMETONIC_API_URL;
+        const url = TIMETONIC_API_URL;
 
         const response = await fetch(url, {
             method: 'POST',
@@ -2454,6 +2460,7 @@ ${this.userProfile.full_name}`;
             body: new URLSearchParams(params)
         });
 
+        console.log('Timetonic API - URL:', url);
         console.log('Timetonic API - HTTP status:', response.status);
         console.log('Timetonic API - Content-Type:', response.headers.get('Content-Type'));
 
@@ -2462,8 +2469,14 @@ ${this.userProfile.full_name}`;
         if (!contentType || !contentType.includes('application/json')) {
             const textResponse = await response.text();
             console.error('Réponse non-JSON reçue:', textResponse.substring(0, 500));
-            throw new Error('L\'API Timetonic a renvoyé du HTML au lieu de JSON. ' +
-                (USE_CORS_PROXY ? 'Le proxy CORS a peut-être un problème.' : 'Activez USE_CORS_PROXY dans le code.'));
+
+            const corsError = new Error(
+                'L\'API Timetonic bloque les requêtes depuis le navigateur (problème CORS). ' +
+                'Cette fonctionnalité nécessite un backend intermédiaire. ' +
+                'Contactez votre développeur pour mettre en place une solution.'
+            );
+            corsError.name = 'CORSError';
+            throw corsError;
         }
 
         return await response.json();
@@ -2513,11 +2526,18 @@ ${this.userProfile.full_name}`;
             console.error('Type d\'erreur:', error.name);
             console.error('Message:', error.message);
 
-            let errorMessage = 'Erreur de connexion à Timetonic. ';
-            if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-                errorMessage += 'Problème CORS ou réseau. Consultez la console (F12) pour plus de détails.';
+            let errorMessage = '';
+            if (error.name === 'CORSError') {
+                errorMessage = '⚠️ Problème CORS détecté\n\n' +
+                    'L\'API Timetonic bloque les requêtes depuis le navigateur.\n' +
+                    'Solutions possibles:\n' +
+                    '1. Backend intermédiaire (recommandé)\n' +
+                    '2. Contacter Timetonic pour activer CORS\n' +
+                    '3. Saisir les données manuellement';
+            } else if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+                errorMessage = 'Erreur réseau. Vérifiez votre connexion internet.';
             } else {
-                errorMessage += 'Détails: ' + error.message;
+                errorMessage = error.message;
             }
 
             this.showNotification(errorMessage, 'error');
