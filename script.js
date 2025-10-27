@@ -2340,12 +2340,14 @@ ${this.userProfile.full_name}`;
 
         // Charger la configuration Timetonic
         const timetonicConfig = JSON.parse(localStorage.getItem('timetonicConfig') || '{}');
-        const appKeyInput = document.getElementById('timetonicAppKey');
-        const sessKeyInput = document.getElementById('timetonicSessKey');
+        const ouCodeInput = document.getElementById('timetonicOuCode');
+        const ucInput = document.getElementById('timetonicUc');
+        const ouSessKeyInput = document.getElementById('timetonicOuSessKey');
         const codeBookInput = document.getElementById('timetonicOuCodeBook');
 
-        if (appKeyInput) appKeyInput.value = timetonicConfig.appKey || '';
-        if (sessKeyInput) sessKeyInput.value = timetonicConfig.sessKey || '';
+        if (ouCodeInput) ouCodeInput.value = timetonicConfig.ouCode || '';
+        if (ucInput) ucInput.value = timetonicConfig.uc || '';
+        if (ouSessKeyInput) ouSessKeyInput.value = timetonicConfig.ouSessKey || '';
         if (codeBookInput) codeBookInput.value = timetonicConfig.ouCodeBook || '';
     }
 
@@ -2379,16 +2381,17 @@ ${this.userProfile.full_name}`;
     }
 
     saveTimetonicConfig() {
-        const appKey = document.getElementById('timetonicAppKey').value.trim();
-        const sessKey = document.getElementById('timetonicSessKey').value.trim();
+        const ouCode = document.getElementById('timetonicOuCode').value.trim();
+        const uc = document.getElementById('timetonicUc').value.trim();
+        const ouSessKey = document.getElementById('timetonicOuSessKey').value.trim();
         const ouCodeBook = document.getElementById('timetonicOuCodeBook').value.trim();
 
-        if (!appKey || !sessKey || !ouCodeBook) {
+        if (!ouCode || !uc || !ouSessKey || !ouCodeBook) {
             this.showNotification('Veuillez remplir tous les champs', 'error');
             return;
         }
 
-        const config = { appKey, sessKey, ouCodeBook };
+        const config = { ouCode, uc, ouSessKey, ouCodeBook };
         localStorage.setItem('timetonicConfig', JSON.stringify(config));
 
         this.showNotification('Configuration Timetonic enregistrée', 'success');
@@ -2397,7 +2400,7 @@ ${this.userProfile.full_name}`;
     async testTimetonicConnection() {
         const config = JSON.parse(localStorage.getItem('timetonicConfig') || '{}');
 
-        if (!config.appKey || !config.sessKey || !config.ouCodeBook) {
+        if (!config.ouCode || !config.uc || !config.ouSessKey || !config.ouCodeBook) {
             this.showNotification('Veuillez d\'abord enregistrer la configuration', 'error');
             return;
         }
@@ -2410,9 +2413,9 @@ ${this.userProfile.full_name}`;
                 },
                 body: new URLSearchParams({
                     req: 'getAllBooks',
-                    o_u: config.appKey,
-                    u_c: '',
-                    sesskey: config.sessKey
+                    o_u: config.ouCode,
+                    u_c: config.uc,
+                    o_u_sesskey: config.ouSessKey
                 })
             });
 
@@ -2436,7 +2439,7 @@ ${this.userProfile.full_name}`;
 
         const config = JSON.parse(localStorage.getItem('timetonicConfig') || '{}');
 
-        if (!config.appKey || !config.sessKey || !config.ouCodeBook) {
+        if (!config.ouCode || !config.uc || !config.ouSessKey || !config.ouCodeBook) {
             // Configuration non définie, on ne fait rien
             return;
         }
@@ -2450,9 +2453,9 @@ ${this.userProfile.full_name}`;
                 },
                 body: new URLSearchParams({
                     req: 'getAllRows',
-                    o_u: config.appKey,
-                    u_c: '',
-                    sesskey: config.sessKey,
+                    o_u: config.ouCode,
+                    u_c: config.uc,
+                    o_u_sesskey: config.ouSessKey,
                     ou_codebook: config.ouCodeBook,
                     status: 'active'
                 })

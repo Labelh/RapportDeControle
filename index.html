@@ -319,16 +319,20 @@
                     <h3>Intégration Timetonic</h3>
                     <p class="text-secondary">Configurez votre API Timetonic pour récupérer automatiquement les informations des OF.</p>
                     <div class="form-group">
-                        <label for="timetonicAppKey">App Key</label>
-                        <input type="text" id="timetonicAppKey" placeholder="Votre clé d'application Timetonic">
+                        <label for="timetonicOuCode">o_u (Organizational Unit Code)</label>
+                        <input type="text" id="timetonicOuCode" placeholder="Code de votre organisation (ex: o12345)">
                     </div>
                     <div class="form-group">
-                        <label for="timetonicSessKey">Session Key</label>
-                        <input type="password" id="timetonicSessKey" placeholder="Votre clé de session Timetonic">
+                        <label for="timetonicUc">u_c (User Code)</label>
+                        <input type="text" id="timetonicUc" placeholder="Code utilisateur (ex: abcd1234)">
+                    </div>
+                    <div class="form-group">
+                        <label for="timetonicOuSessKey">o_u_sesskey</label>
+                        <input type="password" id="timetonicOuSessKey" placeholder="Clé de session organisationnelle">
                     </div>
                     <div class="form-group">
                         <label for="timetonicOuCodeBook">Code Book (OF)</label>
-                        <input type="text" id="timetonicOuCodeBook" placeholder="Code du book contenant les OF">
+                        <input type="text" id="timetonicOuCodeBook" placeholder="Code du book contenant les OF (ex: b12345)">
                     </div>
                     <button id="saveTimetonicConfig" class="btn btn-primary">Enregistrer la configuration</button>
                     <button id="testTimetonicConnection" class="btn btn-secondary">Tester la connexion</button>
