@@ -2518,7 +2518,7 @@ ${this.userProfile.full_name}`;
                 u_c: config.uc,
                 o_u_sesskey: '***',
                 ou_codebook: config.ouCodeBook,
-                use_proxy: USE_CORS_PROXY
+                use_edge_function: USE_EDGE_FUNCTION
             });
 
             const data = await this.callTimetonicAPI({
