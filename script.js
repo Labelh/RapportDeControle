@@ -88,7 +88,7 @@ class RapportDeControleApp {
         // Afficher les menus admin si nécessaire
         if (this.userProfile.role === 'admin') {
             document.querySelectorAll('.admin-only').forEach(el => {
-                el.style.display = 'flex';
+                el.style.display = '';
             });
             // Charger le compteur de rapports en attente
             this.updateNotifBadge();
