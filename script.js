@@ -7,6 +7,13 @@
 const { createClient } = supabase;
 const supabaseClient = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
 
+// ========== CONFIGURATION TIMETONIC ==========
+// L'API Timetonic ne supporte pas CORS depuis le navigateur
+// Utiliser un proxy CORS pour contourner ce problème
+const USE_CORS_PROXY = true; // Mettre à false si Timetonic active CORS
+const CORS_PROXY = 'https://corsproxy.io/?';
+const TIMETONIC_API_URL = 'https://timetonic.com/live/api.php';
+
 // ========== CLASSE PRINCIPALE ==========
 class RapportDeControleApp {
     constructor() {
@@ -240,9 +247,11 @@ class RapportDeControleApp {
         const sidebar = document.getElementById('sidebar');
         const sidebarToggle = document.getElementById('sidebarToggle');
 
-        sidebarToggle.addEventListener('click', () => {
-            sidebar.classList.toggle('show');
-        });
+        if (sidebarToggle && sidebar) {
+            sidebarToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('show');
+            });
+        }
 
         // Fermer la sidebar en cliquant en dehors sur mobile
         document.addEventListener('click', (e) => {
@@ -2433,6 +2442,33 @@ ${this.userProfile.full_name}`;
         this.showNotification('Configuration Timetonic enregistrée avec succès', 'success');
     }
 
+    // Helper pour faire des requêtes à Timetonic avec ou sans proxy CORS
+    async callTimetonicAPI(params) {
+        const url = USE_CORS_PROXY ? CORS_PROXY + encodeURIComponent(TIMETONIC_API_URL) : TIMETONIC_API_URL;
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams(params)
+        });
+
+        console.log('Timetonic API - HTTP status:', response.status);
+        console.log('Timetonic API - Content-Type:', response.headers.get('Content-Type'));
+
+        // Vérifier si la réponse est bien du JSON
+        const contentType = response.headers.get('Content-Type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const textResponse = await response.text();
+            console.error('Réponse non-JSON reçue:', textResponse.substring(0, 500));
+            throw new Error('L\'API Timetonic a renvoyé du HTML au lieu de JSON. ' +
+                (USE_CORS_PROXY ? 'Le proxy CORS a peut-être un problème.' : 'Activez USE_CORS_PROXY dans le code.'));
+        }
+
+        return await response.json();
+    }
+
     async testTimetonicConnection() {
         const config = JSON.parse(localStorage.getItem('timetonicConfig') || '{}');
 
@@ -2452,25 +2488,17 @@ ${this.userProfile.full_name}`;
                 o_u: config.ouCode,
                 u_c: config.uc,
                 o_u_sesskey: '***',
-                ou_codebook: config.ouCodeBook
+                ou_codebook: config.ouCodeBook,
+                use_proxy: USE_CORS_PROXY
             });
 
-            const response = await fetch('https://timetonic.com/live/api.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams({
-                    req: 'getAllBooks',
-                    o_u: config.ouCode,
-                    u_c: config.uc,
-                    o_u_sesskey: config.ouSessKey
-                })
+            const data = await this.callTimetonicAPI({
+                req: 'getAllBooks',
+                o_u: config.ouCode,
+                u_c: config.uc,
+                o_u_sesskey: config.ouSessKey
             });
 
-            console.log('Réponse HTTP status:', response.status);
-
-            const data = await response.json();
             console.log('Réponse Timetonic:', data);
 
             if (data.status === 'ok') {
@@ -2518,22 +2546,14 @@ ${this.userProfile.full_name}`;
 
         try {
             // Récupérer les données du book
-            const response = await fetch('https://timetonic.com/live/api.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams({
-                    req: 'getAllRows',
-                    o_u: config.ouCode,
-                    u_c: config.uc,
-                    o_u_sesskey: config.ouSessKey,
-                    ou_codebook: config.ouCodeBook,
-                    status: 'active'
-                })
+            const data = await this.callTimetonicAPI({
+                req: 'getAllRows',
+                o_u: config.ouCode,
+                u_c: config.uc,
+                o_u_sesskey: config.ouSessKey,
+                ou_codebook: config.ouCodeBook,
+                status: 'active'
             });
-
-            const data = await response.json();
 
             if (data.status === 'ok' && data.allRows) {
                 // Utiliser le mapping configuré pour chercher l'OF
@@ -2598,23 +2618,15 @@ ${this.userProfile.full_name}`;
         }
 
         try {
-            const response = await fetch('https://timetonic.com/live/api.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams({
-                    req: 'getAllRows',
-                    o_u: config.ouCode,
-                    u_c: config.uc,
-                    o_u_sesskey: config.ouSessKey,
-                    ou_codebook: config.ouCodeBook,
-                    status: 'active',
-                    limit: 10 // Limiter à 10 lignes pour l'aperçu
-                })
+            const data = await this.callTimetonicAPI({
+                req: 'getAllRows',
+                o_u: config.ouCode,
+                u_c: config.uc,
+                o_u_sesskey: config.ouSessKey,
+                ou_codebook: config.ouCodeBook,
+                status: 'active',
+                limit: 10 // Limiter à 10 lignes pour l'aperçu
             });
-
-            const data = await response.json();
 
             if (data.status === 'ok' && data.allRows && data.allRows.length > 0) {
                 this.displayTimetonicPreview(data.allRows);
