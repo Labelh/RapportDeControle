@@ -14,7 +14,7 @@
     --border-color: rgba(148, 163, 184, 0.1);
     --border-dark: #3a3a3a;
     --hover-bg: #303030;
-    --sidebar-bg: #1a1d29;
+    --sidebar-bg: #2a2a2a;
     --sidebar-width: 260px;
     --transition: all 0.3s ease;
 }
@@ -964,34 +964,37 @@ input.field-error, select.field-error, textarea.field-error {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    background: transparent;
-    border: 1px solid var(--border-light);
-    border-radius: 10px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-dark);
+    border-radius: 0.75rem;
     overflow: hidden;
 }
 
 .rapports-table thead {
-    background: transparent;
+    background: var(--hover-bg);
 }
 
 .rapports-table thead th {
     padding: 1rem;
     text-align: left;
     font-weight: 600;
-    color: var(--text-dark);
-    border-bottom: 2px solid var(--border-light);
-    font-size: 0.9rem;
+    color: var(--text-color);
+    border-bottom: 2px solid var(--border-dark);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .rapports-table tbody tr {
-    background: transparent;
-    border-bottom: 1px solid var(--border-light);
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border-dark);
     cursor: pointer;
-    transition: var(--transition);
+    transition: all 0.2s ease;
 }
 
 .rapports-table tbody tr:hover {
-    background-color: var(--background-light);
+    background-color: var(--hover-bg);
+    transform: translateX(2px);
 }
 
 .rapports-table tbody tr:last-child {
@@ -1000,9 +1003,14 @@ input.field-error, select.field-error, textarea.field-error {
 
 .rapports-table tbody td {
     padding: 1rem;
-    color: var(--text-dark);
-    font-size: 0.9rem;
+    color: var(--text-color);
+    font-size: 0.875rem;
     vertical-align: middle;
+    border-right: 1px solid var(--border-dark);
+}
+
+.rapports-table tbody td:last-child {
+    border-right: none;
 }
 
 .rapports-table .rapport-numero {
@@ -1228,7 +1236,7 @@ input.field-error, select.field-error, textarea.field-error {
     top: 0;
     width: 100%;
     height: 100%;
-    background: rgba(45, 52, 54, 0.7);
+    background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(4px);
 }
 
@@ -1246,40 +1254,42 @@ input.field-error, select.field-error, textarea.field-error {
 }
 
 .modal-box {
-    background: var(--background-white);
+    background: var(--card-bg);
     padding: 2rem;
-    border-radius: 8px;
+    border-radius: 0.75rem;
     max-width: 600px;
     width: 90%;
-    border: 1px solid var(--border-light);
+    border: 1px solid var(--border-dark);
 }
 
 .modal-input {
     width: 100%;
-    padding: 0.5rem;
-    border: 1px solid var(--border-light);
-    border-radius: 4px;
-    background: var(--background-white);
-    color: var(--text-dark);
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-dark);
+    border-radius: 0.5rem;
+    background: var(--bg-color);
+    color: var(--text-color);
     font-family: inherit;
+    transition: all 0.2s;
 }
 
 .modal-input:focus {
     outline: none;
-    border-color: var(--accent-orange);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(249, 55, 5, 0.1);
 }
 
 .modal-content {
-    background: var(--background-white);
+    background: var(--card-bg);
     margin: 5% auto;
     padding: 2rem;
-    border-radius: 12px;
+    border-radius: 0.75rem;
     width: 90%;
     max-width: 700px;
     max-height: 80vh;
     overflow-y: auto;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-    border: 1px solid var(--border-light);
+    border: 1px solid var(--border-dark);
 }
 
 .modal-header {
@@ -1288,12 +1298,12 @@ input.field-error, select.field-error, textarea.field-error {
     align-items: center;
     margin-bottom: 1.5rem;
     padding-bottom: 1rem;
-    border-bottom: 2px solid var(--accent-orange);
+    border-bottom: 2px solid var(--accent-color);
 }
 
 .modal-header h3 {
     margin: 0;
-    color: var(--text-dark);
+    color: var(--text-color);
 }
 
 .close-modal {
