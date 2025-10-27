@@ -302,6 +302,38 @@
                     <h2>Paramètres</h2>
                 </div>
 
+                <!-- Préférences générales -->
+                <div class="card">
+                    <h3>Préférences</h3>
+                    <div class="form-group">
+                        <label for="themePreference">Thème de l'application</label>
+                        <select id="themePreference" class="form-control">
+                            <option value="dark">Sombre</option>
+                            <option value="light">Clair</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- API Timetonic -->
+                <div class="card">
+                    <h3>Intégration Timetonic</h3>
+                    <p class="text-secondary">Configurez votre API Timetonic pour récupérer automatiquement les informations des OF.</p>
+                    <div class="form-group">
+                        <label for="timetonicAppKey">App Key</label>
+                        <input type="text" id="timetonicAppKey" placeholder="Votre clé d'application Timetonic">
+                    </div>
+                    <div class="form-group">
+                        <label for="timetonicSessKey">Session Key</label>
+                        <input type="password" id="timetonicSessKey" placeholder="Votre clé de session Timetonic">
+                    </div>
+                    <div class="form-group">
+                        <label for="timetonicOuCodeBook">Code Book (OF)</label>
+                        <input type="text" id="timetonicOuCodeBook" placeholder="Code du book contenant les OF">
+                    </div>
+                    <button id="saveTimetonicConfig" class="btn btn-primary">Enregistrer la configuration</button>
+                    <button id="testTimetonicConnection" class="btn btn-secondary">Tester la connexion</button>
+                </div>
+
                 <div class="card">
                     <h3>Clients</h3>
                     <div class="clients-list">

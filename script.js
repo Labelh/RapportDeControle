@@ -222,6 +222,10 @@ class RapportDeControleApp {
                 } else if (targetPage === 'parametres') {
                     this.loadClients();
                     this.loadTypesDefauts();
+                    this.loadSettings();
+                } else if (targetPage === 'rapport') {
+                    // Recharger l'UI des clients quand on retourne sur la page rapport
+                    this.updateClientsUI();
                 }
 
                 // Fermer la sidebar sur mobile
@@ -281,6 +285,29 @@ class RapportDeControleApp {
         document.getElementById('nouveauDefaut').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.ajouterTypeDefaut();
         });
+
+        // Préférence de thème
+        const themePreference = document.getElementById('themePreference');
+        if (themePreference) {
+            themePreference.addEventListener('change', (e) => this.saveThemePreference(e.target.value));
+        }
+
+        // Configuration Timetonic
+        const saveTimetonicConfig = document.getElementById('saveTimetonicConfig');
+        if (saveTimetonicConfig) {
+            saveTimetonicConfig.addEventListener('click', () => this.saveTimetonicConfig());
+        }
+
+        const testTimetonicConnection = document.getElementById('testTimetonicConnection');
+        if (testTimetonicConnection) {
+            testTimetonicConnection.addEventListener('click', () => this.testTimetonicConnection());
+        }
+
+        // Intégration Timetonic sur le champ OF Client
+        const ofClientInput = document.getElementById('ofClient');
+        if (ofClientInput) {
+            ofClientInput.addEventListener('blur', () => this.fetchTimetonicData());
+        }
 
         // Gestion utilisateurs (admin)
         const addUserForm = document.getElementById('addUserForm');
@@ -2300,6 +2327,173 @@ ${this.userProfile.full_name}`;
             notification.classList.remove('show');
             setTimeout(() => document.body.removeChild(notification), 300);
         }, 3000);
+    }
+
+    // ========== GESTION DES PARAMÈTRES ==========
+    loadSettings() {
+        // Charger la préférence de thème
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        const themeSelect = document.getElementById('themePreference');
+        if (themeSelect) {
+            themeSelect.value = savedTheme;
+        }
+
+        // Charger la configuration Timetonic
+        const timetonicConfig = JSON.parse(localStorage.getItem('timetonicConfig') || '{}');
+        const appKeyInput = document.getElementById('timetonicAppKey');
+        const sessKeyInput = document.getElementById('timetonicSessKey');
+        const codeBookInput = document.getElementById('timetonicOuCodeBook');
+
+        if (appKeyInput) appKeyInput.value = timetonicConfig.appKey || '';
+        if (sessKeyInput) sessKeyInput.value = timetonicConfig.sessKey || '';
+        if (codeBookInput) codeBookInput.value = timetonicConfig.ouCodeBook || '';
+    }
+
+    saveThemePreference(theme) {
+        localStorage.setItem('theme', theme);
+        document.documentElement.setAttribute('data-theme', theme);
+
+        // Mettre à jour l'icône du bouton de thème
+        const themeBtn = document.getElementById('themeToggle');
+        if (themeBtn) {
+            if (theme === 'light') {
+                themeBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg>`;
+            } else {
+                themeBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="5"/>
+                    <line x1="12" y1="1" x2="12" y2="3"/>
+                    <line x1="12" y1="21" x2="12" y2="23"/>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                    <line x1="1" y1="12" x2="3" y2="12"/>
+                    <line x1="21" y1="12" x2="23" y2="12"/>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                </svg>`;
+            }
+        }
+
+        this.showNotification('Thème enregistré', 'success');
+    }
+
+    saveTimetonicConfig() {
+        const appKey = document.getElementById('timetonicAppKey').value.trim();
+        const sessKey = document.getElementById('timetonicSessKey').value.trim();
+        const ouCodeBook = document.getElementById('timetonicOuCodeBook').value.trim();
+
+        if (!appKey || !sessKey || !ouCodeBook) {
+            this.showNotification('Veuillez remplir tous les champs', 'error');
+            return;
+        }
+
+        const config = { appKey, sessKey, ouCodeBook };
+        localStorage.setItem('timetonicConfig', JSON.stringify(config));
+
+        this.showNotification('Configuration Timetonic enregistrée', 'success');
+    }
+
+    async testTimetonicConnection() {
+        const config = JSON.parse(localStorage.getItem('timetonicConfig') || '{}');
+
+        if (!config.appKey || !config.sessKey || !config.ouCodeBook) {
+            this.showNotification('Veuillez d\'abord enregistrer la configuration', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch('https://timetonic.com/live/api.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    req: 'getAllBooks',
+                    o_u: config.appKey,
+                    u_c: '',
+                    sesskey: config.sessKey
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'ok') {
+                this.showNotification('Connexion Timetonic réussie !', 'success');
+            } else {
+                this.showNotification('Erreur de connexion: ' + (data.errorMsg || 'Vérifiez vos identifiants'), 'error');
+            }
+        } catch (error) {
+            console.error('Erreur lors du test de connexion:', error);
+            this.showNotification('Erreur de connexion au serveur Timetonic', 'error');
+        }
+    }
+
+    async fetchTimetonicData() {
+        const ofClient = document.getElementById('ofClient').value.trim();
+
+        if (!ofClient) return;
+
+        const config = JSON.parse(localStorage.getItem('timetonicConfig') || '{}');
+
+        if (!config.appKey || !config.sessKey || !config.ouCodeBook) {
+            // Configuration non définie, on ne fait rien
+            return;
+        }
+
+        try {
+            // Récupérer les données du book
+            const response = await fetch('https://timetonic.com/live/api.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    req: 'getAllRows',
+                    o_u: config.appKey,
+                    u_c: '',
+                    sesskey: config.sessKey,
+                    ou_codebook: config.ouCodeBook,
+                    status: 'active'
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'ok' && data.allRows) {
+                // Chercher l'OF correspondant
+                const ofData = data.allRows.find(row => {
+                    // Ajustez cette logique selon la structure de vos données Timetonic
+                    return row.c_1 === ofClient || row.ofClient === ofClient;
+                });
+
+                if (ofData) {
+                    // Remplir automatiquement les champs
+                    // Ajustez les clés selon votre structure Timetonic
+                    const referenceInput = document.getElementById('reference');
+                    const clientInput = document.getElementById('client');
+                    const numeroCommandeInput = document.getElementById('numeroCommande');
+
+                    if (ofData.reference && referenceInput) {
+                        referenceInput.value = ofData.reference || ofData.c_2 || '';
+                    }
+                    if (ofData.client && clientInput) {
+                        clientInput.value = ofData.client || ofData.c_3 || '';
+                    }
+                    if (ofData.numeroCommande && numeroCommandeInput) {
+                        numeroCommandeInput.value = ofData.numeroCommande || ofData.c_4 || '';
+                    }
+
+                    this.showNotification('Données OF récupérées depuis Timetonic', 'success');
+                } else {
+                    // OF non trouvé, on ne fait rien (pas d'erreur)
+                    console.log('OF non trouvé dans Timetonic');
+                }
+            }
+        } catch (error) {
+            console.error('Erreur lors de la récupération des données Timetonic:', error);
+            // On n'affiche pas d'erreur à l'utilisateur pour ne pas le déranger
+        }
     }
 }
 
