@@ -8,16 +8,10 @@ const { createClient } = supabase;
 const supabaseClient = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
 
 // ========== CONFIGURATION TIMETONIC ==========
-// IMPORTANT: L'API Timetonic ne supporte pas CORS depuis le navigateur.
-// Les proxies CORS gratuits ne fonctionnent pas avec les requêtes POST de Timetonic.
-//
-// SOLUTIONS POSSIBLES:
-// 1. Backend intermédiaire (recommandé pour production)
-// 2. Extension navigateur CORS (pour développement uniquement)
-// 3. Attendre que Timetonic active CORS pour votre domaine
-//
-// Pour l'instant, cette fonctionnalité nécessite une solution backend.
-const USE_CORS_PROXY = false; // Ne fonctionne pas avec les proxies gratuits
+// Utilisation d'une Supabase Edge Function pour contourner le problème CORS
+// L'Edge Function fait l'intermédiaire entre le frontend et l'API Timetonic
+const USE_EDGE_FUNCTION = true; // true = via Supabase Edge Function, false = appel direct
+const TIMETONIC_EDGE_FUNCTION_URL = `${SUPABASE_CONFIG.url}/functions/v1/timetonic-proxy`;
 const TIMETONIC_API_URL = 'https://timetonic.com/live/api.php';
 
 // ========== CLASSE PRINCIPALE ==========
@@ -2448,38 +2442,60 @@ ${this.userProfile.full_name}`;
         this.showNotification('Configuration Timetonic enregistrée avec succès', 'success');
     }
 
-    // Helper pour faire des requêtes à Timetonic
+    // Helper pour faire des requêtes à Timetonic via l'Edge Function
     async callTimetonicAPI(params) {
-        const url = TIMETONIC_API_URL;
+        if (USE_EDGE_FUNCTION) {
+            // Utiliser la Supabase Edge Function (résout le problème CORS)
+            console.log('📡 Appel via Edge Function:', TIMETONIC_EDGE_FUNCTION_URL);
+            console.log('📤 Paramètres:', { req: params.req, o_u: params.o_u, u_c: params.u_c });
 
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams(params)
-        });
+            const response = await fetch(TIMETONIC_EDGE_FUNCTION_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
+                },
+                body: JSON.stringify({ params })
+            });
 
-        console.log('Timetonic API - URL:', url);
-        console.log('Timetonic API - HTTP status:', response.status);
-        console.log('Timetonic API - Content-Type:', response.headers.get('Content-Type'));
+            console.log('📥 Edge Function - HTTP status:', response.status);
 
-        // Vérifier si la réponse est bien du JSON
-        const contentType = response.headers.get('Content-Type');
-        if (!contentType || !contentType.includes('application/json')) {
-            const textResponse = await response.text();
-            console.error('Réponse non-JSON reçue:', textResponse.substring(0, 500));
+            const data = await response.json();
+            console.log('📥 Edge Function - Réponse:', data);
 
-            const corsError = new Error(
-                'L\'API Timetonic bloque les requêtes depuis le navigateur (problème CORS). ' +
-                'Cette fonctionnalité nécessite un backend intermédiaire. ' +
-                'Contactez votre développeur pour mettre en place une solution.'
-            );
-            corsError.name = 'CORSError';
-            throw corsError;
+            if (data.status === 'error') {
+                throw new Error(data.errorMsg || 'Erreur Edge Function');
+            }
+
+            return data;
+
+        } else {
+            // Appel direct (ne fonctionnera pas à cause de CORS)
+            console.log('⚠️ Appel direct API Timetonic (CORS va bloquer)');
+
+            const response = await fetch(TIMETONIC_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams(params)
+            });
+
+            const contentType = response.headers.get('Content-Type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const textResponse = await response.text();
+                console.error('Réponse non-JSON reçue:', textResponse.substring(0, 500));
+
+                const corsError = new Error(
+                    'L\'API Timetonic bloque les requêtes depuis le navigateur (problème CORS). ' +
+                    'Activez USE_EDGE_FUNCTION pour résoudre ce problème.'
+                );
+                corsError.name = 'CORSError';
+                throw corsError;
+            }
+
+            return await response.json();
         }
-
-        return await response.json();
     }
 
     async testTimetonicConnection() {

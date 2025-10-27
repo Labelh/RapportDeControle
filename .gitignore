@@ -13,3 +13,7 @@ node_modules/
 
 # Fichiers Claude
 .claude/settings.local.json
+
+# Supabase local
+.supabase/
+*.env.local
