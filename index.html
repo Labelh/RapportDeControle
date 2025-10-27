@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestion des Non-Conformités</title>
+
+    <!-- Nunito Sans Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="styles.css?v=2.0.0">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -38,68 +44,77 @@
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="sidebar-logo">
-                    <svg class="logo-svg" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
-                        <!-- Circle background -->
-                        <circle cx="30" cy="30" r="26" fill="#a13a20"/>
-                        <!-- Check mark -->
-                        <path d="M 17 28 L 26 37 L 43 20" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                        <!-- Decorative arc -->
-                        <circle cx="30" cy="30" r="26" fill="none" stroke="#fab1a0" stroke-width="2" opacity="0.5"/>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
                     </svg>
-                    <h1>Rapport de<br>Contrôle</h1>
                 </div>
-                <button class="sidebar-toggle" id="sidebarToggle">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </button>
+                <div class="sidebar-title-container">
+                    <h1 class="sidebar-title">QualityPro</h1>
+                    <p class="sidebar-subtitle">Ajust'82</p>
+                </div>
             </div>
 
             <nav class="sidebar-nav">
-                <a href="#" class="nav-item active" data-page="nouvelle-nc">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                    </svg>
-                    <span class="nav-text">Nouveau Rapport</span>
+                <a href="#" class="sidebar-link active" data-page="nouvelle-nc">
+                    <span class="sidebar-link-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                    </span>
+                    <span class="sidebar-link-label">Nouveau Rapport</span>
                 </a>
-                <a href="#" class="nav-item" data-page="mes-nc">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                    </svg>
-                    <span class="nav-text">Mes Rapports</span>
+                <a href="#" class="sidebar-link" data-page="mes-nc">
+                    <span class="sidebar-link-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                    </span>
+                    <span class="sidebar-link-label">Mes Rapports</span>
                 </a>
-                <a href="#" class="nav-item admin-only" data-page="admin" style="display: none;">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <span class="nav-text">Rapports</span>
-                    <span id="notifBadge" class="notif-badge" style="display: none;">0</span>
+                <a href="#" class="sidebar-link admin-only" data-page="admin" style="display: none;">
+                    <span class="sidebar-link-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </span>
+                    <span class="sidebar-link-label">Rapports en attente</span>
+                    <span id="notifBadge" class="sidebar-badge" style="display: none;">0</span>
                 </a>
-                <a href="#" class="nav-item admin-only" data-page="utilisateurs" style="display: none;">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-                    </svg>
-                    <span class="nav-text">Gestion utilisateurs</span>
+                <a href="#" class="sidebar-link admin-only" data-page="utilisateurs" style="display: none;">
+                    <span class="sidebar-link-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                        </svg>
+                    </span>
+                    <span class="sidebar-link-label">Gestion utilisateurs</span>
                 </a>
-                <a href="#" class="nav-item admin-only" data-page="parametres" style="display: none;">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                    </svg>
-                    <span class="nav-text">Paramètres</span>
+                <a href="#" class="sidebar-link admin-only" data-page="parametres" style="display: none;">
+                    <span class="sidebar-link-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3" />
+                            <path d="M12 1v6m0 6v6m5.196-13.804l-4.242 4.242m-5.908 5.908l-4.242 4.242M23 12h-6m-6 0H1m18.196 5.196l-4.242-4.242m-5.908-5.908L4.804 2.804" />
+                        </svg>
+                    </span>
+                    <span class="sidebar-link-label">Paramètres</span>
                 </a>
             </nav>
 
             <div class="sidebar-footer">
-                <div class="user-info">
+                <div class="sidebar-user">
                     <div class="user-avatar" id="userAvatar">U</div>
-                    <div class="user-details">
+                    <div class="user-info">
                         <div class="user-name" id="userName">Utilisateur</div>
                         <div class="user-role" id="userRole">user</div>
                     </div>
                 </div>
                 <div class="footer-actions">
-                    <button id="themeToggle" class="icon-btn" title="Changer le thème">◐</button>
-                    <button id="logoutBtn" class="icon-btn" title="Déconnexion">⎋</button>
+                    <button id="logoutBtn" class="btn-logout" title="Déconnexion">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                            <polyline points="16 17 21 12 16 7" />
+                            <line x1="21" y1="12" x2="9" y2="12" />
+                        </svg>
+                    </button>
                 </div>
             </div>
         </aside>

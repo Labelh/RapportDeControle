@@ -196,7 +196,7 @@ class RapportDeControleApp {
 
     // ========== NAVIGATION ET SIDEBAR ==========
     setupNavigation() {
-        const navLinks = document.querySelectorAll('.nav-item');
+        const navLinks = document.querySelectorAll('.sidebar-link');
         const pages = document.querySelectorAll('.page');
 
         navLinks.forEach(link => {
@@ -1158,7 +1158,7 @@ class RapportDeControleApp {
             validerBtn.textContent = 'Mettre à jour le Rapport';
 
             // Passer à la page de nouvelle NC
-            document.querySelectorAll('.nav-item').forEach(l => l.classList.remove('active'));
+            document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.querySelector('[data-page="nouvelle-nc"]').classList.add('active');
             document.getElementById('page-nouvelle-nc').classList.add('active');
