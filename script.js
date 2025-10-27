@@ -2448,6 +2448,13 @@ ${this.userProfile.full_name}`;
         }
 
         try {
+            console.log('Test de connexion Timetonic avec:', {
+                o_u: config.ouCode,
+                u_c: config.uc,
+                o_u_sesskey: '***',
+                ou_codebook: config.ouCodeBook
+            });
+
             const response = await fetch('https://timetonic.com/live/api.php', {
                 method: 'POST',
                 headers: {
@@ -2461,17 +2468,31 @@ ${this.userProfile.full_name}`;
                 })
             });
 
+            console.log('Réponse HTTP status:', response.status);
+
             const data = await response.json();
+            console.log('Réponse Timetonic:', data);
 
             if (data.status === 'ok') {
                 const booksCount = data.allBooks ? data.allBooks.length : 0;
                 this.showNotification(`Connexion Timetonic réussie ! (${booksCount} book(s) trouvé(s))`, 'success');
             } else {
+                console.error('Erreur API Timetonic:', data.errorMsg || data);
                 this.showNotification('Erreur: ' + (data.errorMsg || 'Vérifiez vos identifiants'), 'error');
             }
         } catch (error) {
-            console.error('Erreur lors du test de connexion:', error);
-            this.showNotification('Impossible de se connecter à Timetonic. Vérifiez votre connexion internet.', 'error');
+            console.error('Erreur complète lors du test de connexion:', error);
+            console.error('Type d\'erreur:', error.name);
+            console.error('Message:', error.message);
+
+            let errorMessage = 'Erreur de connexion à Timetonic. ';
+            if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+                errorMessage += 'Problème CORS ou réseau. Consultez la console (F12) pour plus de détails.';
+            } else {
+                errorMessage += 'Détails: ' + error.message;
+            }
+
+            this.showNotification(errorMessage, 'error');
         } finally {
             if (loader) loader.style.display = 'none';
         }
