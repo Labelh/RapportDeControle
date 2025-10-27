@@ -441,47 +441,46 @@ body {
 
 /* ========== CARDS ========== */
 .card {
-    background: transparent;
-    border-radius: 10px;
-    box-shadow: none;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    border: 1px solid var(--border-light);
+    background: var(--card-bg);
+    border-radius: 0.75rem;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border: 1px solid var(--border-dark);
 }
 
 .card h3 {
-    color: var(--text-dark);
+    color: var(--text-color);
     margin-bottom: 1.5rem;
     font-size: 1.2rem;
     font-weight: 600;
     padding-bottom: 0.75rem;
-    border-bottom: 2px solid var(--accent-orange);
+    border-bottom: 2px solid var(--accent-color);
 }
 
 /* ========== FORMULAIRES ========== */
 .form-group {
-    margin-bottom: 1.2rem;
+    margin-bottom: 1.5rem;
 }
 
 .form-group label {
     display: block;
     margin-bottom: 0.5rem;
     font-weight: 600;
-    color: var(--text-dark);
-    font-size: 0.9rem;
+    color: var(--text-color);
+    font-size: 0.875rem;
 }
 
 .form-group input,
 .form-group select,
 .form-group textarea {
     width: 100%;
-    padding: 0.75rem;
-    border: 1px solid var(--border-light);
-    border-radius: 6px;
-    font-size: 0.95rem;
-    transition: var(--transition);
-    background-color: var(--background-white);
-    color: var(--text-dark);
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+    background: var(--bg-color);
+    color: var(--text-color);
     font-family: inherit;
 }
 
@@ -489,7 +488,8 @@ body {
 .form-group select:focus,
 .form-group textarea:focus {
     outline: none;
-    border-color: var(--accent-orange);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(249, 55, 5, 0.1);
 }
 
 input.field-error, select.field-error, textarea.field-error {
