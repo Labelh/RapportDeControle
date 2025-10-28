@@ -33,9 +33,16 @@ class RapportDeControleApp {
         this.imageEditorCanvas = null;
         this.imageEditorCtx = null;
         this.currentEditingPhotoIndex = null;
+        this.currentDefautIndex = null; // Pour édition directe
         this.selectedTool = 'ellipse';
         this.annotations = [];
+        this.annotationsHistory = []; // Pour undo/redo
+        this.historyIndex = -1;
         this.isDrawing = false;
+        this.isDragging = false;
+        this.selectedAnnotation = null;
+        this.dragOffsetX = 0;
+        this.dragOffsetY = 0;
         this.startX = 0;
         this.startY = 0;
         this.originalImage = null;
@@ -378,6 +385,16 @@ class RapportDeControleApp {
             clearAnnotations.addEventListener('click', () => this.clearAnnotations());
         }
 
+        const undoAnnotation = document.getElementById('undoAnnotation');
+        if (undoAnnotation) {
+            undoAnnotation.addEventListener('click', () => this.undo());
+        }
+
+        const redoAnnotation = document.getElementById('redoAnnotation');
+        if (redoAnnotation) {
+            redoAnnotation.addEventListener('click', () => this.redo());
+        }
+
         // Tool buttons
         const toolButtons = document.querySelectorAll('.btn-tool');
         toolButtons.forEach(btn => {
@@ -386,6 +403,17 @@ class RapportDeControleApp {
                 e.currentTarget.classList.add('active');
                 this.selectedTool = e.currentTarget.dataset.tool;
             });
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'z') {
+                e.preventDefault();
+                this.undo();
+            } else if (e.ctrlKey && e.key === 'y') {
+                e.preventDefault();
+                this.redo();
+            }
         });
 
         // Gestion utilisateurs (admin)
@@ -581,8 +609,11 @@ class RapportDeControleApp {
             if (defaut.photos.length > 0) {
                 photosHtml = `
                     <div class="defaut-photos">
-                        ${defaut.photos.map(photo =>
-                            `<img src="${photo.data}" alt="${photo.name}" class="defaut-photo">`
+                        ${defaut.photos.map((photo, photoIndex) =>
+                            `<img src="${photo.data}" alt="${photo.name}" class="defaut-photo"
+                                  style="cursor: pointer;"
+                                  onclick="app.editPhotoDirectly(${index}, ${photoIndex})"
+                                  title="Cliquer pour annoter cette photo">`
                         ).join('')}
                     </div>
                 `;
@@ -1455,20 +1486,25 @@ class RapportDeControleApp {
             const terracottaOrange = [161, 58, 32];
             const white = [255, 255, 255];
 
-            // Ajouter le logo Ajust'82 (à gauche) - ratio 3:1 environ
-            try {
-                // Le logo original est plus large que haut (ratio approximatif 3:1)
-                // Utilisons une largeur de 30mm et hauteur de 10mm pour respecter le ratio
-                doc.addImage('images/Logo-Ajust.png', 'PNG', 15, 10, 30, 10);
-            } catch (error) {
-                console.warn('Logo non trouvé:', error);
-            }
-
             doc.setTextColor(...primaryColor);
             doc.setFontSize(16);
             doc.setFont('helvetica', 'bold');
-            doc.text('RAPPORT DE CONTRÔLE', 40, 16);
-            doc.text('QUALITÉ À RÉCEPTION', 40, 23);
+            const line1Y = 16;
+            const line2Y = 23;
+            doc.text('RAPPORT DE CONTRÔLE', 40, line1Y);
+            doc.text('QUALITÉ À RÉCEPTION', 40, line2Y);
+
+            // Ajouter le logo Ajust'82 (à gauche) - même hauteur que le titre
+            try {
+                // Le logo original est plus large que haut (ratio approximatif 3:1)
+                // Hauteur = hauteur du titre (7mm), largeur = hauteur * 3 = 21mm
+                const logoHeight = line2Y - line1Y + 7; // Hauteur totale du titre ~14mm
+                const logoWidth = logoHeight * 3; // Ratio 3:1
+                const logoY = line1Y - 6; // Position verticale alignée avec le titre
+                doc.addImage('images/Logo-Ajust.png', 'PNG', 15, logoY, logoWidth, logoHeight);
+            } catch (error) {
+                console.warn('Logo non trouvé:', error);
+            }
 
             doc.setFontSize(12);
             doc.setTextColor(...terracottaOrange);
@@ -2606,7 +2642,37 @@ ${this.userProfile.full_name}`;
     }
 
     // ========== ÉDITEUR D'IMAGE ==========
+    editPhotoDirectly(defautIndex, photoIndex) {
+        // Stocker l'index du défaut pour sauvegarder directement
+        this.currentDefautIndex = defautIndex;
+        this.currentEditingPhotoIndex = photoIndex;
+        const photo = this.defauts[defautIndex].photos[photoIndex];
+
+        const modal = document.getElementById('imageEditorModal');
+        modal.style.display = 'flex';
+
+        // Initialiser le canvas
+        this.imageEditorCanvas = document.getElementById('imageCanvas');
+        this.imageEditorCtx = this.imageEditorCanvas.getContext('2d');
+
+        // Charger l'image
+        const img = new Image();
+        img.onload = () => {
+            this.originalImage = img;
+            this.imageEditorCanvas.width = img.width;
+            this.imageEditorCanvas.height = img.height;
+            this.redrawCanvas();
+            this.setupCanvasEvents();
+        };
+        img.src = photo.data;
+
+        this.annotations = [];
+        this.annotationsHistory = [];
+        this.historyIndex = -1;
+    }
+
     openImageEditor(photoIndex) {
+        this.currentDefautIndex = null; // Mode édition classique
         this.currentEditingPhotoIndex = photoIndex;
         const photo = this.selectedPhotos[photoIndex];
 
@@ -2629,6 +2695,8 @@ ${this.userProfile.full_name}`;
         img.src = photo.data;
 
         this.annotations = [];
+        this.annotationsHistory = [];
+        this.historyIndex = -1;
     }
 
     closeImageEditor() {
@@ -2657,31 +2725,81 @@ ${this.userProfile.full_name}`;
         const rect = this.imageEditorCanvas.getBoundingClientRect();
         this.startX = (e.clientX - rect.left) * (this.imageEditorCanvas.width / rect.width);
         this.startY = (e.clientY - rect.top) * (this.imageEditorCanvas.height / rect.height);
-        this.isDrawing = true;
+
+        if (this.selectedTool === 'move') {
+            // Vérifier si on clique sur une annotation existante
+            this.selectedAnnotation = this.getAnnotationAtPoint(this.startX, this.startY);
+            if (this.selectedAnnotation) {
+                this.isDragging = true;
+                this.dragOffsetX = this.startX - this.selectedAnnotation.startX;
+                this.dragOffsetY = this.startY - this.selectedAnnotation.startY;
+            }
+        } else {
+            this.isDrawing = true;
+        }
+    }
+
+    getAnnotationAtPoint(x, y) {
+        // Chercher dans l'ordre inverse pour sélectionner l'annotation la plus récente
+        for (let i = this.annotations.length - 1; i >= 0; i--) {
+            const ann = this.annotations[i];
+            const margin = 20; // Zone de tolérance en pixels
+
+            // Vérifier si le point est proche du centre de l'annotation
+            const centerX = (ann.startX + ann.endX) / 2;
+            const centerY = (ann.startY + ann.endY) / 2;
+            const width = Math.abs(ann.endX - ann.startX);
+            const height = Math.abs(ann.endY - ann.startY);
+
+            if (x >= centerX - width/2 - margin && x <= centerX + width/2 + margin &&
+                y >= centerY - height/2 - margin && y <= centerY + height/2 + margin) {
+                return ann;
+            }
+        }
+        return null;
     }
 
     handleCanvasMouseMove(e) {
-        if (!this.isDrawing) return;
-
         const rect = this.imageEditorCanvas.getBoundingClientRect();
         const currentX = (e.clientX - rect.left) * (this.imageEditorCanvas.width / rect.width);
         const currentY = (e.clientY - rect.top) * (this.imageEditorCanvas.height / rect.height);
 
-        // Redessiner le canvas avec l'aperçu de la forme en cours
-        this.redrawCanvas();
+        if (this.isDragging && this.selectedAnnotation) {
+            // Déplacer l'annotation sélectionnée
+            const deltaX = currentX - this.dragOffsetX - this.selectedAnnotation.startX;
+            const deltaY = currentY - this.dragOffsetY - this.selectedAnnotation.startY;
 
-        const color = document.getElementById('annotationColor').value;
-        this.imageEditorCtx.strokeStyle = color;
-        this.imageEditorCtx.lineWidth = 3;
+            this.selectedAnnotation.startX += deltaX;
+            this.selectedAnnotation.startY += deltaY;
+            this.selectedAnnotation.endX += deltaX;
+            this.selectedAnnotation.endY += deltaY;
 
-        if (this.selectedTool === 'ellipse') {
-            this.drawEllipse(this.startX, this.startY, currentX, currentY, false);
-        } else if (this.selectedTool === 'arrow') {
-            this.drawArrow(this.startX, this.startY, currentX, currentY, false);
+            this.redrawCanvas();
+        } else if (this.isDrawing) {
+            // Redessiner le canvas avec l'aperçu de la forme en cours
+            this.redrawCanvas();
+
+            const color = document.getElementById('annotationColor').value;
+            this.imageEditorCtx.strokeStyle = color;
+            this.imageEditorCtx.lineWidth = 3;
+
+            if (this.selectedTool === 'ellipse') {
+                this.drawEllipse(this.startX, this.startY, currentX, currentY, false);
+            } else if (this.selectedTool === 'arrow') {
+                this.drawArrow(this.startX, this.startY, currentX, currentY, false);
+            }
         }
     }
 
     handleCanvasMouseUp(e) {
+        if (this.isDragging) {
+            this.isDragging = false;
+            this.selectedAnnotation = null;
+            // Sauvegarder l'état après déplacement
+            this.saveHistoryState();
+            return;
+        }
+
         if (!this.isDrawing) return;
 
         const rect = this.imageEditorCanvas.getBoundingClientRect();
@@ -2702,6 +2820,37 @@ ${this.userProfile.full_name}`;
 
         this.isDrawing = false;
         this.redrawCanvas();
+        this.saveHistoryState();
+    }
+
+    saveHistoryState() {
+        // Supprimer les états après l'index actuel (si on a fait des undo)
+        this.annotationsHistory = this.annotationsHistory.slice(0, this.historyIndex + 1);
+
+        // Sauvegarder une copie profonde de l'état actuel
+        this.annotationsHistory.push(JSON.parse(JSON.stringify(this.annotations)));
+        this.historyIndex = this.annotationsHistory.length - 1;
+    }
+
+    undo() {
+        if (this.historyIndex > 0) {
+            this.historyIndex--;
+            this.annotations = JSON.parse(JSON.stringify(this.annotationsHistory[this.historyIndex]));
+            this.redrawCanvas();
+        } else if (this.historyIndex === 0) {
+            // Revenir à l'état vide
+            this.historyIndex = -1;
+            this.annotations = [];
+            this.redrawCanvas();
+        }
+    }
+
+    redo() {
+        if (this.historyIndex < this.annotationsHistory.length - 1) {
+            this.historyIndex++;
+            this.annotations = JSON.parse(JSON.stringify(this.annotationsHistory[this.historyIndex]));
+            this.redrawCanvas();
+        }
     }
 
     redrawCanvas() {
@@ -2773,11 +2922,18 @@ ${this.userProfile.full_name}`;
         // Convertir le canvas en base64
         const editedImageData = this.imageEditorCanvas.toDataURL('image/jpeg', 0.9);
 
-        // Mettre à jour la photo
-        this.selectedPhotos[this.currentEditingPhotoIndex].data = editedImageData;
+        // Mettre à jour la photo selon le mode
+        if (this.currentDefautIndex !== null) {
+            // Mode édition directe depuis la liste des défauts
+            this.defauts[this.currentDefautIndex].photos[this.currentEditingPhotoIndex].data = editedImageData;
+            this.updateDefautsList();
+        } else {
+            // Mode édition classique depuis le formulaire
+            this.selectedPhotos[this.currentEditingPhotoIndex].data = editedImageData;
+            this.updatePhotosPreview();
+        }
 
         this.showNotification('Image enregistrée avec succès', 'success');
-        this.updatePhotosPreview();
         this.closeImageEditor();
     }
 

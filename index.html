@@ -550,12 +550,19 @@
                                 <polyline points="12 5 19 12 12 19"></polyline>
                             </svg>
                         </button>
+                        <button type="button" class="btn-tool" data-tool="move" title="Déplacer">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"></path>
+                            </svg>
+                        </button>
                     </div>
                     <div class="toolbar-group">
                         <label>Couleur:</label>
                         <input type="color" id="annotationColor" value="#ff0000" class="color-picker">
                     </div>
                     <div class="toolbar-group">
+                        <button type="button" id="undoAnnotation" class="btn btn-secondary" title="Annuler (Ctrl+Z)">↶</button>
+                        <button type="button" id="redoAnnotation" class="btn btn-secondary" title="Refaire (Ctrl+Y)">↷</button>
                         <button type="button" id="clearAnnotations" class="btn btn-secondary">Effacer tout</button>
                     </div>
                 </div>
