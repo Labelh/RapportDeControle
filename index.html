@@ -314,67 +314,6 @@
                     </div>
                 </div>
 
-                <!-- API Timetonic -->
-                <div class="card">
-                    <h3>Intégration Timetonic</h3>
-                    <p class="text-secondary">Configurez votre API Timetonic pour récupérer automatiquement les informations des OF.</p>
-
-                    <div class="alert alert-info" style="margin-bottom: 1.5rem; padding: 1rem; background: #d1ecf1; border-left: 4px solid #17a2b8; border-radius: 0.5rem;">
-                        <strong>ℹ️ Intégration via Edge Function</strong><br>
-                        L'intégration Timetonic utilise une Supabase Edge Function pour contourner le problème CORS.<br>
-                        <small>Une fois déployée, les données des OF seront récupérées automatiquement.</small>
-                    </div>
-
-                    <h4 class="section-subtitle">Informations d'identification</h4>
-                    <div class="form-group">
-                        <label for="timetonicOuCode">o_u (Organizational Unit Code)</label>
-                        <input type="text" id="timetonicOuCode" placeholder="Code de votre organisation (ex: o12345)">
-                    </div>
-                    <div class="form-group">
-                        <label for="timetonicUc">u_c (User Code)</label>
-                        <input type="text" id="timetonicUc" placeholder="Code utilisateur (ex: abcd1234)">
-                    </div>
-                    <div class="form-group">
-                        <label for="timetonicOuSessKey">o_u_sesskey</label>
-                        <input type="password" id="timetonicOuSessKey" placeholder="Clé de session organisationnelle">
-                    </div>
-                    <div class="form-group">
-                        <label for="timetonicOuCodeBook">Code Book (OF)</label>
-                        <input type="text" id="timetonicOuCodeBook" placeholder="Code du book contenant les OF (ex: b12345)">
-                    </div>
-
-                    <h4 class="section-subtitle">Mapping des colonnes</h4>
-                    <p class="text-secondary">Indiquez quelle colonne Timetonic correspond à chaque champ.</p>
-                    <div class="form-row-grid">
-                        <div class="form-group">
-                            <label for="timetonicColOfClient">Colonne OF Client</label>
-                            <input type="text" id="timetonicColOfClient" placeholder="Ex: c_1 ou ofClient">
-                        </div>
-                        <div class="form-group">
-                            <label for="timetonicColReference">Colonne Référence</label>
-                            <input type="text" id="timetonicColReference" placeholder="Ex: c_2 ou reference">
-                        </div>
-                        <div class="form-group">
-                            <label for="timetonicColClient">Colonne Client</label>
-                            <input type="text" id="timetonicColClient" placeholder="Ex: c_3 ou client">
-                        </div>
-                        <div class="form-group">
-                            <label for="timetonicColNumeroCommande">Colonne N° Commande</label>
-                            <input type="text" id="timetonicColNumeroCommande" placeholder="Ex: c_4 ou numeroCommande">
-                        </div>
-                    </div>
-
-                    <div class="timetonic-actions">
-                        <button id="saveTimetonicConfig" class="btn btn-primary">Enregistrer la configuration</button>
-                        <button id="testTimetonicConnection" class="btn btn-secondary">Tester la connexion</button>
-                        <button id="previewTimetonicData" class="btn btn-secondary">Aperçu des données</button>
-                    </div>
-                    <div id="timetonicLoader" class="timetonic-loader" style="display: none;">
-                        <div class="spinner"></div>
-                        <span>Connexion à Timetonic...</span>
-                    </div>
-                </div>
-
                 <div class="card">
                     <h3>Clients</h3>
                     <div class="clients-list">

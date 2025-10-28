@@ -10,7 +10,9 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(code .)",
-      "Read(//c/Users/Ajust82/Desktop/Projet/**)"
+      "Read(//c/Users/Ajust82/Desktop/Projet/**)",
+      "Bash(node:*)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []
