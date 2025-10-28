@@ -144,43 +144,45 @@
 
                 <div class="card">
                     <div class="card-section-header">
-                        <h3>📋 Informations de Commande</h3>
+                        <h3>Informations du Rapport</h3>
                     </div>
-                    <div class="form-row-grid">
-                        <div class="form-group">
-                            <label for="ordeFabrication">Ordre de Fabrication (OF Interne) *</label>
-                            <input type="text" id="ordeFabrication" placeholder="Ex: OF-2024-001" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="ofClient">OF Client *</label>
-                            <input type="text" id="ofClient" placeholder="Ex: CMD-CLIENT-123" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="numeroCommande">N° Commande *</label>
-                            <input type="text" id="numeroCommande" placeholder="Ex: 2024-456" required>
-                        </div>
-                    </div>
-                </div>
 
-                <div class="card">
-                    <div class="card-section-header">
-                        <h3>📦 Informations Produit</h3>
+                    <div class="form-section">
+                        <h4 class="form-section-title">Informations de Commande</h4>
+                        <div class="form-row-grid">
+                            <div class="form-group">
+                                <label for="ordeFabrication">Ordre de Fabrication (OF Interne) *</label>
+                                <input type="text" id="ordeFabrication" placeholder="Ex: OF-2024-001" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="ofClient">OF Client *</label>
+                                <input type="text" id="ofClient" placeholder="Ex: CMD-CLIENT-123" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="numeroCommande">N° Commande *</label>
+                                <input type="text" id="numeroCommande" placeholder="Ex: 2024-456" required>
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-row-grid">
-                        <div class="form-group">
-                            <label for="reference">Référence Produit *</label>
-                            <input type="text" id="reference" list="referencesList" placeholder="Ex: REF-12345" required>
-                            <datalist id="referencesList"></datalist>
-                        </div>
-                        <div class="form-group">
-                            <label for="designation">Désignation</label>
-                            <input type="text" id="designation" placeholder="Description du produit">
-                        </div>
-                        <div class="form-group">
-                            <label for="client">Client</label>
-                            <select id="client">
-                                <option value="">Sélectionner un client</option>
-                            </select>
+
+                    <div class="form-section">
+                        <h4 class="form-section-title">Informations Produit</h4>
+                        <div class="form-row-grid">
+                            <div class="form-group">
+                                <label for="reference">Référence Produit *</label>
+                                <input type="text" id="reference" list="referencesList" placeholder="Ex: REF-12345" required>
+                                <datalist id="referencesList"></datalist>
+                            </div>
+                            <div class="form-group">
+                                <label for="designation">Désignation</label>
+                                <input type="text" id="designation" placeholder="Description du produit">
+                            </div>
+                            <div class="form-group">
+                                <label for="client">Client</label>
+                                <select id="client">
+                                    <option value="">Sélectionner un client</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -192,49 +194,51 @@
                             <button id="closeDefautForm" class="close-inline">&times;</button>
                         </div>
                         <form id="defautForm">
-                            <div class="form-row">
-                                <div class="form-group form-group-flex">
-                                    <div class="label-with-action">
-                                        <label for="typeDefaut">Type de Défaut *</label>
-                                        <button type="button" id="addTypeDefautBtn" class="btn-icon" title="Ajouter un type de défaut">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                                            </svg>
-                                        </button>
-                                    </div>
-                                    <select id="typeDefaut" required>
-                                        <option value="">Sélectionner un type</option>
-                                    </select>
+                            <div class="form-group">
+                                <div class="label-with-action">
+                                    <label for="typeDefaut">Type de Défaut *</label>
+                                    <button type="button" id="addTypeDefautBtn" class="btn-icon" title="Ajouter un type de défaut">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                                        </svg>
+                                    </button>
                                 </div>
-                                <div class="form-group form-group-flex">
-                                    <label for="quantite">Quantité *</label>
-                                    <input type="number" id="quantite" min="1" required>
-                                </div>
+                                <select id="typeDefaut" required>
+                                    <option value="">Sélectionner un type</option>
+                                </select>
                             </div>
-                            <div class="form-row">
-                                <div class="form-group form-group-flex">
-                                    <label for="topo">Topo</label>
-                                    <input type="text" id="topo" placeholder="Ex: Avant, Arrière, Côté gauche...">
-                                </div>
-                                <div class="form-group form-group-flex">
-                                    <label for="commentaire">Observation</label>
-                                    <textarea id="commentaire" rows="2"></textarea>
-                                </div>
+
+                            <div class="form-group">
+                                <label for="quantite">Quantité *</label>
+                                <input type="number" id="quantite" min="1" required>
                             </div>
+
+                            <div class="form-group">
+                                <label for="topo">Topo</label>
+                                <input type="text" id="topo" placeholder="Ex: Avant, Arrière, Côté gauche...">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="commentaire">Observation</label>
+                                <textarea id="commentaire" rows="3"></textarea>
+                            </div>
+
                             <div class="form-group">
                                 <label>Photos (optionnel)</label>
-                                <div id="dropZone" class="drop-zone">
-                                    <input type="file" id="photos" multiple accept="image/*" hidden>
-                                    <div class="drop-zone-content">
-                                        <div class="drop-zone-icon">📷</div>
-                                        <div class="drop-zone-text">
-                                            <strong>Glissez vos photos ici</strong><br>
-                                            ou cliquez pour sélectionner
+                                <div class="photos-container">
+                                    <div id="photosPreview" class="photos-preview"></div>
+                                    <div id="dropZone" class="drop-zone">
+                                        <input type="file" id="photos" multiple accept="image/*" hidden>
+                                        <div class="drop-zone-content">
+                                            <div class="drop-zone-icon">📷</div>
+                                            <div class="drop-zone-text">
+                                                <strong>Glissez vos photos ici</strong><br>
+                                                ou cliquez pour sélectionner
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                                <div id="photosPreview" class="photos-preview"></div>
                             </div>
                             <div class="form-actions">
                                 <button type="button" id="annulerDefaut" class="btn btn-secondary">Annuler</button>
@@ -368,7 +372,7 @@
                 </div>
 
                 <div class="card">
-                    <h3>📥 Import Références Produits</h3>
+                    <h3>Import Références Produits</h3>
                     <p class="card-description">Importez un fichier Excel (.xlsx) contenant les références et leurs désignations pour faciliter la saisie des rapports.</p>
                     <div class="form-group">
                         <label>Format attendu du fichier Excel :</label>

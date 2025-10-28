@@ -2789,7 +2789,7 @@ ${this.userProfile.full_name}`;
         this.productReferences.forEach((designation, reference) => {
             const option = document.createElement('option');
             option.value = reference;
-            option.textContent = `${reference} - ${designation}`;
+            // Afficher seulement la référence dans la liste
             datalist.appendChild(option);
         });
     }
@@ -2799,7 +2799,16 @@ ${this.userProfile.full_name}`;
         const designationInput = document.getElementById('designation');
 
         if (this.productReferences.has(reference)) {
+            // Remplir et bloquer le champ désignation
             designationInput.value = this.productReferences.get(reference);
+            designationInput.readOnly = true;
+            designationInput.style.backgroundColor = 'var(--hover-bg)';
+            designationInput.style.cursor = 'not-allowed';
+        } else {
+            // Débloquer le champ désignation si la référence n'est pas trouvée
+            designationInput.readOnly = false;
+            designationInput.style.backgroundColor = '';
+            designationInput.style.cursor = '';
         }
     }
 
