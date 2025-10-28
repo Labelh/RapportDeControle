@@ -27,6 +27,7 @@ class RapportDeControleApp {
         this.rapports = [];
         this.adminRapports = [];
         this.editingRapportId = null;
+        this.productReferences = new Map(); // Map<reference, designation>
 
         // Image editor
         this.imageEditorCanvas = null;
@@ -119,6 +120,7 @@ class RapportDeControleApp {
         this.loadClients();
         this.loadTypesDefauts();
         this.loadRapports();
+        this.loadReferencesFromLocalStorage();
     }
 
     getInitials(fullName) {
@@ -305,6 +307,28 @@ class RapportDeControleApp {
         document.getElementById('nouveauDefaut').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.ajouterTypeDefaut();
         });
+
+        // Import Excel
+        const importExcelBtn = document.getElementById('importExcelBtn');
+        if (importExcelBtn) {
+            importExcelBtn.addEventListener('click', () => this.selectExcelFile());
+        }
+
+        const excelFileInput = document.getElementById('excelFileInput');
+        if (excelFileInput) {
+            excelFileInput.addEventListener('change', (e) => this.handleExcelImport(e));
+        }
+
+        const clearReferencesBtn = document.getElementById('clearReferencesBtn');
+        if (clearReferencesBtn) {
+            clearReferencesBtn.addEventListener('click', () => this.clearReferences());
+        }
+
+        // Auto-complétion référence
+        const referenceInput = document.getElementById('reference');
+        if (referenceInput) {
+            referenceInput.addEventListener('input', (e) => this.handleReferenceChange(e));
+        }
 
         // Préférence de thème
         const themePreference = document.getElementById('themePreference');
@@ -662,15 +686,8 @@ class RapportDeControleApp {
                 const div = document.createElement('div');
                 div.className = 'photo-item';
                 div.innerHTML = `
-                    <img src="${photo.data}" alt="${photo.name}" onclick="app.openImageEditor(${index})">
+                    <img src="${photo.data}" alt="${photo.name}" onclick="app.openImageEditor(${index})" title="Cliquer pour annoter">
                     <button class="remove-photo" onclick="app.removePhoto(${index})">&times;</button>
-                    <button class="edit-icon" onclick="app.openImageEditor(${index})">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                        </svg>
-                        ✏️
-                    </button>
                 `;
                 preview.appendChild(div);
             });
@@ -1099,7 +1116,7 @@ class RapportDeControleApp {
                         of_client: ofClient,
                         numero_commande: numeroCommande,
                         reference,
-                        designation: null,
+                        designation: document.getElementById('designation').value || null,
                         client: document.getElementById('client').value
                     })
                     .eq('id', this.editingRapportId);
@@ -1151,7 +1168,7 @@ class RapportDeControleApp {
                         of_client: ofClient,
                         numero_commande: numeroCommande,
                         reference,
-                        designation: null,
+                        designation: document.getElementById('designation').value || null,
                         client: document.getElementById('client').value,
                         controleur_id: this.currentUser.id,
                         controleur_name: this.userProfile.full_name,
@@ -1232,6 +1249,7 @@ class RapportDeControleApp {
             document.getElementById('ofClient').value = rapport.of_client || '';
             document.getElementById('numeroCommande').value = rapport.numero_commande || '';
             document.getElementById('reference').value = rapport.reference;
+            document.getElementById('designation').value = rapport.designation || '';
             document.getElementById('client').value = rapport.client || '';
 
             // Charger les défauts
@@ -1331,7 +1349,7 @@ class RapportDeControleApp {
     }
 
     async genererPDF(rapportId = null) {
-        let ordeFabrication, ofClient, reference, designation, client, controleurName, dateControle, reportNumber, defauts;
+        let ordeFabrication, ofClient, numeroCommande, reference, designation, client, controleurName, dateControle, reportNumber, defauts;
 
         if (rapportId) {
             // Générer PDF depuis l'admin pour un rapport existant
@@ -1358,6 +1376,7 @@ class RapportDeControleApp {
 
             ordeFabrication = rapport.ordre_fabrication;
             ofClient = rapport.of_client;
+            numeroCommande = rapport.numero_commande;
             reference = rapport.reference;
             designation = rapport.designation;
             client = rapport.client;
@@ -1370,6 +1389,7 @@ class RapportDeControleApp {
             // Ancienne logique (devrait être rarement utilisée maintenant)
             ordeFabrication = document.getElementById('ordeFabrication').value;
             ofClient = document.getElementById('ofClient').value;
+            numeroCommande = document.getElementById('numeroCommande').value;
             reference = document.getElementById('reference').value;
 
             if (!ordeFabrication || !reference) {
@@ -1423,11 +1443,26 @@ class RapportDeControleApp {
             yPosition += 10;
 
             const dateObj = new Date(dateControle);
+
+            // Formater le nom du contrôleur (Prénom + 1ère lettre du nom)
+            let controleurDisplay = 'N/A';
+            if (controleurName) {
+                const nameParts = controleurName.trim().split(' ');
+                if (nameParts.length >= 2) {
+                    controleurDisplay = `${nameParts[0]} ${nameParts[1].charAt(0)}.`;
+                } else {
+                    controleurDisplay = controleurName;
+                }
+            }
+
             const tableData = [
+                ['OF Interne', ordeFabrication || 'N/A'],
                 ['OF Client', ofClient || 'N/A'],
+                ['N° Commande', numeroCommande || 'N/A'],
                 ['Référence', reference],
                 ['Désignation', designation || 'N/A'],
                 ['Client', client || 'N/A'],
+                ['Contrôleur', controleurDisplay],
                 ['Date', dateObj.toLocaleDateString('fr-FR')]
             ];
 
@@ -2665,6 +2700,118 @@ ${this.userProfile.full_name}`;
         this.showNotification('Image enregistrée avec succès', 'success');
         this.updatePhotosPreview();
         this.closeImageEditor();
+    }
+
+    // ========== IMPORT EXCEL RÉFÉRENCES ==========
+    selectExcelFile() {
+        document.getElementById('excelFileInput').click();
+    }
+
+    async handleExcelImport(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        document.getElementById('excelFileName').textContent = file.name;
+
+        try {
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(data);
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+            // Ignorer la première ligne (en-têtes)
+            let importCount = 0;
+            for (let i = 1; i < jsonData.length; i++) {
+                const row = jsonData[i];
+                const reference = row[0]?.toString().trim();
+                const designation = row[1]?.toString().trim();
+
+                if (reference && designation) {
+                    this.productReferences.set(reference, designation);
+                    importCount++;
+                }
+            }
+
+            // Sauvegarder dans localStorage
+            this.saveReferencesToLocalStorage();
+
+            // Mettre à jour l'UI
+            this.updateReferencesUI();
+            this.updateReferencesList();
+
+            this.showNotification(`✅ ${importCount} références importées avec succès`, 'success');
+
+        } catch (error) {
+            console.error('Erreur lors de l\'import Excel:', error);
+            this.showNotification('Erreur lors de l\'import du fichier Excel', 'error');
+        }
+
+        // Réinitialiser l'input
+        event.target.value = '';
+    }
+
+    saveReferencesToLocalStorage() {
+        const referencesObj = Object.fromEntries(this.productReferences);
+        localStorage.setItem('productReferences', JSON.stringify(referencesObj));
+    }
+
+    loadReferencesFromLocalStorage() {
+        const stored = localStorage.getItem('productReferences');
+        if (stored) {
+            try {
+                const referencesObj = JSON.parse(stored);
+                this.productReferences = new Map(Object.entries(referencesObj));
+                this.updateReferencesUI();
+                this.updateReferencesList();
+            } catch (error) {
+                console.error('Erreur lors du chargement des références:', error);
+            }
+        }
+    }
+
+    updateReferencesUI() {
+        const statsDiv = document.getElementById('excelImportStats');
+        const countSpan = document.getElementById('referencesCount');
+
+        if (this.productReferences.size > 0) {
+            statsDiv.style.display = 'block';
+            countSpan.textContent = this.productReferences.size;
+        } else {
+            statsDiv.style.display = 'none';
+        }
+    }
+
+    updateReferencesList() {
+        const datalist = document.getElementById('referencesList');
+        if (!datalist) return;
+
+        datalist.innerHTML = '';
+        this.productReferences.forEach((designation, reference) => {
+            const option = document.createElement('option');
+            option.value = reference;
+            option.textContent = `${reference} - ${designation}`;
+            datalist.appendChild(option);
+        });
+    }
+
+    handleReferenceChange(event) {
+        const reference = event.target.value.trim();
+        const designationInput = document.getElementById('designation');
+
+        if (this.productReferences.has(reference)) {
+            designationInput.value = this.productReferences.get(reference);
+        }
+    }
+
+    clearReferences() {
+        if (confirm('Êtes-vous sûr de vouloir effacer toutes les références importées ?')) {
+            this.productReferences.clear();
+            localStorage.removeItem('productReferences');
+            this.updateReferencesUI();
+            this.updateReferencesList();
+            document.getElementById('excelFileName').textContent = '';
+            this.showNotification('Références effacées', 'success');
+        }
     }
 
 }

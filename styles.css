@@ -534,6 +534,13 @@ body {
     border-bottom: 2px solid var(--accent-color);
 }
 
+.card-description {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+}
+
 /* ========== FORMULAIRES ========== */
 .form-group {
     margin-bottom: 1.5rem;
@@ -1650,6 +1657,7 @@ input.field-error, select.field-error, textarea.field-error {
 
 .carousel-btn:hover {
     background-color: rgba(0, 0, 0, 0.8);
+    transform: translateY(-50%);
 }
 
 .carousel-prev {
