@@ -1075,22 +1075,26 @@ class RapportDeControleApp {
 
     // ========== GÉNÉRATION PDF ==========
     async validerRapport() {
+        const numeroNCEl = document.getElementById('numeroNC');
         const ordeFabricationEl = document.getElementById('ordeFabrication');
         const ofClientEl = document.getElementById('ofClient');
         const numeroCommandeEl = document.getElementById('numeroCommande');
         const referenceEl = document.getElementById('reference');
 
+        const numeroNC = numeroNCEl.value;
         const ordeFabrication = ordeFabricationEl.value;
         const ofClient = ofClientEl.value;
         const numeroCommande = numeroCommandeEl.value;
         const reference = referenceEl.value;
+        const quantiteLot = document.getElementById('quantiteLot').value;
 
         // Retirer les erreurs précédentes
-        [ordeFabricationEl, ofClientEl, numeroCommandeEl, referenceEl].forEach(el => {
+        [numeroNCEl, ordeFabricationEl, ofClientEl, numeroCommandeEl, referenceEl].forEach(el => {
             el.classList.remove('field-error');
         });
 
         let hasError = false;
+        if (!numeroNC) { numeroNCEl.classList.add('field-error'); hasError = true; }
         if (!ordeFabrication) { ordeFabricationEl.classList.add('field-error'); hasError = true; }
         if (!ofClient) { ofClientEl.classList.add('field-error'); hasError = true; }
         if (!numeroCommande) { numeroCommandeEl.classList.add('field-error'); hasError = true; }
@@ -1112,11 +1116,13 @@ class RapportDeControleApp {
                 const { error: updateError } = await supabaseClient
                     .from('rapports')
                     .update({
+                        numero_nc: numeroNC,
                         ordre_fabrication: ordeFabrication,
                         of_client: ofClient,
                         numero_commande: numeroCommande,
                         reference,
                         designation: document.getElementById('designation').value || null,
+                        quantite_lot: quantiteLot ? parseInt(quantiteLot) : null,
                         client: document.getElementById('client').value
                     })
                     .eq('id', this.editingRapportId);
@@ -1164,11 +1170,13 @@ class RapportDeControleApp {
                     .from('rapports')
                     .insert([{
                         numero: reportNumber,
+                        numero_nc: numeroNC,
                         ordre_fabrication: ordeFabrication,
                         of_client: ofClient,
                         numero_commande: numeroCommande,
                         reference,
                         designation: document.getElementById('designation').value || null,
+                        quantite_lot: quantiteLot ? parseInt(quantiteLot) : null,
                         client: document.getElementById('client').value,
                         controleur_id: this.currentUser.id,
                         controleur_name: this.userProfile.full_name,
@@ -1245,11 +1253,13 @@ class RapportDeControleApp {
             }
 
             // Remplir le formulaire
+            document.getElementById('numeroNC').value = rapport.numero_nc || '';
             document.getElementById('ordeFabrication').value = rapport.ordre_fabrication;
             document.getElementById('ofClient').value = rapport.of_client || '';
             document.getElementById('numeroCommande').value = rapport.numero_commande || '';
             document.getElementById('reference').value = rapport.reference;
             document.getElementById('designation').value = rapport.designation || '';
+            document.getElementById('quantiteLot').value = rapport.quantite_lot || '';
             document.getElementById('client').value = rapport.client || '';
 
             // Charger les défauts
@@ -1349,7 +1359,7 @@ class RapportDeControleApp {
     }
 
     async genererPDF(rapportId = null) {
-        let ordeFabrication, ofClient, numeroCommande, reference, designation, client, controleurName, dateControle, reportNumber, defauts;
+        let numeroNC, ordeFabrication, ofClient, numeroCommande, reference, designation, quantiteLot, client, controleurName, dateControle, reportNumber, defauts;
 
         if (rapportId) {
             // Générer PDF depuis l'admin pour un rapport existant
@@ -1374,11 +1384,13 @@ class RapportDeControleApp {
                 return;
             }
 
+            numeroNC = rapport.numero_nc;
             ordeFabrication = rapport.ordre_fabrication;
             ofClient = rapport.of_client;
             numeroCommande = rapport.numero_commande;
             reference = rapport.reference;
             designation = rapport.designation;
+            quantiteLot = rapport.quantite_lot;
             client = rapport.client;
             controleurName = rapport.controleur_name;
             dateControle = new Date(rapport.date_controle);
@@ -1387,10 +1399,12 @@ class RapportDeControleApp {
 
         } else {
             // Ancienne logique (devrait être rarement utilisée maintenant)
+            numeroNC = document.getElementById('numeroNC').value;
             ordeFabrication = document.getElementById('ordeFabrication').value;
             ofClient = document.getElementById('ofClient').value;
             numeroCommande = document.getElementById('numeroCommande').value;
             reference = document.getElementById('reference').value;
+            quantiteLot = document.getElementById('quantiteLot').value;
 
             if (!ordeFabrication || !reference) {
                 this.showNotification('Veuillez remplir tous les champs obligatoires (OF, Référence)', 'error');
@@ -1415,9 +1429,9 @@ class RapportDeControleApp {
             const terracottaOrange = [161, 58, 32];
             const white = [255, 255, 255];
 
-            // Ajouter le logo Ajust'82 (à gauche) - dimensions originales
+            // Ajouter le logo Ajust'82 (à gauche) - taille réduite
             try {
-                doc.addImage('images/Logo-Ajust.png', 'PNG', 15, 10);
+                doc.addImage('images/Logo-Ajust.png', 'PNG', 15, 10, 20, 20);
             } catch (error) {
                 console.warn('Logo non trouvé:', error);
             }
@@ -1425,15 +1439,15 @@ class RapportDeControleApp {
             doc.setTextColor(...primaryColor);
             doc.setFontSize(16);
             doc.setFont('helvetica', 'bold');
-            doc.text('RAPPORT DE CONTRÔLE', 45, 18);
-            doc.text('QUALITÉ À RÉCEPTION', 45, 25);
+            doc.text('RAPPORT DE CONTRÔLE', 40, 16);
+            doc.text('QUALITÉ À RÉCEPTION', 40, 23);
 
             doc.setFontSize(12);
             doc.setTextColor(...terracottaOrange);
-            doc.text(`N°${reportNumber}`, 195, 18, { align: 'right' });
+            doc.text(`N°${numeroNC || reportNumber}`, 195, 18, { align: 'right' });
 
             // Espace entre le logo et les informations générales
-            let yPosition = 38;
+            let yPosition = 35;
             doc.setFillColor(...terracottaOrange);
             doc.rect(15, yPosition, 180, 8, 'F');
             doc.setTextColor(...white);
@@ -1468,11 +1482,15 @@ class RapportDeControleApp {
                 ],
                 [
                     ['Désignation', designation || 'N/A'],
-                    ['Client', client || 'N/A']
+                    ['Qté Lot', quantiteLot ? `${quantiteLot} pcs` : 'N/A']
                 ],
                 [
-                    ['Contrôleur', controleurDisplay],
-                    ['Date', dateObj.toLocaleDateString('fr-FR')]
+                    ['Client', client || 'N/A'],
+                    ['Contrôleur', controleurDisplay]
+                ],
+                [
+                    ['Date', dateObj.toLocaleDateString('fr-FR')],
+                    ['', '']
                 ]
             ];
 
