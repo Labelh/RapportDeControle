@@ -147,49 +147,55 @@
                         <h3>Informations du Rapport</h3>
                     </div>
 
-                    <div class="form-section">
-                        <h4 class="form-section-title">Informations de Commande</h4>
-                        <div class="form-row-grid">
-                            <div class="form-group">
-                                <label for="numeroNC">N° NC *</label>
-                                <input type="text" id="numeroNC" placeholder="Ex: NC-2024-001" required>
+                    <div class="rapport-form-grid">
+                        <div class="form-col">
+                            <div class="form-section-compact">
+                                <h4 class="form-section-title">Identification</h4>
+                                <div class="form-group">
+                                    <label for="numeroNC">N° NC *</label>
+                                    <input type="text" id="numeroNC" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="numeroCommande">N° Commande *</label>
+                                    <input type="text" id="numeroCommande" required>
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label for="ordeFabrication">Ordre de Fabrication (OF Interne) *</label>
-                                <input type="text" id="ordeFabrication" placeholder="Ex: OF-2024-001" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="ofClient">OF Client *</label>
-                                <input type="text" id="ofClient" placeholder="Ex: CMD-CLIENT-123" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="numeroCommande">N° Commande *</label>
-                                <input type="text" id="numeroCommande" placeholder="Ex: 2024-456" required>
+
+                            <div class="form-section-compact">
+                                <h4 class="form-section-title">Ordres de Fabrication</h4>
+                                <div class="form-group">
+                                    <label for="ordeFabrication">OF Interne *</label>
+                                    <input type="text" id="ordeFabrication" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="ofClient">OF Client *</label>
+                                    <input type="text" id="ofClient" required>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="form-section">
-                        <h4 class="form-section-title">Informations Produit</h4>
-                        <div class="form-row-grid">
-                            <div class="form-group">
-                                <label for="reference">Référence Produit *</label>
-                                <input type="text" id="reference" list="referencesList" placeholder="Ex: REF-12345" required>
-                                <datalist id="referencesList"></datalist>
-                            </div>
-                            <div class="form-group">
-                                <label for="designation">Désignation</label>
-                                <input type="text" id="designation" placeholder="Description du produit">
-                            </div>
-                            <div class="form-group">
-                                <label for="quantiteLot">Quantité Lot</label>
-                                <input type="number" id="quantiteLot" min="1" placeholder="Ex: 100">
-                            </div>
-                            <div class="form-group">
-                                <label for="client">Client</label>
-                                <select id="client">
-                                    <option value="">Sélectionner un client</option>
-                                </select>
+                        <div class="form-col">
+                            <div class="form-section-compact">
+                                <h4 class="form-section-title">Produit</h4>
+                                <div class="form-group">
+                                    <label for="reference">Référence *</label>
+                                    <input type="text" id="reference" list="referencesList" required>
+                                    <datalist id="referencesList"></datalist>
+                                </div>
+                                <div class="form-group">
+                                    <label for="designation">Désignation</label>
+                                    <input type="text" id="designation">
+                                </div>
+                                <div class="form-group">
+                                    <label for="quantiteLot">Quantité Lot *</label>
+                                    <input type="number" id="quantiteLot" min="1" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="client">Client *</label>
+                                    <select id="client" required>
+                                        <option value="">Sélectionner un client</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -224,12 +230,12 @@
 
                             <div class="form-group">
                                 <label for="topo">Topo</label>
-                                <input type="text" id="topo" placeholder="Ex: Avant, Arrière, Côté gauche...">
+                                <input type="text" id="topo">
                             </div>
 
                             <div class="form-group">
                                 <label for="commentaire">N° de série</label>
-                                <input type="text" id="commentaire" placeholder="Ex: SN123456789">
+                                <input type="text" id="commentaire">
                             </div>
 
                             <div class="form-group">

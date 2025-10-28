@@ -510,30 +510,50 @@ class RapportDeControleApp {
     addDefaut(e) {
         e.preventDefault();
 
-        const type = document.getElementById('typeDefaut').value;
-        const quantite = document.getElementById('quantite').value;
+        const typeDefautEl = document.getElementById('typeDefaut');
+        const quantiteEl = document.getElementById('quantite');
+
+        const type = typeDefautEl.value;
+        const quantite = quantiteEl.value;
         const topo = document.getElementById('topo').value;
         const commentaire = document.getElementById('commentaire').value;
 
-        if (type && quantite) {
-            const defaut = {
-                id: this.editingDefautIndex >= 0 ? this.defauts[this.editingDefautIndex].id : Date.now(),
-                type: type,
-                quantite: parseInt(quantite),
-                topo: topo,
-                commentaire: commentaire,
-                photos: [...this.selectedPhotos]
-            };
+        // Réinitialiser les erreurs
+        typeDefautEl.classList.remove('field-error');
+        quantiteEl.classList.remove('field-error');
 
-            if (this.editingDefautIndex >= 0) {
-                this.defauts[this.editingDefautIndex] = defaut;
-            } else {
-                this.defauts.push(defaut);
-            }
-
-            this.updateDefautsList();
-            this.closeDefautForm();
+        // Validation avec bordure orange
+        let hasError = false;
+        if (!type) {
+            typeDefautEl.classList.add('field-error');
+            hasError = true;
         }
+        if (!quantite) {
+            quantiteEl.classList.add('field-error');
+            hasError = true;
+        }
+
+        if (hasError) {
+            return;
+        }
+
+        const defaut = {
+            id: this.editingDefautIndex >= 0 ? this.defauts[this.editingDefautIndex].id : Date.now(),
+            type: type,
+            quantite: parseInt(quantite),
+            topo: topo,
+            commentaire: commentaire,
+            photos: [...this.selectedPhotos]
+        };
+
+        if (this.editingDefautIndex >= 0) {
+            this.defauts[this.editingDefautIndex] = defaut;
+        } else {
+            this.defauts.push(defaut);
+        }
+
+        this.updateDefautsList();
+        this.closeDefautForm();
     }
 
     updateDefautsList() {
@@ -1080,16 +1100,19 @@ class RapportDeControleApp {
         const ofClientEl = document.getElementById('ofClient');
         const numeroCommandeEl = document.getElementById('numeroCommande');
         const referenceEl = document.getElementById('reference');
+        const quantiteLotEl = document.getElementById('quantiteLot');
+        const clientEl = document.getElementById('client');
 
         const numeroNC = numeroNCEl.value;
         const ordeFabrication = ordeFabricationEl.value;
         const ofClient = ofClientEl.value;
         const numeroCommande = numeroCommandeEl.value;
         const reference = referenceEl.value;
-        const quantiteLot = document.getElementById('quantiteLot').value;
+        const quantiteLot = quantiteLotEl.value;
+        const client = clientEl.value;
 
         // Retirer les erreurs précédentes
-        [numeroNCEl, ordeFabricationEl, ofClientEl, numeroCommandeEl, referenceEl].forEach(el => {
+        [numeroNCEl, ordeFabricationEl, ofClientEl, numeroCommandeEl, referenceEl, quantiteLotEl, clientEl].forEach(el => {
             el.classList.remove('field-error');
         });
 
@@ -1099,8 +1122,11 @@ class RapportDeControleApp {
         if (!ofClient) { ofClientEl.classList.add('field-error'); hasError = true; }
         if (!numeroCommande) { numeroCommandeEl.classList.add('field-error'); hasError = true; }
         if (!reference) { referenceEl.classList.add('field-error'); hasError = true; }
+        if (!quantiteLot) { quantiteLotEl.classList.add('field-error'); hasError = true; }
+        if (!client) { clientEl.classList.add('field-error'); hasError = true; }
 
         if (hasError) {
+            this.showNotification('Veuillez remplir tous les champs obligatoires', 'error');
             return;
         }
 
@@ -1429,9 +1455,11 @@ class RapportDeControleApp {
             const terracottaOrange = [161, 58, 32];
             const white = [255, 255, 255];
 
-            // Ajouter le logo Ajust'82 (à gauche) - taille réduite
+            // Ajouter le logo Ajust'82 (à gauche) - ratio 3:1 environ
             try {
-                doc.addImage('images/Logo-Ajust.png', 'PNG', 15, 10, 20, 20);
+                // Le logo original est plus large que haut (ratio approximatif 3:1)
+                // Utilisons une largeur de 30mm et hauteur de 10mm pour respecter le ratio
+                doc.addImage('images/Logo-Ajust.png', 'PNG', 15, 10, 30, 10);
             } catch (error) {
                 console.warn('Logo non trouvé:', error);
             }

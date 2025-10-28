@@ -3,6 +3,7 @@
     --primary-color: #1f1f1f;
     --accent-color: rgb(249, 55, 5);
     --accent-hover: rgb(249, 55, 5);
+    --accent-orange: #ff8c00;
     --success-color: #10b981;
     --warning-color: #f59e0b;
     --danger-color: rgb(249, 55, 5);
@@ -24,6 +25,7 @@
     --primary-color: #ffffff;
     --accent-color: rgb(249, 55, 5);
     --accent-hover: rgb(220, 45, 0);
+    --accent-orange: #ff8c00;
     --success-color: #10b981;
     --warning-color: #f59e0b;
     --danger-color: rgb(249, 55, 5);
@@ -600,8 +602,53 @@ body {
 }
 
 input.field-error, select.field-error, textarea.field-error {
-    border: 2px solid var(--accent-orange) !important;
-    animation: shake 0.3s;
+    border: 1px solid var(--accent-orange) !important;
+}
+
+/* Nouveau layout du formulaire */
+.rapport-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.form-col {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.form-section-compact {
+    background: var(--hover-bg);
+    padding: 1.25rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border-color);
+}
+
+.form-section-compact .form-section-title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--accent-color);
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--accent-color);
+}
+
+.form-section-compact .form-group {
+    margin-bottom: 1rem;
+}
+
+.form-section-compact .form-group:last-child {
+    margin-bottom: 0;
+}
+
+@media (max-width: 900px) {
+    .rapport-form-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
 }
 
 @keyframes shake {
