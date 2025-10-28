@@ -579,7 +579,7 @@ class RapportDeControleApp {
                 <div class="defaut-details">
                     Quantité: ${defaut.quantite} pièces
                     ${defaut.topo ? `<br>Topo: ${defaut.topo}` : ''}
-                    ${defaut.commentaire ? `<br>Observation: ${defaut.commentaire}` : ''}
+                    ${defaut.commentaire ? `<br>N° de série: ${defaut.commentaire}` : ''}
                 </div>
                 ${photosHtml}
             `;
@@ -1415,9 +1415,9 @@ class RapportDeControleApp {
             const terracottaOrange = [161, 58, 32];
             const white = [255, 255, 255];
 
-            // Ajouter le logo Ajust'82 (à gauche)
+            // Ajouter le logo Ajust'82 (à gauche) - dimensions originales
             try {
-                doc.addImage('images/Logo-Ajust.png', 'PNG', 15, 10, 25, 25);
+                doc.addImage('images/Logo-Ajust.png', 'PNG', 15, 10);
             } catch (error) {
                 console.warn('Logo non trouvé:', error);
             }
@@ -1432,7 +1432,8 @@ class RapportDeControleApp {
             doc.setTextColor(...terracottaOrange);
             doc.text(`N°${reportNumber}`, 195, 18, { align: 'right' });
 
-            let yPosition = 33;
+            // Espace entre le logo et les informations générales
+            let yPosition = 38;
             doc.setFillColor(...terracottaOrange);
             doc.rect(15, yPosition, 180, 8, 'F');
             doc.setTextColor(...white);
@@ -1455,45 +1456,77 @@ class RapportDeControleApp {
                 }
             }
 
+            // Tableau en 4 colonnes (2 paires label/valeur par ligne)
             const tableData = [
-                ['OF Interne', ordeFabrication || 'N/A'],
-                ['OF Client', ofClient || 'N/A'],
-                ['N° Commande', numeroCommande || 'N/A'],
-                ['Référence', reference],
-                ['Désignation', designation || 'N/A'],
-                ['Client', client || 'N/A'],
-                ['Contrôleur', controleurDisplay],
-                ['Date', dateObj.toLocaleDateString('fr-FR')]
+                [
+                    ['OF Interne', ordeFabrication || 'N/A'],
+                    ['OF Client', ofClient || 'N/A']
+                ],
+                [
+                    ['N° Commande', numeroCommande || 'N/A'],
+                    ['Référence', reference]
+                ],
+                [
+                    ['Désignation', designation || 'N/A'],
+                    ['Client', client || 'N/A']
+                ],
+                [
+                    ['Contrôleur', controleurDisplay],
+                    ['Date', dateObj.toLocaleDateString('fr-FR')]
+                ]
             ];
 
             doc.setTextColor(...primaryColor);
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(9);
+            doc.setFontSize(8);
 
-            const cellHeight = 7;
-            const col1Width = 60;
-            const col2Width = 120;
+            const cellHeight = 6;
+            const labelWidth = 28;
+            const valueWidth = 62;
+            const totalWidth = 180;
 
-            tableData.forEach((row, index) => {
-                const rowY = yPosition + (index * cellHeight);
+            tableData.forEach((row, rowIndex) => {
+                const rowY = yPosition + (rowIndex * cellHeight);
 
-                if (index % 2 === 0) {
+                // Background alterné
+                if (rowIndex % 2 === 0) {
                     doc.setFillColor(250, 250, 250);
-                    doc.rect(15, rowY, col1Width + col2Width, cellHeight, 'F');
+                    doc.rect(15, rowY, totalWidth, cellHeight, 'F');
                 }
 
                 doc.setDrawColor(...veryLightGray);
                 doc.setLineWidth(0.1);
-                doc.rect(15, rowY, col1Width, cellHeight, 'S');
-                doc.rect(15 + col1Width, rowY, col2Width, cellHeight, 'S');
+
+                // Première paire (colonne gauche)
+                const [label1, value1] = row[0];
+                doc.rect(15, rowY, labelWidth, cellHeight, 'S');
+                doc.rect(15 + labelWidth, rowY, valueWidth, cellHeight, 'S');
 
                 doc.setFont('helvetica', 'bold');
                 doc.setTextColor(...lightGray);
-                doc.text(row[0], 18, rowY + 4.5);
+                doc.setFontSize(7);
+                doc.text(label1, 17, rowY + 4);
 
                 doc.setFont('helvetica', 'normal');
                 doc.setTextColor(...primaryColor);
-                doc.text(row[1], 18 + col1Width, rowY + 4.5);
+                doc.setFontSize(8);
+                doc.text(value1, 17 + labelWidth, rowY + 4);
+
+                // Deuxième paire (colonne droite)
+                const [label2, value2] = row[1];
+                const offsetX = labelWidth + valueWidth;
+                doc.rect(15 + offsetX, rowY, labelWidth, cellHeight, 'S');
+                doc.rect(15 + offsetX + labelWidth, rowY, valueWidth, cellHeight, 'S');
+
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...lightGray);
+                doc.setFontSize(7);
+                doc.text(label2, 17 + offsetX, rowY + 4);
+
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(...primaryColor);
+                doc.setFontSize(8);
+                doc.text(value2, 17 + offsetX + labelWidth, rowY + 4);
             });
 
             yPosition += (tableData.length * cellHeight) + 15;
@@ -1553,9 +1586,9 @@ class RapportDeControleApp {
                             colY += 5;
                         }
 
-                        // Commentaire
+                        // N° de série
                         if (defaut.commentaire) {
-                            const commentaireLines = doc.splitTextToSize(`Obs : ${defaut.commentaire}`, colWidth - 5);
+                            const commentaireLines = doc.splitTextToSize(`N° série : ${defaut.commentaire}`, colWidth - 5);
                             doc.text(commentaireLines, xPosition, colY);
                             colY += commentaireLines.length * 4 + 2;
                         }
@@ -1563,7 +1596,7 @@ class RapportDeControleApp {
                         // Photos - 2 par ligne, plus grosses, aspect ratio conservé
                         if (defaut.photos && defaut.photos.length > 0) {
                             colY += 3;
-                            const maxPhotoSize = 55; // Taille max par photo (plus grosse qu'avant)
+                            const maxPhotoSize = 70; // Taille max par photo agrandie
                             const photoGap = 3;
                             let maxRowHeight = 0;
 
