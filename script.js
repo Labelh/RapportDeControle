@@ -28,6 +28,17 @@ class RapportDeControleApp {
         this.adminRapports = [];
         this.editingRapportId = null;
 
+        // Image editor
+        this.imageEditorCanvas = null;
+        this.imageEditorCtx = null;
+        this.currentEditingPhotoIndex = null;
+        this.selectedTool = 'ellipse';
+        this.annotations = [];
+        this.isDrawing = false;
+        this.startX = 0;
+        this.startY = 0;
+        this.originalImage = null;
+
         this.init();
     }
 
@@ -301,6 +312,58 @@ class RapportDeControleApp {
             themePreference.addEventListener('change', (e) => this.saveThemePreference(e.target.value));
         }
 
+        // Modal Ajouter Type de Défaut
+        const addTypeDefautBtn = document.getElementById('addTypeDefautBtn');
+        if (addTypeDefautBtn) {
+            addTypeDefautBtn.addEventListener('click', () => this.openAddTypeDefautModal());
+        }
+
+        const closeAddTypeDefautModal = document.getElementById('closeAddTypeDefautModal');
+        if (closeAddTypeDefautModal) {
+            closeAddTypeDefautModal.addEventListener('click', () => this.closeAddTypeDefautModal());
+        }
+
+        const cancelAddTypeDefaut = document.getElementById('cancelAddTypeDefaut');
+        if (cancelAddTypeDefaut) {
+            cancelAddTypeDefaut.addEventListener('click', () => this.closeAddTypeDefautModal());
+        }
+
+        const saveNewTypeDefaut = document.getElementById('saveNewTypeDefaut');
+        if (saveNewTypeDefaut) {
+            saveNewTypeDefaut.addEventListener('click', () => this.saveNewTypeDefaut());
+        }
+
+        // Modal Éditeur d'Image
+        const closeImageEditorModal = document.getElementById('closeImageEditorModal');
+        if (closeImageEditorModal) {
+            closeImageEditorModal.addEventListener('click', () => this.closeImageEditor());
+        }
+
+        const cancelImageEdit = document.getElementById('cancelImageEdit');
+        if (cancelImageEdit) {
+            cancelImageEdit.addEventListener('click', () => this.closeImageEditor());
+        }
+
+        const saveImageEdit = document.getElementById('saveImageEdit');
+        if (saveImageEdit) {
+            saveImageEdit.addEventListener('click', () => this.saveImageEdits());
+        }
+
+        const clearAnnotations = document.getElementById('clearAnnotations');
+        if (clearAnnotations) {
+            clearAnnotations.addEventListener('click', () => this.clearAnnotations());
+        }
+
+        // Tool buttons
+        const toolButtons = document.querySelectorAll('.btn-tool');
+        toolButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                toolButtons.forEach(b => b.classList.remove('active'));
+                e.currentTarget.classList.add('active');
+                this.selectedTool = e.currentTarget.dataset.tool;
+            });
+        });
+
         // Gestion utilisateurs (admin)
         const addUserForm = document.getElementById('addUserForm');
         if (addUserForm) {
@@ -396,6 +459,7 @@ class RapportDeControleApp {
             const defaut = this.defauts[editIndex];
             document.getElementById('typeDefaut').value = defaut.type;
             document.getElementById('quantite').value = defaut.quantite;
+            document.getElementById('topo').value = defaut.topo || '';
             document.getElementById('commentaire').value = defaut.commentaire;
             this.selectedPhotos = [...defaut.photos];
             document.querySelector('.form-actions button[type="submit"]').textContent = 'Modifier';
@@ -424,6 +488,7 @@ class RapportDeControleApp {
 
         const type = document.getElementById('typeDefaut').value;
         const quantite = document.getElementById('quantite').value;
+        const topo = document.getElementById('topo').value;
         const commentaire = document.getElementById('commentaire').value;
 
         if (type && quantite) {
@@ -431,6 +496,7 @@ class RapportDeControleApp {
                 id: this.editingDefautIndex >= 0 ? this.defauts[this.editingDefautIndex].id : Date.now(),
                 type: type,
                 quantite: parseInt(quantite),
+                topo: topo,
                 commentaire: commentaire,
                 photos: [...this.selectedPhotos]
             };
@@ -488,6 +554,7 @@ class RapportDeControleApp {
                 </div>
                 <div class="defaut-details">
                     Quantité: ${defaut.quantite} pièces
+                    ${defaut.topo ? `<br>Topo: ${defaut.topo}` : ''}
                     ${defaut.commentaire ? `<br>Observation: ${defaut.commentaire}` : ''}
                 </div>
                 ${photosHtml}
@@ -593,10 +660,17 @@ class RapportDeControleApp {
             preview.style.display = 'grid';
             this.selectedPhotos.forEach((photo, index) => {
                 const div = document.createElement('div');
-                div.className = 'photo-preview';
+                div.className = 'photo-item';
                 div.innerHTML = `
-                    <img src="${photo.data}" alt="${photo.name}">
-                    <button class="remove-photo" onclick="app.removePhoto(${index})">🗑</button>
+                    <img src="${photo.data}" alt="${photo.name}" onclick="app.openImageEditor(${index})">
+                    <button class="remove-photo" onclick="app.removePhoto(${index})">&times;</button>
+                    <button class="edit-icon" onclick="app.openImageEditor(${index})">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                        ✏️
+                    </button>
                 `;
                 preview.appendChild(div);
             });
@@ -1323,7 +1397,7 @@ class RapportDeControleApp {
 
             // Ajouter le logo Ajust'82 (à gauche)
             try {
-                doc.addImage('Logo-Ajust.png', 'PNG', 15, 10, 25, 25);
+                doc.addImage('images/Logo-Ajust.png', 'PNG', 15, 10, 25, 25);
             } catch (error) {
                 console.warn('Logo non trouvé:', error);
             }
@@ -1437,6 +1511,12 @@ class RapportDeControleApp {
                         doc.setTextColor(...lightGray);
                         doc.text(`Qté : ${defaut.quantite} pièces`, xPosition, colY);
                         colY += 5;
+
+                        // Topo
+                        if (defaut.topo) {
+                            doc.text(`Topo : ${defaut.topo}`, xPosition, colY);
+                            colY += 5;
+                        }
 
                         // Commentaire
                         if (defaut.commentaire) {
@@ -2359,6 +2439,232 @@ ${this.userProfile.full_name}`;
         }
 
         this.showNotification('Thème enregistré', 'success');
+    }
+
+    // ========== MODAL AJOUTER TYPE DE DÉFAUT ==========
+    openAddTypeDefautModal() {
+        const modal = document.getElementById('addTypeDefautModal');
+        modal.style.display = 'flex';
+        document.getElementById('newTypeDefautName').value = '';
+        document.getElementById('newTypeDefautName').focus();
+    }
+
+    closeAddTypeDefautModal() {
+        const modal = document.getElementById('addTypeDefautModal');
+        modal.style.display = 'none';
+    }
+
+    async saveNewTypeDefaut() {
+        const name = document.getElementById('newTypeDefautName').value.trim();
+
+        if (!name) {
+            this.showNotification('Veuillez saisir un nom', 'error');
+            return;
+        }
+
+        // Vérifier si le type existe déjà
+        const exists = this.typesDefauts.some(t => t.nom.toLowerCase() === name.toLowerCase());
+        if (exists) {
+            this.showNotification('Ce type de défaut existe déjà', 'error');
+            return;
+        }
+
+        const { data, error } = await supabaseClient
+            .from('types_defauts')
+            .insert([{ nom: name }])
+            .select();
+
+        if (error) {
+            console.error('Erreur lors de l\'ajout du type de défaut:', error);
+            this.showNotification('Erreur lors de l\'ajout', 'error');
+            return;
+        }
+
+        this.showNotification('Type de défaut ajouté avec succès', 'success');
+        await this.loadTypesDefauts();
+        this.closeAddTypeDefautModal();
+
+        // Sélectionner automatiquement le nouveau type
+        const select = document.getElementById('typeDefaut');
+        if (select && data && data[0]) {
+            select.value = data[0].nom;
+        }
+    }
+
+    // ========== ÉDITEUR D'IMAGE ==========
+    openImageEditor(photoIndex) {
+        this.currentEditingPhotoIndex = photoIndex;
+        const photo = this.selectedPhotos[photoIndex];
+
+        const modal = document.getElementById('imageEditorModal');
+        modal.style.display = 'flex';
+
+        // Initialiser le canvas
+        this.imageEditorCanvas = document.getElementById('imageCanvas');
+        this.imageEditorCtx = this.imageEditorCanvas.getContext('2d');
+
+        // Charger l'image
+        const img = new Image();
+        img.onload = () => {
+            this.originalImage = img;
+            this.imageEditorCanvas.width = img.width;
+            this.imageEditorCanvas.height = img.height;
+            this.redrawCanvas();
+            this.setupCanvasEvents();
+        };
+        img.src = photo.data;
+
+        this.annotations = [];
+    }
+
+    closeImageEditor() {
+        const modal = document.getElementById('imageEditorModal');
+        modal.style.display = 'none';
+        this.currentEditingPhotoIndex = null;
+        this.annotations = [];
+        this.removeCanvasEvents();
+    }
+
+    setupCanvasEvents() {
+        this.imageEditorCanvas.addEventListener('mousedown', this.handleCanvasMouseDown.bind(this));
+        this.imageEditorCanvas.addEventListener('mousemove', this.handleCanvasMouseMove.bind(this));
+        this.imageEditorCanvas.addEventListener('mouseup', this.handleCanvasMouseUp.bind(this));
+    }
+
+    removeCanvasEvents() {
+        if (this.imageEditorCanvas) {
+            this.imageEditorCanvas.removeEventListener('mousedown', this.handleCanvasMouseDown.bind(this));
+            this.imageEditorCanvas.removeEventListener('mousemove', this.handleCanvasMouseMove.bind(this));
+            this.imageEditorCanvas.removeEventListener('mouseup', this.handleCanvasMouseUp.bind(this));
+        }
+    }
+
+    handleCanvasMouseDown(e) {
+        const rect = this.imageEditorCanvas.getBoundingClientRect();
+        this.startX = (e.clientX - rect.left) * (this.imageEditorCanvas.width / rect.width);
+        this.startY = (e.clientY - rect.top) * (this.imageEditorCanvas.height / rect.height);
+        this.isDrawing = true;
+    }
+
+    handleCanvasMouseMove(e) {
+        if (!this.isDrawing) return;
+
+        const rect = this.imageEditorCanvas.getBoundingClientRect();
+        const currentX = (e.clientX - rect.left) * (this.imageEditorCanvas.width / rect.width);
+        const currentY = (e.clientY - rect.top) * (this.imageEditorCanvas.height / rect.height);
+
+        // Redessiner le canvas avec l'aperçu de la forme en cours
+        this.redrawCanvas();
+
+        const color = document.getElementById('annotationColor').value;
+        this.imageEditorCtx.strokeStyle = color;
+        this.imageEditorCtx.lineWidth = 3;
+
+        if (this.selectedTool === 'ellipse') {
+            this.drawEllipse(this.startX, this.startY, currentX, currentY, false);
+        } else if (this.selectedTool === 'arrow') {
+            this.drawArrow(this.startX, this.startY, currentX, currentY, false);
+        }
+    }
+
+    handleCanvasMouseUp(e) {
+        if (!this.isDrawing) return;
+
+        const rect = this.imageEditorCanvas.getBoundingClientRect();
+        const endX = (e.clientX - rect.left) * (this.imageEditorCanvas.width / rect.width);
+        const endY = (e.clientY - rect.top) * (this.imageEditorCanvas.height / rect.height);
+
+        const color = document.getElementById('annotationColor').value;
+
+        // Sauvegarder l'annotation
+        this.annotations.push({
+            tool: this.selectedTool,
+            startX: this.startX,
+            startY: this.startY,
+            endX: endX,
+            endY: endY,
+            color: color
+        });
+
+        this.isDrawing = false;
+        this.redrawCanvas();
+    }
+
+    redrawCanvas() {
+        // Effacer le canvas
+        this.imageEditorCtx.clearRect(0, 0, this.imageEditorCanvas.width, this.imageEditorCanvas.height);
+
+        // Redessiner l'image originale
+        if (this.originalImage) {
+            this.imageEditorCtx.drawImage(this.originalImage, 0, 0);
+        }
+
+        // Redessiner toutes les annotations
+        this.annotations.forEach(annotation => {
+            this.imageEditorCtx.strokeStyle = annotation.color;
+            this.imageEditorCtx.lineWidth = 3;
+
+            if (annotation.tool === 'ellipse') {
+                this.drawEllipse(annotation.startX, annotation.startY, annotation.endX, annotation.endY, true);
+            } else if (annotation.tool === 'arrow') {
+                this.drawArrow(annotation.startX, annotation.startY, annotation.endX, annotation.endY, true);
+            }
+        });
+    }
+
+    drawEllipse(x1, y1, x2, y2, save) {
+        const centerX = (x1 + x2) / 2;
+        const centerY = (y1 + y2) / 2;
+        const radiusX = Math.abs(x2 - x1) / 2;
+        const radiusY = Math.abs(y2 - y1) / 2;
+
+        this.imageEditorCtx.beginPath();
+        this.imageEditorCtx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
+        this.imageEditorCtx.stroke();
+    }
+
+    drawArrow(x1, y1, x2, y2, save) {
+        const headLength = 20;
+        const angle = Math.atan2(y2 - y1, x2 - x1);
+
+        // Ligne principale
+        this.imageEditorCtx.beginPath();
+        this.imageEditorCtx.moveTo(x1, y1);
+        this.imageEditorCtx.lineTo(x2, y2);
+        this.imageEditorCtx.stroke();
+
+        // Pointe de la flèche
+        this.imageEditorCtx.beginPath();
+        this.imageEditorCtx.moveTo(x2, y2);
+        this.imageEditorCtx.lineTo(
+            x2 - headLength * Math.cos(angle - Math.PI / 6),
+            y2 - headLength * Math.sin(angle - Math.PI / 6)
+        );
+        this.imageEditorCtx.moveTo(x2, y2);
+        this.imageEditorCtx.lineTo(
+            x2 - headLength * Math.cos(angle + Math.PI / 6),
+            y2 - headLength * Math.sin(angle + Math.PI / 6)
+        );
+        this.imageEditorCtx.stroke();
+    }
+
+    clearAnnotations() {
+        this.annotations = [];
+        this.redrawCanvas();
+    }
+
+    saveImageEdits() {
+        if (this.currentEditingPhotoIndex === null) return;
+
+        // Convertir le canvas en base64
+        const editedImageData = this.imageEditorCanvas.toDataURL('image/jpeg', 0.9);
+
+        // Mettre à jour la photo
+        this.selectedPhotos[this.currentEditingPhotoIndex].data = editedImageData;
+
+        this.showNotification('Image enregistrée avec succès', 'success');
+        this.updatePhotosPreview();
+        this.closeImageEditor();
     }
 
 }

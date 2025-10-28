@@ -169,9 +169,6 @@
                             </select>
                         </div>
                     </div>
-                    <div class="card-footer-actions">
-                        <button id="addDefaut" class="btn btn-green">+ Ajouter un Défaut</button>
-                    </div>
                 </div>
 
                 <div id="defautFormContainer" class="defaut-form-container" style="display: none;">
@@ -183,7 +180,15 @@
                         <form id="defautForm">
                             <div class="form-row">
                                 <div class="form-group form-group-flex">
-                                    <label for="typeDefaut">Type de Défaut *</label>
+                                    <div class="label-with-action">
+                                        <label for="typeDefaut">Type de Défaut *</label>
+                                        <button type="button" id="addTypeDefautBtn" class="btn-icon" title="Ajouter un type de défaut">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                                            </svg>
+                                        </button>
+                                    </div>
                                     <select id="typeDefaut" required>
                                         <option value="">Sélectionner un type</option>
                                     </select>
@@ -193,9 +198,15 @@
                                     <input type="number" id="quantite" min="1" required>
                                 </div>
                             </div>
-                            <div class="form-group" style="margin-top: 1.5rem;">
-                                <label for="commentaire">Observation</label>
-                                <textarea id="commentaire" rows="3"></textarea>
+                            <div class="form-row">
+                                <div class="form-group form-group-flex">
+                                    <label for="topo">Topo</label>
+                                    <input type="text" id="topo" placeholder="Ex: Avant, Arrière, Côté gauche...">
+                                </div>
+                                <div class="form-group form-group-flex">
+                                    <label for="commentaire">Observation</label>
+                                    <textarea id="commentaire" rows="2"></textarea>
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label>Photos (optionnel)</label>
@@ -216,6 +227,9 @@
                                 <button type="submit" class="btn btn-primary">Ajouter</button>
                             </div>
                         </form>
+                    </div>
+                    <div class="card-footer-actions" style="margin-top: 0;">
+                        <button id="addDefaut" class="btn btn-green">+ Ajouter un Défaut</button>
                     </div>
                 </div>
 
@@ -427,6 +441,68 @@
                 <div id="timetonicPreviewContent" class="timetonic-preview">
                     <p class="text-secondary">Affichage des premières lignes de votre book Timetonic pour vous aider à configurer le mapping des colonnes.</p>
                     <div id="timetonicPreviewTable"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Ajouter Type de Défaut -->
+    <div id="addTypeDefautModal" class="modal">
+        <div class="modal-content modal-box">
+            <div class="modal-header">
+                <h3>Ajouter un Type de Défaut</h3>
+                <button class="close-modal" id="closeAddTypeDefautModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="newTypeDefautName">Nom du type de défaut *</label>
+                    <input type="text" id="newTypeDefautName" class="modal-input" placeholder="Ex: Rayure, Peinture écaillée..." required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="cancelAddTypeDefaut" class="btn btn-secondary">Annuler</button>
+                    <button type="button" id="saveNewTypeDefaut" class="btn btn-primary">Ajouter</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Éditeur d'Image -->
+    <div id="imageEditorModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Annoter l'image</h3>
+                <button class="close-modal" id="closeImageEditorModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="image-editor-toolbar">
+                    <div class="toolbar-group">
+                        <label>Outil:</label>
+                        <button type="button" class="btn-tool active" data-tool="ellipse" title="Ellipse">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <ellipse cx="12" cy="12" rx="8" ry="5"></ellipse>
+                            </svg>
+                        </button>
+                        <button type="button" class="btn-tool" data-tool="arrow" title="Flèche">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                                <polyline points="12 5 19 12 12 19"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="toolbar-group">
+                        <label>Couleur:</label>
+                        <input type="color" id="annotationColor" value="#ff0000" class="color-picker">
+                    </div>
+                    <div class="toolbar-group">
+                        <button type="button" id="clearAnnotations" class="btn btn-secondary">Effacer tout</button>
+                    </div>
+                </div>
+                <div class="image-editor-container">
+                    <canvas id="imageCanvas"></canvas>
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="cancelImageEdit" class="btn btn-secondary">Annuler</button>
+                    <button type="button" id="saveImageEdit" class="btn btn-primary">Enregistrer</button>
                 </div>
             </div>
         </div>
