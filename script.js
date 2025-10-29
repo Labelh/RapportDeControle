@@ -1178,7 +1178,6 @@ class RapportDeControleApp {
                         numero_commande: numeroCommande,
                         reference,
                         designation: document.getElementById('designation').value || null,
-                        quantite_lot: quantiteLot ? parseInt(quantiteLot) : null,
                         client: document.getElementById('client').value
                     })
                     .eq('id', this.editingRapportId);
@@ -1231,7 +1230,6 @@ class RapportDeControleApp {
                         numero_commande: numeroCommande,
                         reference,
                         designation: document.getElementById('designation').value || null,
-                        quantite_lot: quantiteLot ? parseInt(quantiteLot) : null,
                         client: document.getElementById('client').value,
                         controleur_id: this.currentUser.id,
                         controleur_name: this.userProfile.full_name,
@@ -1314,7 +1312,8 @@ class RapportDeControleApp {
             document.getElementById('numeroCommande').value = rapport.numero_commande || '';
             document.getElementById('reference').value = rapport.reference;
             document.getElementById('designation').value = rapport.designation || '';
-            document.getElementById('quantiteLot').value = rapport.quantite_lot || '';
+            // quantiteLot reste dans le formulaire mais n'est pas chargé depuis la base
+            document.getElementById('quantiteLot').value = '';
             document.getElementById('client').value = rapport.client || '';
 
             // Charger les défauts
@@ -2706,16 +2705,32 @@ ${this.userProfile.full_name}`;
     }
 
     setupCanvasEvents() {
-        this.imageEditorCanvas.addEventListener('mousedown', this.handleCanvasMouseDown.bind(this));
-        this.imageEditorCanvas.addEventListener('mousemove', this.handleCanvasMouseMove.bind(this));
-        this.imageEditorCanvas.addEventListener('mouseup', this.handleCanvasMouseUp.bind(this));
+        // Mouse events
+        this.handleCanvasMouseDown = this.handleCanvasMouseDown.bind(this);
+        this.handleCanvasMouseMove = this.handleCanvasMouseMove.bind(this);
+        this.handleCanvasMouseUp = this.handleCanvasMouseUp.bind(this);
+        this.handleCanvasTouchStart = this.handleCanvasTouchStart.bind(this);
+        this.handleCanvasTouchMove = this.handleCanvasTouchMove.bind(this);
+        this.handleCanvasTouchEnd = this.handleCanvasTouchEnd.bind(this);
+
+        this.imageEditorCanvas.addEventListener('mousedown', this.handleCanvasMouseDown);
+        this.imageEditorCanvas.addEventListener('mousemove', this.handleCanvasMouseMove);
+        this.imageEditorCanvas.addEventListener('mouseup', this.handleCanvasMouseUp);
+
+        // Touch events for mobile
+        this.imageEditorCanvas.addEventListener('touchstart', this.handleCanvasTouchStart, { passive: false });
+        this.imageEditorCanvas.addEventListener('touchmove', this.handleCanvasTouchMove, { passive: false });
+        this.imageEditorCanvas.addEventListener('touchend', this.handleCanvasTouchEnd, { passive: false });
     }
 
     removeCanvasEvents() {
         if (this.imageEditorCanvas) {
-            this.imageEditorCanvas.removeEventListener('mousedown', this.handleCanvasMouseDown.bind(this));
-            this.imageEditorCanvas.removeEventListener('mousemove', this.handleCanvasMouseMove.bind(this));
-            this.imageEditorCanvas.removeEventListener('mouseup', this.handleCanvasMouseUp.bind(this));
+            this.imageEditorCanvas.removeEventListener('mousedown', this.handleCanvasMouseDown);
+            this.imageEditorCanvas.removeEventListener('mousemove', this.handleCanvasMouseMove);
+            this.imageEditorCanvas.removeEventListener('mouseup', this.handleCanvasMouseUp);
+            this.imageEditorCanvas.removeEventListener('touchstart', this.handleCanvasTouchStart);
+            this.imageEditorCanvas.removeEventListener('touchmove', this.handleCanvasTouchMove);
+            this.imageEditorCanvas.removeEventListener('touchend', this.handleCanvasTouchEnd);
         }
     }
 
@@ -2803,6 +2818,100 @@ ${this.userProfile.full_name}`;
         const rect = this.imageEditorCanvas.getBoundingClientRect();
         const endX = (e.clientX - rect.left) * (this.imageEditorCanvas.width / rect.width);
         const endY = (e.clientY - rect.top) * (this.imageEditorCanvas.height / rect.height);
+
+        const color = document.getElementById('annotationColor').value;
+
+        // Sauvegarder l'annotation
+        this.annotations.push({
+            tool: this.selectedTool,
+            startX: this.startX,
+            startY: this.startY,
+            endX: endX,
+            endY: endY,
+            color: color
+        });
+
+        this.isDrawing = false;
+        this.redrawCanvas();
+        this.saveHistoryState();
+    }
+
+    // Touch event handlers for mobile support
+    handleCanvasTouchStart(e) {
+        e.preventDefault(); // Empêcher le scroll/zoom
+
+        const touch = e.touches[0];
+        const rect = this.imageEditorCanvas.getBoundingClientRect();
+        this.startX = (touch.clientX - rect.left) * (this.imageEditorCanvas.width / rect.width);
+        this.startY = (touch.clientY - rect.top) * (this.imageEditorCanvas.height / rect.height);
+
+        if (this.selectedTool === 'move') {
+            // Vérifier si on touche une annotation existante
+            this.selectedAnnotation = this.getAnnotationAtPoint(this.startX, this.startY);
+            if (this.selectedAnnotation) {
+                this.isDragging = true;
+                this.dragOffsetX = this.startX - this.selectedAnnotation.startX;
+                this.dragOffsetY = this.startY - this.selectedAnnotation.startY;
+            }
+        } else {
+            this.isDrawing = true;
+        }
+    }
+
+    handleCanvasTouchMove(e) {
+        e.preventDefault(); // Empêcher le scroll/zoom
+
+        if (!this.isDrawing && !this.isDragging) return;
+
+        const touch = e.touches[0];
+        const rect = this.imageEditorCanvas.getBoundingClientRect();
+        const currentX = (touch.clientX - rect.left) * (this.imageEditorCanvas.width / rect.width);
+        const currentY = (touch.clientY - rect.top) * (this.imageEditorCanvas.height / rect.height);
+
+        if (this.isDragging && this.selectedAnnotation) {
+            // Déplacer l'annotation sélectionnée
+            const deltaX = currentX - this.dragOffsetX - this.selectedAnnotation.startX;
+            const deltaY = currentY - this.dragOffsetY - this.selectedAnnotation.startY;
+
+            this.selectedAnnotation.startX += deltaX;
+            this.selectedAnnotation.startY += deltaY;
+            this.selectedAnnotation.endX += deltaX;
+            this.selectedAnnotation.endY += deltaY;
+
+            this.redrawCanvas();
+        } else if (this.isDrawing) {
+            // Redessiner le canvas avec l'aperçu de la forme en cours
+            this.redrawCanvas();
+
+            const color = document.getElementById('annotationColor').value;
+            this.imageEditorCtx.strokeStyle = color;
+            this.imageEditorCtx.lineWidth = 3;
+
+            if (this.selectedTool === 'ellipse') {
+                this.drawEllipse(this.startX, this.startY, currentX, currentY, false);
+            } else if (this.selectedTool === 'arrow') {
+                this.drawArrow(this.startX, this.startY, currentX, currentY, false);
+            }
+        }
+    }
+
+    handleCanvasTouchEnd(e) {
+        e.preventDefault(); // Empêcher le scroll/zoom
+
+        if (this.isDragging) {
+            this.isDragging = false;
+            this.selectedAnnotation = null;
+            // Sauvegarder l'état après déplacement
+            this.saveHistoryState();
+            return;
+        }
+
+        if (!this.isDrawing) return;
+
+        const touch = e.changedTouches[0];
+        const rect = this.imageEditorCanvas.getBoundingClientRect();
+        const endX = (touch.clientX - rect.left) * (this.imageEditorCanvas.width / rect.width);
+        const endY = (touch.clientY - rect.top) * (this.imageEditorCanvas.height / rect.height);
 
         const color = document.getElementById('annotationColor').value;
 
