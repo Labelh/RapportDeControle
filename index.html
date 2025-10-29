@@ -15,6 +15,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
     <!-- Page de Connexion -->
@@ -152,6 +153,9 @@
                 <div class="card">
                     <div class="card-section-header">
                         <h3>Informations du Rapport</h3>
+                        <button type="button" id="scanOFBtn" class="btn btn-scan">
+                            📷 Scanner un OF
+                        </button>
                     </div>
 
                     <div class="rapport-form-grid">
@@ -576,6 +580,66 @@
                     <button type="button" id="cancelImageEdit" class="btn btn-secondary">Annuler</button>
                     <button type="button" id="saveImageEdit" class="btn btn-primary">Enregistrer</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Scan OCR -->
+    <div id="ocrScanModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Scanner un Ordre de Fabrication</h3>
+                <button class="modal-close" id="closeOCRModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="ocr-upload-zone">
+                    <input type="file" id="ocrFileInput" accept="image/*" capture="environment" style="display: none;">
+                    <button type="button" class="btn btn-primary btn-large" id="selectOCRImage">
+                        📷 Prendre/Sélectionner une photo
+                    </button>
+                    <p class="ocr-hint">Prenez une photo claire de l'ordre de fabrication</p>
+                </div>
+
+                <div id="ocrPreviewContainer" style="display: none;">
+                    <img id="ocrPreview" class="ocr-preview-image" alt="Aperçu">
+                    <div id="ocrProgress" class="ocr-progress" style="display: none;">
+                        <div class="ocr-progress-bar">
+                            <div id="ocrProgressBar" class="ocr-progress-fill"></div>
+                        </div>
+                        <p id="ocrProgressText">Analyse en cours...</p>
+                    </div>
+                    <div id="ocrResults" class="ocr-results" style="display: none;">
+                        <h4>Valeurs détectées :</h4>
+                        <div class="ocr-result-item">
+                            <label>OF Interne:</label>
+                            <input type="text" id="ocr_ordeFabrication" class="ocr-result-input">
+                        </div>
+                        <div class="ocr-result-item">
+                            <label>OF Client:</label>
+                            <input type="text" id="ocr_ofClient" class="ocr-result-input">
+                        </div>
+                        <div class="ocr-result-item">
+                            <label>N° Commande:</label>
+                            <input type="text" id="ocr_numeroCommande" class="ocr-result-input">
+                        </div>
+                        <div class="ocr-result-item">
+                            <label>Référence:</label>
+                            <input type="text" id="ocr_reference" class="ocr-result-input">
+                        </div>
+                        <div class="ocr-result-item">
+                            <label>Client:</label>
+                            <input type="text" id="ocr_client" class="ocr-result-input">
+                        </div>
+                        <div class="ocr-result-item">
+                            <label>Quantité:</label>
+                            <input type="text" id="ocr_quantiteLot" class="ocr-result-input">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancelOCR">Annuler</button>
+                <button type="button" class="btn btn-primary" id="applyOCR" style="display: none;">Appliquer les valeurs</button>
             </div>
         </div>
     </div>

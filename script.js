@@ -419,6 +419,9 @@ class RapportDeControleApp {
             }
         });
 
+        // OCR Scan
+        this.setupOCRScan();
+
         // Gestion utilisateurs (admin)
         const addUserForm = document.getElementById('addUserForm');
         if (addUserForm) {
@@ -3415,6 +3418,187 @@ ${this.userProfile.full_name}`;
         sidebar.addEventListener('click', (e) => {
             e.stopPropagation();
         });
+    }
+
+    // ========== OCR SCAN ==========
+    setupOCRScan() {
+        const scanBtn = document.getElementById('scanOFBtn');
+        const modal = document.getElementById('ocrScanModal');
+        const closeBtn = document.getElementById('closeOCRModal');
+        const cancelBtn = document.getElementById('cancelOCR');
+        const selectImageBtn = document.getElementById('selectOCRImage');
+        const fileInput = document.getElementById('ocrFileInput');
+        const applyBtn = document.getElementById('applyOCR');
+
+        if (!scanBtn) return;
+
+        scanBtn.addEventListener('click', () => {
+            modal.style.display = 'flex';
+            this.resetOCRModal();
+        });
+
+        closeBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        cancelBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        selectImageBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                this.processOCRImage(file);
+            }
+        });
+
+        applyBtn.addEventListener('click', () => {
+            this.applyOCRValues();
+            modal.style.display = 'none';
+        });
+    }
+
+    resetOCRModal() {
+        document.getElementById('ocrPreviewContainer').style.display = 'none';
+        document.getElementById('ocrProgress').style.display = 'none';
+        document.getElementById('ocrResults').style.display = 'none';
+        document.getElementById('applyOCR').style.display = 'none';
+        document.getElementById('ocrFileInput').value = '';
+    }
+
+    async processOCRImage(file) {
+        const preview = document.getElementById('ocrPreview');
+        const previewContainer = document.getElementById('ocrPreviewContainer');
+        const progress = document.getElementById('ocrProgress');
+        const progressBar = document.getElementById('ocrProgressBar');
+        const progressText = document.getElementById('ocrProgressText');
+        const results = document.getElementById('ocrResults');
+        const applyBtn = document.getElementById('applyOCR');
+
+        // Afficher l'aperçu
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            preview.src = e.target.result;
+            previewContainer.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+
+        // Afficher la progression
+        progress.style.display = 'block';
+        progressBar.style.width = '0%';
+
+        try {
+            // Lancer Tesseract
+            const result = await Tesseract.recognize(
+                file,
+                'fra', // Langue française
+                {
+                    logger: (m) => {
+                        if (m.status === 'recognizing text') {
+                            const percent = Math.round(m.progress * 100);
+                            progressBar.style.width = percent + '%';
+                            progressText.textContent = `Analyse en cours... ${percent}%`;
+                        }
+                    }
+                }
+            );
+
+            // Extraire et parser le texte
+            const text = result.data.text;
+            console.log('Texte OCR détecté:', text);
+            this.parseOCRText(text);
+
+            // Afficher les résultats
+            progress.style.display = 'none';
+            results.style.display = 'block';
+            applyBtn.style.display = 'inline-block';
+
+        } catch (error) {
+            console.error('Erreur OCR:', error);
+            progressText.textContent = 'Erreur lors de l\'analyse';
+            progressBar.style.width = '100%';
+            progressBar.style.background = 'var(--danger-color)';
+            this.showNotification('Erreur lors du scan OCR', 'error');
+        }
+    }
+
+    parseOCRText(text) {
+        // Nettoyer le texte
+        const lines = text.split('\n').map(line => line.trim()).filter(line => line);
+
+        // Patterns de recherche
+        const patterns = {
+            ordeFabrication: /(?:OF|O\.?F\.?|Ordre.*Fab.*?|OF.*Interne)[\s:]*([A-Z0-9\-]+)/i,
+            ofClient: /(?:OF.*Client|Client.*OF)[\s:]*([A-Z0-9\-]+)/i,
+            numeroCommande: /(?:N°.*Commande|Commande|CMD|Command)[\s:]*([A-Z0-9\-]+)/i,
+            reference: /(?:Réf|Référence|REF|Reference)[\s:]*([A-Z0-9\-\.]+)/i,
+            client: /(?:Client)[\s:]*([A-Z][A-Za-z\s&\-\.]+?)(?:\s|$)/i,
+            quantiteLot: /(?:Quantité|Qté|Qt|Quantity)[\s:]*(\d+)/i
+        };
+
+        // Extraire les valeurs
+        const fullText = text;
+
+        for (const [field, pattern] of Object.entries(patterns)) {
+            const match = fullText.match(pattern);
+            if (match && match[1]) {
+                const value = match[1].trim();
+                const input = document.getElementById(`ocr_${field}`);
+                if (input) {
+                    input.value = value;
+                }
+            }
+        }
+
+        // Si pas de correspondance, essayer une approche ligne par ligne
+        lines.forEach(line => {
+            // Détecter les patterns de type "Label: Valeur"
+            if (line.includes(':')) {
+                const [label, ...valueParts] = line.split(':');
+                const value = valueParts.join(':').trim();
+
+                if (label.match(/OF|Ordre/i) && value && !document.getElementById('ocr_ordeFabrication').value) {
+                    document.getElementById('ocr_ordeFabrication').value = value;
+                }
+                if (label.match(/Client/i) && value && !document.getElementById('ocr_ofClient').value) {
+                    document.getElementById('ocr_ofClient').value = value;
+                }
+                if (label.match(/Commande|CMD/i) && value && !document.getElementById('ocr_numeroCommande').value) {
+                    document.getElementById('ocr_numeroCommande').value = value;
+                }
+                if (label.match(/Réf|Reference/i) && value && !document.getElementById('ocr_reference').value) {
+                    document.getElementById('ocr_reference').value = value;
+                }
+                if (label.match(/Quantité|Qté/i) && value && !document.getElementById('ocr_quantiteLot').value) {
+                    document.getElementById('ocr_quantiteLot').value = value.match(/\d+/)?.[0] || value;
+                }
+            }
+        });
+    }
+
+    applyOCRValues() {
+        // Appliquer les valeurs détectées au formulaire principal
+        const fields = ['ordeFabrication', 'ofClient', 'numeroCommande', 'reference', 'client', 'quantiteLot'];
+
+        fields.forEach(field => {
+            const ocrInput = document.getElementById(`ocr_${field}`);
+            const formInput = document.getElementById(field);
+
+            if (ocrInput && formInput && ocrInput.value) {
+                formInput.value = ocrInput.value;
+
+                // Si c'est la référence, déclencher l'autocomplete
+                if (field === 'reference') {
+                    formInput.dispatchEvent(new Event('input'));
+                }
+            }
+        });
+
+        this.showNotification('Valeurs appliquées avec succès', 'success');
     }
 
 }
