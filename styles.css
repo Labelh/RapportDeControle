@@ -929,13 +929,12 @@ input.field-error, select.field-error, textarea.field-error {
 .drop-zone {
     border: 3px dashed var(--border-dark);
     border-radius: 8px;
-    padding: 0;
+    padding: 0.5rem;
     text-align: center;
     background: transparent;
     cursor: pointer;
     transition: var(--transition);
-    flex: 1;
-    min-width: 100px;
+    flex-shrink: 0;
     width: 100px;
     height: 100px;
     display: flex;
@@ -954,15 +953,24 @@ input.field-error, select.field-error, textarea.field-error {
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 0.25rem;
 }
 
 .drop-zone-icon {
-    font-size: 2rem;
+    font-size: 1.5rem;
     opacity: 0.5;
 }
 
 .drop-zone-text {
-    display: none;
+    color: var(--text-muted);
+    font-size: 0.65rem;
+    line-height: 1.2;
+}
+
+.drop-zone-text strong {
+    color: var(--text-color);
+    font-size: 0.7rem;
+    display: block;
 }
 
 /* Drop zone compact (discret) */

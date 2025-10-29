@@ -152,10 +152,6 @@
                             <div class="form-section-compact">
                                 <h4 class="form-section-title">Identification</h4>
                                 <div class="form-group">
-                                    <label for="numeroNC">N° NC *</label>
-                                    <input type="text" id="numeroNC" required>
-                                </div>
-                                <div class="form-group">
                                     <label for="numeroCommande">N° Commande *</label>
                                     <input type="text" id="numeroCommande" required>
                                 </div>
@@ -179,8 +175,9 @@
                                 <h4 class="form-section-title">Produit</h4>
                                 <div class="form-group">
                                     <label for="reference">Référence *</label>
-                                    <input type="text" id="reference" list="referencesList" required>
-                                    <datalist id="referencesList"></datalist>
+                                    <select id="reference" required>
+                                        <option value="">Sélectionner une référence</option>
+                                    </select>
                                 </div>
                                 <div class="form-group">
                                     <label for="designation">Désignation</label>
@@ -224,7 +221,7 @@
                             </div>
 
                             <div class="form-group">
-                                <label for="quantite">Quantité *</label>
+                                <label for="quantite">Quantité concernée *</label>
                                 <input type="number" id="quantite" min="1" required>
                             </div>
 
@@ -262,15 +259,15 @@
                     </div>
                 </div>
 
-                <div class="card-footer-actions">
-                    <button id="addDefaut" class="btn btn-green">+ Ajouter un Défaut</button>
-                </div>
-
                 <div id="defautsListCard" class="card" style="display: none;">
                     <div class="card-section-header">
                         <h3>Défauts ajoutés</h3>
                     </div>
                     <div id="defautsList" class="defauts-list"></div>
+                </div>
+
+                <div class="card-footer-actions">
+                    <button id="addDefaut" class="btn btn-green">+ Ajouter un Défaut</button>
                 </div>
 
                 <button id="validerRapport" class="btn btn-success generate-pdf-btn" style="display: none;">Valider le Rapport</button>

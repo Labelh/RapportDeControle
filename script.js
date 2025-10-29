@@ -331,10 +331,10 @@ class RapportDeControleApp {
             clearReferencesBtn.addEventListener('click', () => this.clearReferences());
         }
 
-        // Auto-complétion référence
-        const referenceInput = document.getElementById('reference');
-        if (referenceInput) {
-            referenceInput.addEventListener('input', (e) => this.handleReferenceChange(e));
+        // Sélection référence
+        const referenceSelect = document.getElementById('reference');
+        if (referenceSelect) {
+            referenceSelect.addEventListener('change', (e) => this.handleReferenceChange(e));
         }
 
         // Préférence de thème
@@ -1126,7 +1126,6 @@ class RapportDeControleApp {
 
     // ========== GÉNÉRATION PDF ==========
     async validerRapport() {
-        const numeroNCEl = document.getElementById('numeroNC');
         const ordeFabricationEl = document.getElementById('ordeFabrication');
         const ofClientEl = document.getElementById('ofClient');
         const numeroCommandeEl = document.getElementById('numeroCommande');
@@ -1134,7 +1133,6 @@ class RapportDeControleApp {
         const quantiteLotEl = document.getElementById('quantiteLot');
         const clientEl = document.getElementById('client');
 
-        const numeroNC = numeroNCEl.value;
         const ordeFabrication = ordeFabricationEl.value;
         const ofClient = ofClientEl.value;
         const numeroCommande = numeroCommandeEl.value;
@@ -1143,12 +1141,11 @@ class RapportDeControleApp {
         const client = clientEl.value;
 
         // Retirer les erreurs précédentes
-        [numeroNCEl, ordeFabricationEl, ofClientEl, numeroCommandeEl, referenceEl, quantiteLotEl, clientEl].forEach(el => {
+        [ordeFabricationEl, ofClientEl, numeroCommandeEl, referenceEl, quantiteLotEl, clientEl].forEach(el => {
             el.classList.remove('field-error');
         });
 
         let hasError = false;
-        if (!numeroNC) { numeroNCEl.classList.add('field-error'); hasError = true; }
         if (!ordeFabrication) { ordeFabricationEl.classList.add('field-error'); hasError = true; }
         if (!ofClient) { ofClientEl.classList.add('field-error'); hasError = true; }
         if (!numeroCommande) { numeroCommandeEl.classList.add('field-error'); hasError = true; }
@@ -1173,7 +1170,6 @@ class RapportDeControleApp {
                 const { error: updateError } = await supabaseClient
                     .from('rapports')
                     .update({
-                        numero_nc: numeroNC,
                         ordre_fabrication: ordeFabrication,
                         of_client: ofClient,
                         numero_commande: numeroCommande,
@@ -1227,7 +1223,6 @@ class RapportDeControleApp {
                     .from('rapports')
                     .insert([{
                         numero: reportNumber,
-                        numero_nc: numeroNC,
                         ordre_fabrication: ordeFabrication,
                         of_client: ofClient,
                         numero_commande: numeroCommande,
@@ -1310,7 +1305,7 @@ class RapportDeControleApp {
             }
 
             // Remplir le formulaire
-            document.getElementById('numeroNC').value = rapport.numero_nc || '';
+            // Champ numeroNC supprimé
             document.getElementById('ordeFabrication').value = rapport.ordre_fabrication;
             document.getElementById('ofClient').value = rapport.of_client || '';
             document.getElementById('numeroCommande').value = rapport.numero_commande || '';
@@ -1416,7 +1411,7 @@ class RapportDeControleApp {
     }
 
     async genererPDF(rapportId = null) {
-        let numeroNC, ordeFabrication, ofClient, numeroCommande, reference, designation, quantiteLot, client, controleurName, dateControle, reportNumber, defauts;
+        let ordeFabrication, ofClient, numeroCommande, reference, designation, quantiteLot, client, controleurName, dateControle, reportNumber, defauts;
 
         if (rapportId) {
             // Générer PDF depuis l'admin pour un rapport existant
@@ -1441,7 +1436,7 @@ class RapportDeControleApp {
                 return;
             }
 
-            numeroNC = rapport.numero_nc;
+            // numeroNC supprimé
             ordeFabrication = rapport.ordre_fabrication;
             ofClient = rapport.of_client;
             numeroCommande = rapport.numero_commande;
@@ -1456,7 +1451,7 @@ class RapportDeControleApp {
 
         } else {
             // Ancienne logique (devrait être rarement utilisée maintenant)
-            numeroNC = document.getElementById('numeroNC').value;
+            // numeroNC supprimé
             ordeFabrication = document.getElementById('ordeFabrication').value;
             ofClient = document.getElementById('ofClient').value;
             numeroCommande = document.getElementById('numeroCommande').value;
@@ -1508,7 +1503,7 @@ class RapportDeControleApp {
 
             doc.setFontSize(12);
             doc.setTextColor(...terracottaOrange);
-            doc.text(`N°${numeroNC || reportNumber}`, 195, 18, { align: 'right' });
+            doc.text(`N°${reportNumber}`, 195, 18, { align: 'right' });
 
             // Espace entre le logo et les informations générales
             let yPosition = 35;
@@ -3017,30 +3012,33 @@ ${this.userProfile.full_name}`;
     }
 
     updateReferencesList() {
-        const datalist = document.getElementById('referencesList');
-        if (!datalist) return;
+        const referenceSelect = document.getElementById('reference');
+        if (!referenceSelect) return;
 
-        datalist.innerHTML = '';
+        // Garder l'option par défaut et ajouter les références
+        referenceSelect.innerHTML = '<option value="">Sélectionner une référence</option>';
+
         this.productReferences.forEach((designation, reference) => {
             const option = document.createElement('option');
             option.value = reference;
-            // Afficher seulement la référence dans la liste
-            datalist.appendChild(option);
+            option.textContent = reference;
+            referenceSelect.appendChild(option);
         });
     }
 
     handleReferenceChange(event) {
-        const reference = event.target.value.trim();
+        const reference = event.target.value;
         const designationInput = document.getElementById('designation');
 
-        if (this.productReferences.has(reference)) {
+        if (reference && this.productReferences.has(reference)) {
             // Remplir et bloquer le champ désignation
             designationInput.value = this.productReferences.get(reference);
             designationInput.readOnly = true;
             designationInput.style.backgroundColor = 'var(--hover-bg)';
             designationInput.style.cursor = 'not-allowed';
         } else {
-            // Débloquer le champ désignation si la référence n'est pas trouvée
+            // Débloquer le champ désignation si pas de référence sélectionnée
+            designationInput.value = '';
             designationInput.readOnly = false;
             designationInput.style.backgroundColor = '';
             designationInput.style.cursor = '';
