@@ -1628,106 +1628,102 @@ class RapportDeControleApp {
                 const margin = 15;
                 const gap = 5;
 
-                for (let index = 0; index < defauts.length; index += 2) {
+                // Afficher chaque défaut les uns sous les autres
+                for (let index = 0; index < defauts.length; index++) {
+                    const defaut = defauts[index];
+
+                    // Vérifier si on a besoin d'une nouvelle page
                     if (yPosition > 240) {
                         doc.addPage();
                         yPosition = 20;
                     }
 
-                    const startY = yPosition;
-                    let maxHeight = 0;
+                    // Titre du défaut
+                    doc.setFontSize(10);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(...primaryColor);
+                    const defautTitle = `${index + 1}. ${defaut.type}`;
+                    doc.text(defautTitle, margin, yPosition);
+                    yPosition += 6;
 
-                    // Traiter jusqu'à 2 défauts par ligne
-                    for (let col = 0; col < 2 && (index + col) < defauts.length; col++) {
-                        const defaut = defauts[index + col];
-                        const xPosition = margin + (col * (colWidth + gap));
-                        let colY = startY;
+                    // Informations du défaut
+                    doc.setFontSize(8);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setTextColor(...lightGray);
 
-                        // Titre du défaut
-                        doc.setFontSize(10);
-                        doc.setFont('helvetica', 'bold');
-                        doc.setTextColor(...primaryColor);
-                        const defautTitle = doc.splitTextToSize(`${index + col + 1}. ${defaut.type}`, colWidth - 5);
-                        doc.text(defautTitle, xPosition, colY);
-                        colY += defautTitle.length * 5;
+                    doc.text(`Qté : ${defaut.quantite} pièces`, margin, yPosition);
+                    yPosition += 4;
 
-                        // Quantité
-                        doc.setFontSize(8);
-                        doc.setFont('helvetica', 'normal');
-                        doc.setTextColor(...lightGray);
-                        doc.text(`Qté : ${defaut.quantite} pièces`, xPosition, colY);
-                        colY += 5;
-
-                        // Topo
-                        if (defaut.topo) {
-                            doc.text(`Topo : ${defaut.topo}`, xPosition, colY);
-                            colY += 5;
-                        }
-
-                        // N° de série
-                        if (defaut.commentaire) {
-                            const commentaireLines = doc.splitTextToSize(`N° série : ${defaut.commentaire}`, colWidth - 5);
-                            doc.text(commentaireLines, xPosition, colY);
-                            colY += commentaireLines.length * 4 + 2;
-                        }
-
-                        // Photos - 2 par ligne, plus grosses, aspect ratio conservé
-                        if (defaut.photos && defaut.photos.length > 0) {
-                            colY += 3;
-                            const maxPhotoSize = 70; // Taille max par photo agrandie
-                            const photoGap = 3;
-                            let maxRowHeight = 0;
-
-                            for (let photoIndex = 0; photoIndex < defaut.photos.length; photoIndex++) {
-                                const photo = defaut.photos[photoIndex];
-                                try {
-                                    // Calculer position : 2 photos par ligne
-                                    const photoCol = photoIndex % 2;
-                                    const photoRow = Math.floor(photoIndex / 2);
-
-                                    // Calculer les dimensions en gardant l'aspect ratio
-                                    let photoWidth = maxPhotoSize;
-                                    let photoHeight = maxPhotoSize;
-
-                                    if (photo.width && photo.height) {
-                                        const aspectRatio = photo.width / photo.height;
-                                        if (aspectRatio > 1) {
-                                            // Photo horizontale
-                                            photoHeight = maxPhotoSize / aspectRatio;
-                                        } else {
-                                            // Photo verticale
-                                            photoWidth = maxPhotoSize * aspectRatio;
-                                        }
-                                    }
-
-                                    const photoX = xPosition + (photoCol * (maxPhotoSize + photoGap));
-                                    const photoY = colY + (photoRow * (maxPhotoSize + photoGap));
-
-                                    // Afficher la photo
-                                    doc.addImage(photo.data, 'JPEG', photoX, photoY, photoWidth, photoHeight);
-
-                                    // Suivre la hauteur max de la rangée actuelle
-                                    if (photoCol === 0 || photoHeight > maxRowHeight) {
-                                        maxRowHeight = Math.max(maxRowHeight, photoHeight);
-                                    }
-                                } catch (error) {
-                                    console.error('Erreur image:', error);
-                                }
-                            }
-
-                            // Calculer la hauteur totale occupée par les photos
-                            const totalRows = Math.ceil(defaut.photos.length / 2);
-                            colY += totalRows * (maxPhotoSize + photoGap);
-                        }
-
-                        colY += 3;
-                        maxHeight = Math.max(maxHeight, colY - startY);
+                    if (defaut.topo) {
+                        doc.text(`Topo : ${defaut.topo}`, margin, yPosition);
+                        yPosition += 4;
                     }
 
-                    yPosition += maxHeight;
+                    if (defaut.commentaire) {
+                        const commentaireLines = doc.splitTextToSize(`N° série : ${defaut.commentaire}`, 180);
+                        doc.text(commentaireLines, margin, yPosition);
+                        yPosition += commentaireLines.length * 4;
+                    }
 
-                    // Ligne de séparation
-                    if (index + 2 < defauts.length) {
+                    // Photos - 3 par ligne, bien alignées
+                    if (defaut.photos && defaut.photos.length > 0) {
+                        yPosition += 3;
+                        const photosPerRow = 3;
+                        const photoSize = 55; // Taille fixe pour uniformité
+                        const photoGap = 5;
+                        const totalPhotoWidth = (photoSize * photosPerRow) + (photoGap * (photosPerRow - 1));
+                        const startX = margin + (180 - totalPhotoWidth) / 2; // Centrer les photos
+
+                        for (let photoIndex = 0; photoIndex < defaut.photos.length; photoIndex++) {
+                            const photo = defaut.photos[photoIndex];
+
+                            // Vérifier si on doit aller à la ligne
+                            const photoCol = photoIndex % photosPerRow;
+                            const photoRow = Math.floor(photoIndex / photosPerRow);
+
+                            // Vérifier si on a besoin d'une nouvelle page
+                            const photoY = yPosition + (photoRow * (photoSize + photoGap));
+                            if (photoY + photoSize > 280) {
+                                doc.addPage();
+                                yPosition = 20;
+                            }
+
+                            try {
+                                // Calculer les dimensions en gardant l'aspect ratio
+                                let photoWidth = photoSize;
+                                let photoHeight = photoSize;
+
+                                if (photo.width && photo.height) {
+                                    const aspectRatio = photo.width / photo.height;
+                                    if (aspectRatio > 1) {
+                                        // Photo horizontale
+                                        photoHeight = photoSize / aspectRatio;
+                                    } else {
+                                        // Photo verticale
+                                        photoWidth = photoSize * aspectRatio;
+                                    }
+                                }
+
+                                // Centrer la photo dans sa case
+                                const photoX = startX + (photoCol * (photoSize + photoGap)) + (photoSize - photoWidth) / 2;
+                                const adjustedPhotoY = photoY + (photoSize - photoHeight) / 2;
+
+                                // Afficher la photo
+                                doc.addImage(photo.data, 'JPEG', photoX, adjustedPhotoY, photoWidth, photoHeight);
+                            } catch (error) {
+                                console.error('Erreur image:', error);
+                            }
+                        }
+
+                        // Calculer la hauteur totale occupée par les photos
+                        const totalRows = Math.ceil(defaut.photos.length / photosPerRow);
+                        yPosition += totalRows * (photoSize + photoGap) + 3;
+                    }
+
+                    yPosition += 3;
+
+                    // Ligne de séparation entre les défauts
+                    if (index < defauts.length - 1) {
                         doc.setDrawColor(...veryLightGray);
                         doc.setLineWidth(0.3);
                         doc.line(margin, yPosition, 195, yPosition);
