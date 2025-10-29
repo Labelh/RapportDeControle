@@ -1784,11 +1784,29 @@ class RapportDeControleApp {
     }
 
     resetForm() {
+        // Vider tous les champs du formulaire
         document.getElementById('ordeFabrication').value = '';
         document.getElementById('ofClient').value = '';
         document.getElementById('numeroCommande').value = '';
         document.getElementById('reference').value = '';
+        document.getElementById('designation').value = '';
+        document.getElementById('quantiteLot').value = '';
         document.getElementById('client').value = '';
+
+        // Réinitialiser la désignation en mode éditable
+        const designationInput = document.getElementById('designation');
+        designationInput.readOnly = false;
+        designationInput.style.backgroundColor = '';
+        designationInput.style.cursor = '';
+
+        // Retirer les erreurs de champs si présentes
+        const fieldIds = ['ordeFabrication', 'ofClient', 'numeroCommande', 'reference', 'designation', 'quantiteLot', 'client'];
+        fieldIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove('field-error');
+        });
+
+        // Réinitialiser les défauts
         this.defauts = [];
         this.editingRapportId = null;
         this.updateDefautsList();
