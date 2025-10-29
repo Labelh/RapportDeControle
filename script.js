@@ -1681,12 +1681,11 @@ class RapportDeControleApp {
 
                     // Photos - 3 par ligne, avec pagination intelligente par ligne
                     if (defaut.photos && defaut.photos.length > 0) {
-                        yPosition += 2;
+                        yPosition += 3;
                         const photosPerRow = 3;
-                        const photoSize = 50;
-                        const photoGap = 4;
-                        const totalPhotoWidth = (photoSize * photosPerRow) + (photoGap * (photosPerRow - 1));
-                        const startX = margin + (180 - totalPhotoWidth) / 2;
+                        const photoSize = 58; // Agrandi de 50 à 58mm
+                        const photoGap = 5; // Augmenté de 4 à 5mm
+                        const startX = margin; // Aligné à gauche avec le margin (15mm)
 
                         let currentRow = -1;
                         let rowStartY = yPosition;
@@ -1743,19 +1742,19 @@ class RapportDeControleApp {
                         yPosition += photoSize;
                     }
 
-                    yPosition += 2;
+                    yPosition += 5; // Augmenté de 2 à 5mm pour plus d'espace
 
                     // Ligne de séparation entre les défauts
                     if (index < defauts.length - 1) {
                         // Vérifier si la ligne de séparation rentre
-                        if (yPosition + 3 > 280) {
+                        if (yPosition + 5 > 280) {
                             doc.addPage();
                             yPosition = 20;
                         }
                         doc.setDrawColor(...veryLightGray);
                         doc.setLineWidth(0.3);
                         doc.line(margin, yPosition, 195, yPosition);
-                        yPosition += 3;
+                        yPosition += 5; // Augmenté de 3 à 5mm
                     }
                 }
             }
