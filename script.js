@@ -1632,44 +1632,27 @@ class RapportDeControleApp {
                 for (let index = 0; index < defauts.length; index++) {
                     const defaut = defauts[index];
 
-                    // Calculer la hauteur totale nécessaire pour ce défaut AVANT de commencer
-                    let defautHeight = 5; // Titre
-                    defautHeight += 3.5; // Quantité (toujours présente)
+                    // Calculer la hauteur du titre + infos (sans les photos)
+                    let headerHeight = 5; // Titre
+                    headerHeight += 3.5; // Quantité (toujours présente)
 
                     if (defaut.topo) {
-                        defautHeight += 3.5;
+                        headerHeight += 3.5;
                     }
 
                     if (defaut.commentaire) {
                         const commentaireLines = doc.splitTextToSize(`N° série : ${defaut.commentaire}`, 180);
-                        defautHeight += commentaireLines.length * 3.5;
+                        headerHeight += commentaireLines.length * 3.5;
                     }
 
-                    // Ajouter la hauteur des photos si présentes
-                    if (defaut.photos && defaut.photos.length > 0) {
-                        defautHeight += 2; // Espace avant photos
-                        const photosPerRow = 3;
-                        const photoSize = 50; // Réduit de 55 à 50mm
-                        const photoGap = 4; // Réduit de 5 à 4mm
-                        const totalRows = Math.ceil(defaut.photos.length / photosPerRow);
-                        const totalPhotosHeight = (totalRows * photoSize) + ((totalRows - 1) * photoGap);
-                        defautHeight += totalPhotosHeight;
-                    }
-
-                    defautHeight += 2; // Espace après le défaut
-                    if (index < defauts.length - 1) {
-                        defautHeight += 3; // Ligne de séparation
-                    }
-
-                    // Vérifier si le défaut entier rentre dans la page actuelle
-                    // Page A4 = 297mm de haut, mais on laisse 15mm en bas pour footer
-                    if (yPosition + defautHeight > 280) {
+                    // Vérifier si le header du défaut rentre dans la page
+                    // Si le header seul ne rentre pas, nouvelle page
+                    if (yPosition + headerHeight + 10 > 280) {
                         doc.addPage();
                         yPosition = 20;
                     }
 
-                    // Maintenant on affiche le défaut complet
-                    // Titre du défaut
+                    // Afficher le titre du défaut
                     doc.setFontSize(10);
                     doc.setFont('helvetica', 'bold');
                     doc.setTextColor(...primaryColor);
@@ -1696,22 +1679,40 @@ class RapportDeControleApp {
                         yPosition += commentaireLines.length * 3.5;
                     }
 
-                    // Photos - 3 par ligne, bien alignées
+                    // Photos - 3 par ligne, avec pagination intelligente par ligne
                     if (defaut.photos && defaut.photos.length > 0) {
                         yPosition += 2;
                         const photosPerRow = 3;
-                        const photoSize = 50; // Taille réduite pour optimiser l'espace
+                        const photoSize = 50;
                         const photoGap = 4;
                         const totalPhotoWidth = (photoSize * photosPerRow) + (photoGap * (photosPerRow - 1));
-                        const startX = margin + (180 - totalPhotoWidth) / 2; // Centrer les photos
+                        const startX = margin + (180 - totalPhotoWidth) / 2;
+
+                        let currentRow = -1;
+                        let rowStartY = yPosition;
 
                         for (let photoIndex = 0; photoIndex < defaut.photos.length; photoIndex++) {
                             const photo = defaut.photos[photoIndex];
-
-                            // Calculer position dans la grille
                             const photoCol = photoIndex % photosPerRow;
                             const photoRow = Math.floor(photoIndex / photosPerRow);
-                            const photoY = yPosition + (photoRow * (photoSize + photoGap));
+
+                            // Début d'une nouvelle ligne de photos
+                            if (photoRow !== currentRow) {
+                                currentRow = photoRow;
+
+                                // Si on n'est pas sur la première ligne, avancer yPosition
+                                if (photoRow > 0) {
+                                    yPosition += photoSize + photoGap;
+                                }
+
+                                // Vérifier si cette ligne de photos rentre dans la page
+                                if (yPosition + photoSize > 280) {
+                                    doc.addPage();
+                                    yPosition = 20;
+                                }
+
+                                rowStartY = yPosition;
+                            }
 
                             try {
                                 // Calculer les dimensions en gardant l'aspect ratio
@@ -1721,17 +1722,15 @@ class RapportDeControleApp {
                                 if (photo.width && photo.height) {
                                     const aspectRatio = photo.width / photo.height;
                                     if (aspectRatio > 1) {
-                                        // Photo horizontale
                                         photoHeight = photoSize / aspectRatio;
                                     } else {
-                                        // Photo verticale
                                         photoWidth = photoSize * aspectRatio;
                                     }
                                 }
 
                                 // Centrer la photo dans sa case
                                 const photoX = startX + (photoCol * (photoSize + photoGap)) + (photoSize - photoWidth) / 2;
-                                const adjustedPhotoY = photoY + (photoSize - photoHeight) / 2;
+                                const adjustedPhotoY = rowStartY + (photoSize - photoHeight) / 2;
 
                                 // Afficher la photo
                                 doc.addImage(photo.data, 'JPEG', photoX, adjustedPhotoY, photoWidth, photoHeight);
@@ -1740,16 +1739,19 @@ class RapportDeControleApp {
                             }
                         }
 
-                        // Avancer la position Y après toutes les photos
-                        const totalRows = Math.ceil(defaut.photos.length / photosPerRow);
-                        const totalPhotosHeight = (totalRows * photoSize) + ((totalRows - 1) * photoGap);
-                        yPosition += totalPhotosHeight;
+                        // Avancer yPosition après la dernière ligne de photos
+                        yPosition += photoSize;
                     }
 
                     yPosition += 2;
 
                     // Ligne de séparation entre les défauts
                     if (index < defauts.length - 1) {
+                        // Vérifier si la ligne de séparation rentre
+                        if (yPosition + 3 > 280) {
+                            doc.addPage();
+                            yPosition = 20;
+                        }
                         doc.setDrawColor(...veryLightGray);
                         doc.setLineWidth(0.3);
                         doc.line(margin, yPosition, 195, yPosition);
