@@ -334,10 +334,10 @@ class RapportDeControleApp {
             clearReferencesBtn.addEventListener('click', () => this.clearReferences());
         }
 
-        // Sélection référence
-        const referenceSelect = document.getElementById('reference');
-        if (referenceSelect) {
-            referenceSelect.addEventListener('change', (e) => this.handleReferenceChange(e));
+        // Autocomplete référence
+        const referenceInput = document.getElementById('reference');
+        if (referenceInput) {
+            this.setupReferenceAutocomplete();
         }
 
         // Préférence de thème
@@ -3015,37 +3015,178 @@ ${this.userProfile.full_name}`;
     }
 
     updateReferencesList() {
-        const referenceSelect = document.getElementById('reference');
-        if (!referenceSelect) return;
+        // Méthode maintenue pour compatibilité mais ne fait rien
+        // L'autocomplete gère dynamiquement les références
+    }
 
-        // Garder l'option par défaut et ajouter les références
-        referenceSelect.innerHTML = '<option value="">Sélectionner une référence</option>';
+    setupReferenceAutocomplete() {
+        const input = document.getElementById('reference');
+        const dropdown = document.getElementById('referenceDropdown');
+        const designationInput = document.getElementById('designation');
+        let selectedIndex = -1;
+        let filteredRefs = [];
 
-        this.productReferences.forEach((designation, reference) => {
-            const option = document.createElement('option');
-            option.value = reference;
-            option.textContent = reference;
-            referenceSelect.appendChild(option);
+        // Fonction pour filtrer et afficher les suggestions
+        const showSuggestions = (searchTerm) => {
+            if (!searchTerm.trim() && this.productReferences.size === 0) {
+                dropdown.classList.remove('show');
+                return;
+            }
+
+            // Recherche intelligente (insensible à la casse, partielle)
+            const term = searchTerm.toLowerCase().trim();
+            filteredRefs = [];
+
+            this.productReferences.forEach((designation, reference) => {
+                const refLower = reference.toLowerCase();
+                const desLower = designation.toLowerCase();
+
+                // Recherche dans référence OU désignation
+                if (refLower.includes(term) || desLower.includes(term)) {
+                    filteredRefs.push({ reference, designation });
+                }
+            });
+
+            // Tri par pertinence (commence par le terme = prioritaire)
+            filteredRefs.sort((a, b) => {
+                const aStartsRef = a.reference.toLowerCase().startsWith(term);
+                const bStartsRef = b.reference.toLowerCase().startsWith(term);
+                const aStartsDes = a.designation.toLowerCase().startsWith(term);
+                const bStartsDes = b.designation.toLowerCase().startsWith(term);
+
+                if (aStartsRef && !bStartsRef) return -1;
+                if (!aStartsRef && bStartsRef) return 1;
+                if (aStartsDes && !bStartsDes) return -1;
+                if (!aStartsDes && bStartsDes) return 1;
+                return a.reference.localeCompare(b.reference);
+            });
+
+            // Afficher les résultats
+            if (filteredRefs.length === 0) {
+                dropdown.innerHTML = '<div class="autocomplete-no-results">Aucune référence trouvée</div>';
+                dropdown.classList.add('show');
+            } else {
+                dropdown.innerHTML = '';
+                filteredRefs.forEach((item, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'autocomplete-item';
+                    div.dataset.index = index;
+
+                    // Highlight du terme recherché
+                    const highlightedRef = this.highlightTerm(item.reference, term);
+                    const highlightedDes = this.highlightTerm(item.designation, term);
+
+                    div.innerHTML = `
+                        <div class="autocomplete-item-ref">${highlightedRef}</div>
+                        <div class="autocomplete-item-des">${highlightedDes}</div>
+                    `;
+
+                    div.addEventListener('click', () => {
+                        input.value = item.reference;
+                        designationInput.value = item.designation;
+                        designationInput.readOnly = true;
+                        designationInput.style.backgroundColor = 'var(--hover-bg)';
+                        designationInput.style.cursor = 'not-allowed';
+                        dropdown.classList.remove('show');
+                        selectedIndex = -1;
+                    });
+
+                    dropdown.appendChild(div);
+                });
+                dropdown.classList.add('show');
+            }
+
+            selectedIndex = -1;
+        };
+
+        // Input event
+        input.addEventListener('input', (e) => {
+            const value = e.target.value;
+
+            // Si le champ est vide, débloquer la désignation
+            if (!value.trim()) {
+                designationInput.value = '';
+                designationInput.readOnly = false;
+                designationInput.style.backgroundColor = '';
+                designationInput.style.cursor = '';
+                dropdown.classList.remove('show');
+                return;
+            }
+
+            showSuggestions(value);
+        });
+
+        // Focus event - afficher toutes les références si input vide
+        input.addEventListener('focus', () => {
+            if (!input.value.trim() && this.productReferences.size > 0) {
+                showSuggestions('');
+            }
+        });
+
+        // Navigation au clavier
+        input.addEventListener('keydown', (e) => {
+            const items = dropdown.querySelectorAll('.autocomplete-item');
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+                updateSelection(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                selectedIndex = Math.max(selectedIndex - 1, -1);
+                updateSelection(items);
+            } else if (e.key === 'Enter' && selectedIndex >= 0) {
+                e.preventDefault();
+                items[selectedIndex]?.click();
+            } else if (e.key === 'Escape') {
+                dropdown.classList.remove('show');
+                selectedIndex = -1;
+            }
+        });
+
+        // Fonction pour mettre à jour la sélection visuelle
+        const updateSelection = (items) => {
+            items.forEach((item, index) => {
+                if (index === selectedIndex) {
+                    item.classList.add('selected');
+                    item.scrollIntoView({ block: 'nearest' });
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+        };
+
+        // Fermer le dropdown en cliquant ailleurs
+        document.addEventListener('click', (e) => {
+            if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.remove('show');
+                selectedIndex = -1;
+            }
+        });
+
+        // Vérifier si la référence saisie existe
+        input.addEventListener('blur', () => {
+            setTimeout(() => {
+                const value = input.value.trim();
+                if (value && this.productReferences.has(value)) {
+                    designationInput.value = this.productReferences.get(value);
+                    designationInput.readOnly = true;
+                    designationInput.style.backgroundColor = 'var(--hover-bg)';
+                    designationInput.style.cursor = 'not-allowed';
+                } else if (value) {
+                    // Saisie manuelle autorisée
+                    designationInput.readOnly = false;
+                    designationInput.style.backgroundColor = '';
+                    designationInput.style.cursor = '';
+                }
+            }, 200);
         });
     }
 
-    handleReferenceChange(event) {
-        const reference = event.target.value;
-        const designationInput = document.getElementById('designation');
-
-        if (reference && this.productReferences.has(reference)) {
-            // Remplir et bloquer le champ désignation
-            designationInput.value = this.productReferences.get(reference);
-            designationInput.readOnly = true;
-            designationInput.style.backgroundColor = 'var(--hover-bg)';
-            designationInput.style.cursor = 'not-allowed';
-        } else {
-            // Débloquer le champ désignation si pas de référence sélectionnée
-            designationInput.value = '';
-            designationInput.readOnly = false;
-            designationInput.style.backgroundColor = '';
-            designationInput.style.cursor = '';
-        }
+    highlightTerm(text, term) {
+        if (!term) return text;
+        const regex = new RegExp(`(${term})`, 'gi');
+        return text.replace(regex, '<mark>$1</mark>');
     }
 
     clearReferences() {

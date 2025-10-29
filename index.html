@@ -180,11 +180,10 @@
                         <div class="form-col">
                             <div class="form-section-compact">
                                 <h4 class="form-section-title">Produit</h4>
-                                <div class="form-group">
+                                <div class="form-group autocomplete-container">
                                     <label for="reference">Référence *</label>
-                                    <select id="reference" required>
-                                        <option value="">Sélectionner une référence</option>
-                                    </select>
+                                    <input type="text" id="reference" required autocomplete="off">
+                                    <div id="referenceDropdown" class="autocomplete-dropdown"></div>
                                 </div>
                                 <div class="form-group">
                                     <label for="designation">Désignation</label>
