@@ -3071,30 +3071,59 @@ ${this.userProfile.full_name}`;
         overlay.className = 'sidebar-overlay';
         document.body.appendChild(overlay);
 
-        // Toggle du menu
-        menuToggle.addEventListener('click', () => {
-            sidebar.classList.toggle('active');
-            menuToggle.classList.toggle('active');
-            overlay.classList.toggle('active');
-        });
-
-        // Fermer en cliquant sur l'overlay
-        overlay.addEventListener('click', () => {
+        // Fonction pour fermer le menu
+        const closeMenu = () => {
             sidebar.classList.remove('active');
             menuToggle.classList.remove('active');
             overlay.classList.remove('active');
+            document.body.style.overflow = ''; // Réactiver le scroll
+        };
+
+        // Fonction pour ouvrir le menu
+        const openMenu = () => {
+            sidebar.classList.add('active');
+            menuToggle.classList.add('active');
+            overlay.classList.add('active');
+            // Empêcher le scroll du body quand le menu est ouvert sur mobile
+            if (window.innerWidth <= 1024) {
+                document.body.style.overflow = 'hidden';
+            }
+        };
+
+        // Toggle du menu
+        menuToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (sidebar.classList.contains('active')) {
+                closeMenu();
+            } else {
+                openMenu();
+            }
         });
+
+        // Fermer en cliquant sur l'overlay
+        overlay.addEventListener('click', closeMenu);
 
         // Fermer le menu après avoir cliqué sur un lien
         const sidebarLinks = document.querySelectorAll('.sidebar-link');
         sidebarLinks.forEach(link => {
             link.addEventListener('click', () => {
                 if (window.innerWidth <= 1024) {
-                    sidebar.classList.remove('active');
-                    menuToggle.classList.remove('active');
-                    overlay.classList.remove('active');
+                    // Petite transition avant de fermer
+                    setTimeout(closeMenu, 100);
                 }
             });
+        });
+
+        // Fermer le menu quand on redimensionne la fenêtre (passage desktop)
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 1024 && sidebar.classList.contains('active')) {
+                closeMenu();
+            }
+        });
+
+        // Empêcher la propagation du clic dans la sidebar
+        sidebar.addEventListener('click', (e) => {
+            e.stopPropagation();
         });
     }
 
