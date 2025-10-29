@@ -290,6 +290,9 @@ class RapportDeControleApp {
         // Thème
         document.getElementById('themeToggle').addEventListener('click', () => this.toggleTheme());
 
+        // Menu burger mobile
+        this.setupMobileMenu();
+
         // Formulaire défaut
         document.getElementById('addDefaut').addEventListener('click', () => this.openDefautForm());
         document.getElementById('closeDefautForm').addEventListener('click', () => this.closeDefautForm());
@@ -3054,6 +3057,45 @@ ${this.userProfile.full_name}`;
             document.getElementById('excelFileName').textContent = '';
             this.showNotification('Références effacées', 'success');
         }
+    }
+
+    // ========== MENU MOBILE ==========
+    setupMobileMenu() {
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.getElementById('sidebar');
+
+        if (!menuToggle) return;
+
+        // Créer l'overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'sidebar-overlay';
+        document.body.appendChild(overlay);
+
+        // Toggle du menu
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+            menuToggle.classList.toggle('active');
+            overlay.classList.toggle('active');
+        });
+
+        // Fermer en cliquant sur l'overlay
+        overlay.addEventListener('click', () => {
+            sidebar.classList.remove('active');
+            menuToggle.classList.remove('active');
+            overlay.classList.remove('active');
+        });
+
+        // Fermer le menu après avoir cliqué sur un lien
+        const sidebarLinks = document.querySelectorAll('.sidebar-link');
+        sidebarLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 1024) {
+                    sidebar.classList.remove('active');
+                    menuToggle.classList.remove('active');
+                    overlay.classList.remove('active');
+                }
+            });
+        });
     }
 
 }
