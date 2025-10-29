@@ -1644,7 +1644,7 @@ class RapportDeControleApp {
                     doc.setTextColor(...primaryColor);
                     const defautTitle = `${index + 1}. ${defaut.type}`;
                     doc.text(defautTitle, margin, yPosition);
-                    yPosition += 6;
+                    yPosition += 5;
 
                     // Informations du défaut
                     doc.setFontSize(8);
@@ -1652,41 +1652,45 @@ class RapportDeControleApp {
                     doc.setTextColor(...lightGray);
 
                     doc.text(`Qté : ${defaut.quantite} pièces`, margin, yPosition);
-                    yPosition += 4;
+                    yPosition += 3.5;
 
                     if (defaut.topo) {
                         doc.text(`Topo : ${defaut.topo}`, margin, yPosition);
-                        yPosition += 4;
+                        yPosition += 3.5;
                     }
 
                     if (defaut.commentaire) {
                         const commentaireLines = doc.splitTextToSize(`N° série : ${defaut.commentaire}`, 180);
                         doc.text(commentaireLines, margin, yPosition);
-                        yPosition += commentaireLines.length * 4;
+                        yPosition += commentaireLines.length * 3.5;
                     }
 
                     // Photos - 3 par ligne, bien alignées
                     if (defaut.photos && defaut.photos.length > 0) {
-                        yPosition += 3;
+                        yPosition += 2;
                         const photosPerRow = 3;
                         const photoSize = 55; // Taille fixe pour uniformité
                         const photoGap = 5;
                         const totalPhotoWidth = (photoSize * photosPerRow) + (photoGap * (photosPerRow - 1));
                         const startX = margin + (180 - totalPhotoWidth) / 2; // Centrer les photos
 
+                        // Calculer la hauteur totale nécessaire pour toutes les photos
+                        const totalRows = Math.ceil(defaut.photos.length / photosPerRow);
+                        const totalPhotosHeight = totalRows * (photoSize + photoGap);
+
+                        // Si les photos ne rentrent pas, passer à la page suivante AVANT de commencer
+                        if (yPosition + totalPhotosHeight > 270) {
+                            doc.addPage();
+                            yPosition = 20;
+                        }
+
                         for (let photoIndex = 0; photoIndex < defaut.photos.length; photoIndex++) {
                             const photo = defaut.photos[photoIndex];
 
-                            // Vérifier si on doit aller à la ligne
+                            // Calculer position dans la grille
                             const photoCol = photoIndex % photosPerRow;
                             const photoRow = Math.floor(photoIndex / photosPerRow);
-
-                            // Vérifier si on a besoin d'une nouvelle page
                             const photoY = yPosition + (photoRow * (photoSize + photoGap));
-                            if (photoY + photoSize > 280) {
-                                doc.addPage();
-                                yPosition = 20;
-                            }
 
                             try {
                                 // Calculer les dimensions en gardant l'aspect ratio
@@ -1715,19 +1719,18 @@ class RapportDeControleApp {
                             }
                         }
 
-                        // Calculer la hauteur totale occupée par les photos
-                        const totalRows = Math.ceil(defaut.photos.length / photosPerRow);
-                        yPosition += totalRows * (photoSize + photoGap) + 3;
+                        // Avancer la position Y après toutes les photos
+                        yPosition += totalPhotosHeight;
                     }
 
-                    yPosition += 3;
+                    yPosition += 2;
 
                     // Ligne de séparation entre les défauts
                     if (index < defauts.length - 1) {
                         doc.setDrawColor(...veryLightGray);
                         doc.setLineWidth(0.3);
                         doc.line(margin, yPosition, 195, yPosition);
-                        yPosition += 5;
+                        yPosition += 3;
                     }
                 }
             }
