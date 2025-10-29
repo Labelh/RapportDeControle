@@ -1178,6 +1178,7 @@ class RapportDeControleApp {
                         numero_commande: numeroCommande,
                         reference,
                         designation: document.getElementById('designation').value || null,
+                        quantite_lot: quantiteLot ? parseInt(quantiteLot) : null,
                         client: document.getElementById('client').value
                     })
                     .eq('id', this.editingRapportId);
@@ -1230,6 +1231,7 @@ class RapportDeControleApp {
                         numero_commande: numeroCommande,
                         reference,
                         designation: document.getElementById('designation').value || null,
+                        quantite_lot: quantiteLot ? parseInt(quantiteLot) : null,
                         client: document.getElementById('client').value,
                         controleur_id: this.currentUser.id,
                         controleur_name: this.userProfile.full_name,
@@ -1312,8 +1314,7 @@ class RapportDeControleApp {
             document.getElementById('numeroCommande').value = rapport.numero_commande || '';
             document.getElementById('reference').value = rapport.reference;
             document.getElementById('designation').value = rapport.designation || '';
-            // quantiteLot reste dans le formulaire mais n'est pas chargé depuis la base
-            document.getElementById('quantiteLot').value = '';
+            document.getElementById('quantiteLot').value = rapport.quantite_lot || '';
             document.getElementById('client').value = rapport.client || '';
 
             // Charger les défauts
