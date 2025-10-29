@@ -1632,12 +1632,43 @@ class RapportDeControleApp {
                 for (let index = 0; index < defauts.length; index++) {
                     const defaut = defauts[index];
 
-                    // Vérifier si on a besoin d'une nouvelle page
-                    if (yPosition > 240) {
+                    // Calculer la hauteur totale nécessaire pour ce défaut AVANT de commencer
+                    let defautHeight = 5; // Titre
+                    defautHeight += 3.5; // Quantité (toujours présente)
+
+                    if (defaut.topo) {
+                        defautHeight += 3.5;
+                    }
+
+                    if (defaut.commentaire) {
+                        const commentaireLines = doc.splitTextToSize(`N° série : ${defaut.commentaire}`, 180);
+                        defautHeight += commentaireLines.length * 3.5;
+                    }
+
+                    // Ajouter la hauteur des photos si présentes
+                    if (defaut.photos && defaut.photos.length > 0) {
+                        defautHeight += 2; // Espace avant photos
+                        const photosPerRow = 3;
+                        const photoSize = 50; // Réduit de 55 à 50mm
+                        const photoGap = 4; // Réduit de 5 à 4mm
+                        const totalRows = Math.ceil(defaut.photos.length / photosPerRow);
+                        const totalPhotosHeight = (totalRows * photoSize) + ((totalRows - 1) * photoGap);
+                        defautHeight += totalPhotosHeight;
+                    }
+
+                    defautHeight += 2; // Espace après le défaut
+                    if (index < defauts.length - 1) {
+                        defautHeight += 3; // Ligne de séparation
+                    }
+
+                    // Vérifier si le défaut entier rentre dans la page actuelle
+                    // Page A4 = 297mm de haut, mais on laisse 15mm en bas pour footer
+                    if (yPosition + defautHeight > 280) {
                         doc.addPage();
                         yPosition = 20;
                     }
 
+                    // Maintenant on affiche le défaut complet
                     // Titre du défaut
                     doc.setFontSize(10);
                     doc.setFont('helvetica', 'bold');
@@ -1669,20 +1700,10 @@ class RapportDeControleApp {
                     if (defaut.photos && defaut.photos.length > 0) {
                         yPosition += 2;
                         const photosPerRow = 3;
-                        const photoSize = 55; // Taille fixe pour uniformité
-                        const photoGap = 5;
+                        const photoSize = 50; // Taille réduite pour optimiser l'espace
+                        const photoGap = 4;
                         const totalPhotoWidth = (photoSize * photosPerRow) + (photoGap * (photosPerRow - 1));
                         const startX = margin + (180 - totalPhotoWidth) / 2; // Centrer les photos
-
-                        // Calculer la hauteur totale nécessaire pour toutes les photos
-                        const totalRows = Math.ceil(defaut.photos.length / photosPerRow);
-                        const totalPhotosHeight = totalRows * (photoSize + photoGap);
-
-                        // Si les photos ne rentrent pas, passer à la page suivante AVANT de commencer
-                        if (yPosition + totalPhotosHeight > 270) {
-                            doc.addPage();
-                            yPosition = 20;
-                        }
 
                         for (let photoIndex = 0; photoIndex < defaut.photos.length; photoIndex++) {
                             const photo = defaut.photos[photoIndex];
@@ -1720,6 +1741,8 @@ class RapportDeControleApp {
                         }
 
                         // Avancer la position Y après toutes les photos
+                        const totalRows = Math.ceil(defaut.photos.length / photosPerRow);
+                        const totalPhotosHeight = (totalRows * photoSize) + ((totalRows - 1) * photoGap);
                         yPosition += totalPhotosHeight;
                     }
 
