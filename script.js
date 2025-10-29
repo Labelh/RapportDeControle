@@ -1484,29 +1484,27 @@ class RapportDeControleApp {
             const terracottaOrange = [161, 58, 32];
             const white = [255, 255, 255];
 
+            // Titre à gauche
             doc.setTextColor(...primaryColor);
             doc.setFontSize(16);
             doc.setFont('helvetica', 'bold');
             const line1Y = 16;
             const line2Y = 23;
-            doc.text('RAPPORT DE CONTRÔLE', 40, line1Y);
-            doc.text('QUALITÉ À RÉCEPTION', 40, line2Y);
+            doc.text('RAPPORT DE CONTRÔLE', 15, line1Y);
+            doc.text('QUALITÉ À RÉCEPTION', 15, line2Y);
 
-            // Ajouter le logo Ajust'82 (à gauche) - même hauteur que le titre
+            // Ajouter le logo Ajust'82 à droite
             try {
                 // Le logo original est plus large que haut (ratio approximatif 3:1)
                 // Hauteur = hauteur du titre (7mm), largeur = hauteur * 3 = 21mm
                 const logoHeight = line2Y - line1Y + 7; // Hauteur totale du titre ~14mm
                 const logoWidth = logoHeight * 3; // Ratio 3:1
                 const logoY = line1Y - 6; // Position verticale alignée avec le titre
-                doc.addImage('images/Logo-Ajust.png', 'PNG', 15, logoY, logoWidth, logoHeight);
+                const logoX = 195 - logoWidth; // Positionné à droite
+                doc.addImage('images/Logo-Ajust.png', 'PNG', logoX, logoY, logoWidth, logoHeight);
             } catch (error) {
                 console.warn('Logo non trouvé:', error);
             }
-
-            doc.setFontSize(12);
-            doc.setTextColor(...terracottaOrange);
-            doc.text(`N°${reportNumber}`, 195, 18, { align: 'right' });
 
             // Espace entre le logo et les informations générales
             let yPosition = 35;
