@@ -3529,20 +3529,30 @@ ${this.userProfile.full_name}`;
     parseOCRText(text) {
         // Nettoyer le texte
         const lines = text.split('\n').map(line => line.trim()).filter(line => line);
-
-        // Patterns de recherche
-        const patterns = {
-            ordeFabrication: /(?:OF|O\.?F\.?|Ordre.*Fab.*?|OF.*Interne)[\s:]*([A-Z0-9\-]+)/i,
-            ofClient: /(?:OF.*Client|Client.*OF)[\s:]*([A-Z0-9\-]+)/i,
-            numeroCommande: /(?:N°.*Commande|Commande|CMD|Command)[\s:]*([A-Z0-9\-]+)/i,
-            reference: /(?:Réf|Référence|REF|Reference)[\s:]*([A-Z0-9\-\.]+)/i,
-            client: /(?:Client)[\s:]*([A-Z][A-Za-z\s&\-\.]+?)(?:\s|$)/i,
-            quantiteLot: /(?:Quantité|Qté|Qt|Quantity)[\s:]*(\d+)/i
-        };
-
-        // Extraire les valeurs
         const fullText = text;
 
+        // Patterns de recherche optimisés pour le format OF
+        const patterns = {
+            // OF n°11162 ou OF n° 11162
+            ordeFabrication: /OF\s*n?°?\s*[:\s]*(\d+)/i,
+
+            // N° OF client : N060355021
+            ofClient: /N°?\s*(?:OF\s+)?client\s*[:\s]*([A-Z]?\d+)/i,
+
+            // N° de commande : P00287448
+            numeroCommande: /N°?\s*(?:de\s+)?commande\s*[:\s]*([A-Z0-9\-]+)/i,
+
+            // Référence pièce : 4535-01011
+            reference: /(?:Référence|Ref|REF)[\s\w]*[:\s]*(\d{4}[-\.]\d+|\w+[-\.]\w+)/i,
+
+            // Client : SAS LIEBHERR-TOULOUSE AEROSPACE
+            client: /Client\s*[:\s]*([A-Z][\w\s\-&\.]+?)(?=\s*N°|\s*$)/i,
+
+            // Quantité : 12
+            quantiteLot: /Quantit[ée]\s*[:\s]*(\d+)/i
+        };
+
+        // Extraire les valeurs avec les patterns
         for (const [field, pattern] of Object.entries(patterns)) {
             const match = fullText.match(pattern);
             if (match && match[1]) {
@@ -3554,30 +3564,56 @@ ${this.userProfile.full_name}`;
             }
         }
 
-        // Si pas de correspondance, essayer une approche ligne par ligne
-        lines.forEach(line => {
-            // Détecter les patterns de type "Label: Valeur"
-            if (line.includes(':')) {
-                const [label, ...valueParts] = line.split(':');
-                const value = valueParts.join(':').trim();
+        // Recherche spécifique ligne par ligne pour meilleure précision
+        lines.forEach((line, index) => {
+            // OF en haut du document (généralement une des premières lignes)
+            if (index < 5 && line.match(/OF\s*n?°?\s*\d+/i)) {
+                const match = line.match(/(\d+)/);
+                if (match && !document.getElementById('ocr_ordeFabrication').value) {
+                    document.getElementById('ocr_ordeFabrication').value = match[1];
+                }
+            }
 
-                if (label.match(/OF|Ordre/i) && value && !document.getElementById('ocr_ordeFabrication').value) {
-                    document.getElementById('ocr_ordeFabrication').value = value;
+            // Client (chercher SAS, SA, SARL, etc.)
+            if (line.match(/^(?:SAS|SA|SARL|EURL)\s+[\w\-]+/i)) {
+                const input = document.getElementById('ocr_client');
+                if (input && !input.value) {
+                    // Nettoyer et prendre les 3 premiers mots maximum
+                    const words = line.split(/\s+/).slice(0, 4).join(' ');
+                    input.value = words;
                 }
-                if (label.match(/Client/i) && value && !document.getElementById('ocr_ofClient').value) {
-                    document.getElementById('ocr_ofClient').value = value;
+            }
+
+            // Référence (format XXXX-XXXXX)
+            if (line.match(/\d{4}[-\.]\d{5}/)) {
+                const match = line.match(/(\d{4}[-\.]\d{5})/);
+                const input = document.getElementById('ocr_reference');
+                if (match && input && !input.value) {
+                    input.value = match[1];
                 }
-                if (label.match(/Commande|CMD/i) && value && !document.getElementById('ocr_numeroCommande').value) {
-                    document.getElementById('ocr_numeroCommande').value = value;
+            }
+
+            // Opération / N° OF client
+            if (line.match(/N\d{9}/)) {
+                const match = line.match(/(N\d{9})/);
+                const input = document.getElementById('ocr_ofClient');
+                if (match && input && !input.value) {
+                    input.value = match[1];
                 }
-                if (label.match(/Réf|Reference/i) && value && !document.getElementById('ocr_reference').value) {
-                    document.getElementById('ocr_reference').value = value;
-                }
-                if (label.match(/Quantité|Qté/i) && value && !document.getElementById('ocr_quantiteLot').value) {
-                    document.getElementById('ocr_quantiteLot').value = value.match(/\d+/)?.[0] || value;
+            }
+
+            // N° de commande (format P00XXXXXX)
+            if (line.match(/P\d{8}/)) {
+                const match = line.match(/(P\d{8})/);
+                const input = document.getElementById('ocr_numeroCommande');
+                if (match && input && !input.value) {
+                    input.value = match[1];
                 }
             }
         });
+
+        // Log pour debug
+        console.log('Lignes détectées:', lines);
     }
 
     applyOCRValues() {
