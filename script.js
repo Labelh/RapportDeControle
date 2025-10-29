@@ -3536,17 +3536,17 @@ ${this.userProfile.full_name}`;
             // OF n°11162 ou OF n° 11162
             ordeFabrication: /OF\s*n?°?\s*[:\s]*(\d+)/i,
 
-            // N° OF client : N060355021
-            ofClient: /N°?\s*(?:OF\s+)?client\s*[:\s]*([A-Z]?\d+)/i,
+            // N° OF client : M60655021 ou N060355021 (lettre + 8-9 chiffres)
+            ofClient: /N°?\s*(?:OF\s+)?client\s*[:\s]*([A-Z]\d{8,9})/i,
 
-            // N° de commande : P00287448
-            numeroCommande: /N°?\s*(?:de\s+)?commande\s*[:\s]*([A-Z0-9\-]+)/i,
+            // N° de commande : P00287448 (lettre + 8 chiffres)
+            numeroCommande: /N°?\s*(?:de\s+)?commande\s*[:\s]*([A-Z]\d{8})/i,
 
             // Référence pièce : 4535-01011
-            reference: /(?:Référence|Ref|REF)[\s\w]*[:\s]*(\d{4}[-\.]\d+|\w+[-\.]\w+)/i,
+            reference: /(?:Référence|Ref)[\s\w]*(?:pièce)?\s*[:\s]*(\d{4}[-\.]\d+)/i,
 
-            // Client : SAS LIEBHERR-TOULOUSE AEROSPACE
-            client: /Client\s*[:\s]*([A-Z][\w\s\-&\.]+?)(?=\s*N°|\s*$)/i,
+            // Client : SAS LIEBHERR TOULOUSE AEROSPACE
+            client: /Client\s*[:\s]*((?:SAS|SA|SARL|EURL)\s+[A-Z][\w\s\-&\.]+?)(?=\s+Désignation|\s*N°|$)/i,
 
             // Quantité : 12
             quantiteLot: /Quantit[ée]\s*[:\s]*(\d+)/i
@@ -3593,16 +3593,16 @@ ${this.userProfile.full_name}`;
                 }
             }
 
-            // Opération / N° OF client
-            if (line.match(/N\d{9}/)) {
-                const match = line.match(/(N\d{9})/);
+            // N° OF client (format M60655021 ou N060355021)
+            if (line.match(/[A-Z]\d{8,9}/)) {
+                const match = line.match(/([MN]\d{8,9})/);
                 const input = document.getElementById('ocr_ofClient');
                 if (match && input && !input.value) {
                     input.value = match[1];
                 }
             }
 
-            // N° de commande (format P00XXXXXX)
+            // N° de commande (format P00287448)
             if (line.match(/P\d{8}/)) {
                 const match = line.match(/(P\d{8})/);
                 const input = document.getElementById('ocr_numeroCommande');
