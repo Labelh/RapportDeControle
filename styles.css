@@ -2813,6 +2813,7 @@ input.field-error, select.field-error, textarea.field-error {
     border: 1px solid var(--border-dark);
     border-radius: 8px;
     transition: all 0.2s ease;
+    min-height: 160px;
 }
 
 .rapport-card:hover {
@@ -2822,20 +2823,21 @@ input.field-error, select.field-error, textarea.field-error {
 
 .rapport-card-content {
     display: flex;
-    align-items: center;
-    padding: 1.25rem;
-    gap: 1.5rem;
+    align-items: stretch;
+    height: 100%;
+    min-height: 160px;
     cursor: pointer;
 }
 
 .rapport-card-photo {
-    width: 80px;
-    height: 80px;
+    width: 200px;
     flex-shrink: 0;
-    border-radius: 6px;
+    border-radius: 8px 0 0 8px;
     overflow: hidden;
     background: var(--background-light);
-    border: 1px solid var(--border-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .rapport-card-photo img {
@@ -2844,59 +2846,68 @@ input.field-error, select.field-error, textarea.field-error {
     object-fit: cover;
 }
 
-.rapport-card-left {
+.rapport-card-no-photo {
+    color: var(--text-light);
+    font-size: 0.875rem;
+    text-align: center;
+}
+
+.rapport-card-main {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-    min-width: 100px;
+    padding: 1.5rem;
+    gap: 1rem;
+}
+
+.rapport-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--border-light);
 }
 
 .rapport-card-numero {
-    font-size: 1.25rem;
+    font-size: 1.75rem;
     font-weight: 700;
     color: var(--accent-orange);
 }
 
-.rapport-card-middle {
+.rapport-card-body {
     flex: 1;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 1rem;
+    display: flex;
+    gap: 2rem;
+    align-items: center;
 }
 
-.rapport-card-info {
+.rapport-card-field {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
 }
 
-.rapport-info-label {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--text-light);
-    text-transform: uppercase;
-}
-
-.rapport-info-value {
-    font-size: 0.95rem;
+.rapport-field-value {
+    font-size: 1.125rem;
     color: var(--text-dark);
     font-weight: 500;
 }
 
-.rapport-card-right {
+.rapport-card-actions {
     display: flex;
+    flex-direction: column;
     gap: 0.5rem;
-    align-items: center;
-    flex-shrink: 0;
+    padding: 1rem;
+    border-left: 1px solid var(--border-dark);
+    justify-content: center;
 }
 
 .btn-rapport-action {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 38px;
-    height: 38px;
+    width: 42px;
+    height: 42px;
     background: transparent;
     border: 1px solid var(--border-dark);
     border-radius: 6px;
@@ -2970,25 +2981,27 @@ input.field-error, select.field-error, textarea.field-error {
 @media (max-width: 1024px) {
     .rapport-card-content {
         flex-direction: column;
-        align-items: stretch;
+        min-height: auto;
     }
 
-    .rapport-card-left {
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
+    .rapport-card-photo {
         width: 100%;
+        height: 180px;
+        border-radius: 8px 8px 0 0;
     }
 
-    .rapport-card-middle {
+    .rapport-card-body {
         flex-direction: column;
-        gap: 0.75rem;
+        align-items: flex-start;
+        gap: 1rem;
     }
 
-    .rapport-card-right {
-        justify-content: flex-end;
-        padding-top: 0.75rem;
-        border-top: 1px solid var(--border-light);
+    .rapport-card-actions {
+        flex-direction: row;
+        border-left: none;
+        border-top: 1px solid var(--border-dark);
+        padding: 1rem 1.5rem;
+        justify-content: center;
     }
 }
 
@@ -3000,6 +3013,14 @@ input.field-error, select.field-error, textarea.field-error {
 
     .pagination-btn {
         width: 100%;
+    }
+
+    .rapport-card-numero {
+        font-size: 1.5rem;
+    }
+
+    .rapport-field-value {
+        font-size: 1rem;
     }
 }
 

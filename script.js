@@ -1970,47 +1970,49 @@ class RapportDeControleApp {
                 : '';
 
             // Récupérer la première photo du premier défaut s'il existe
-            const firstPhoto = rapport.defauts && rapport.defauts.length > 0 && rapport.defauts[0].photos && rapport.defauts[0].photos.length > 0
-                ? rapport.defauts[0].photos[0]
-                : null;
+            let firstPhoto = null;
+            if (rapport.defauts && rapport.defauts.length > 0) {
+                const photos = rapport.defauts[0].photos;
+                // Les photos peuvent être un array ou un JSON string
+                if (Array.isArray(photos) && photos.length > 0) {
+                    firstPhoto = photos[0];
+                } else if (typeof photos === 'string') {
+                    try {
+                        const parsedPhotos = JSON.parse(photos);
+                        if (Array.isArray(parsedPhotos) && parsedPhotos.length > 0) {
+                            firstPhoto = parsedPhotos[0];
+                        }
+                    } catch (e) {
+                        console.log('Erreur parsing photos:', e);
+                    }
+                }
+            }
 
             const card = document.createElement('div');
             card.className = 'rapport-card';
             card.innerHTML = `
                 <div class="rapport-card-content" onclick="app.showRapportDetails('${rapport.id}')">
-                    ${firstPhoto ? `<div class="rapport-card-photo">
-                        <img src="${firstPhoto}" alt="Photo défaut">
-                    </div>` : ''}
-                    <div class="rapport-card-left">
-                        <div class="rapport-card-numero">${rapport.numero}</div>
+                    <div class="rapport-card-photo">
+                        ${firstPhoto ? `<img src="${firstPhoto}" alt="Photo défaut">` : '<div class="rapport-card-no-photo">Aucune photo</div>'}
                     </div>
-                    <div class="rapport-card-middle">
-                        <div class="rapport-card-info">
-                            <span class="rapport-info-label">OF:</span>
-                            <span class="rapport-info-value">${rapport.ordre_fabrication}</span>
-                        </div>
-                        <div class="rapport-card-info">
-                            <span class="rapport-info-label">Référence:</span>
-                            <span class="rapport-info-value">${rapport.reference || 'N/A'}</span>
-                        </div>
-                        <div class="rapport-card-info">
-                            <span class="rapport-info-label">Client:</span>
-                            <span class="rapport-info-value">${rapport.client || 'N/A'}</span>
-                        </div>
-                        <div class="rapport-card-info">
-                            <span class="rapport-info-label">Contrôleur:</span>
-                            <span class="rapport-info-value">${rapport.controleur_name}</span>
-                        </div>
-                        <div class="rapport-card-info">
-                            <span class="rapport-info-label">Date:</span>
-                            <span class="rapport-info-value">${dateFormatted}</span>
-                        </div>
-                        <div class="rapport-card-info">
-                            <span class="rapport-info-label">Statut:</span>
+                    <div class="rapport-card-main">
+                        <div class="rapport-card-header">
+                            <div class="rapport-card-numero">${rapport.numero}</div>
                             <span class="rapport-status status-${statusClass}">${statusLabel}</span>
                         </div>
+                        <div class="rapport-card-body">
+                            <div class="rapport-card-field">
+                                <span class="rapport-field-value">${rapport.ordre_fabrication}</span>
+                            </div>
+                            <div class="rapport-card-field">
+                                <span class="rapport-field-value">${rapport.reference || 'N/A'}</span>
+                            </div>
+                            <div class="rapport-card-field">
+                                <span class="rapport-field-value">${rapport.client || 'N/A'}</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="rapport-card-right">
+                    <div class="rapport-card-actions">
                         ${modifyButton}
                         <button class="btn-rapport-action" onclick="event.stopPropagation(); app.genererPDF('${rapport.id}')" title="${pdfTitle}">${pdfIcon}</button>
                         <button class="btn-rapport-action" onclick="event.stopPropagation(); app.openMailModal('${rapport.id}')" title="Générer un mail">${mailIcon}</button>
