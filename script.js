@@ -940,13 +940,22 @@ class RapportDeControleApp {
 
     // ========== GESTION DES RAPPORTS ==========
     async loadRapports() {
-        const { data, error } = await supabaseClient
+        // Construire la requête de base
+        let query = supabaseClient
             .from('rapports')
             .select(`
                 *,
                 defauts (*)
-            `)
-            .order('created_at', { ascending: false });
+            `);
+
+        // Si l'utilisateur n'est pas admin, filtrer par controleur_id
+        if (!this.currentUser.is_admin) {
+            query = query.eq('controleur_id', this.currentUser.id);
+        }
+
+        // Les admins voient tous les rapports, pas de filtre
+
+        const { data, error } = await query.order('created_at', { ascending: false });
 
         if (error) {
             console.error('Erreur lors du chargement des rapports:', error);
@@ -1191,26 +1200,34 @@ class RapportDeControleApp {
                 }
 
                 // Supprimer les anciens défauts
-                await supabaseClient
+                const { error: deleteError } = await supabaseClient
                     .from('defauts')
                     .delete()
                     .eq('rapport_id', this.editingRapportId);
 
-                // Réinsérer les défauts
-                const defautsToInsert = this.defauts.map(defaut => ({
-                    rapport_id: this.editingRapportId,
-                    type: defaut.type,
-                    quantite: defaut.quantite,
-                    commentaire: defaut.commentaire,
-                    photos: defaut.photos
-                }));
+                if (deleteError) {
+                    console.error('Erreur suppression défauts:', deleteError);
+                    throw deleteError;
+                }
 
-                const { error: defautsError } = await supabaseClient
-                    .from('defauts')
-                    .insert(defautsToInsert);
+                // Réinsérer les défauts seulement s'il y en a
+                if (this.defauts.length > 0) {
+                    const defautsToInsert = this.defauts.map(defaut => ({
+                        rapport_id: this.editingRapportId,
+                        type: defaut.type,
+                        quantite: defaut.quantite,
+                        commentaire: defaut.commentaire,
+                        photos: defaut.photos || []
+                    }));
 
-                if (defautsError) {
-                    throw defautsError;
+                    const { error: defautsError } = await supabaseClient
+                        .from('defauts')
+                        .insert(defautsToInsert);
+
+                    if (defautsError) {
+                        console.error('Erreur insertion défauts:', defautsError);
+                        throw defautsError;
+                    }
                 }
 
                 this.showNotification('✅ Rapport mis à jour', 'success');
@@ -1304,8 +1321,8 @@ class RapportDeControleApp {
                 return;
             }
 
-            // Vérifier que c'est bien le rapport de l'utilisateur
-            if (rapport.controleur_id !== this.currentUser.id) {
+            // Vérifier que c'est bien le rapport de l'utilisateur (sauf si admin)
+            if (!this.currentUser.is_admin && rapport.controleur_id !== this.currentUser.id) {
                 this.showNotification('Vous ne pouvez modifier que vos propres rapports', 'error');
                 return;
             }
@@ -3531,94 +3548,103 @@ ${this.userProfile.full_name}`;
         const lines = text.split('\n').map(line => line.trim()).filter(line => line);
         const fullText = text;
 
-        // Patterns de recherche optimisés pour le format OF
-        const patterns = {
-            // OF n°11162 ou OF n° 11162
-            ordeFabrication: /OF\s*n?°?\s*[:\s]*(\d+)/i,
+        console.log('=== ANALYSE OCR ===');
+        console.log('Lignes détectées:', lines);
 
-            // N° OF client : M60655021 ou N060355021 (lettre + 8-9 chiffres)
-            ofClient: /N°?\s*(?:OF\s+)?client\s*[:\s]*([A-Z]\d{8,9})/i,
-
-            // N° de commande : P00287448 (lettre + 8 chiffres)
-            numeroCommande: /N°?\s*(?:de\s+)?commande\s*[:\s]*([A-Z]\d{8})/i,
-
-            // Référence pièce : 4535-01011
-            reference: /(?:Référence|Ref)[\s\w]*(?:pièce)?\s*[:\s]*(\d{4}[-\.]\d+)/i,
-
-            // Client : SAS LIEBHERR TOULOUSE AEROSPACE
-            client: /Client\s*[:\s]*((?:SAS|SA|SARL|EURL)\s+[A-Z][\w\s\-&\.]+?)(?=\s+Désignation|\s*N°|$)/i,
-
-            // Quantité : 12
-            quantiteLot: /Quantit[ée]\s*[:\s]*(\d+)/i
+        // Mapping exact des labels OF vers les champs du formulaire
+        // Sur les OF : les valeurs sont toujours à la même position après les labels
+        const labelMapping = {
+            'Client': 'client',           // Client = Client
+            'N° de commande': 'numeroCommande',  // N° de commande = N°Commande
+            'N° OF client': 'ofClient',   // N° OF client = OF Client
+            'Référence pièce': 'reference', // Référence pièce = Référence
+            'Quantité': 'quantiteLot',    // Quantité = Quantité Lot
+            'Désignation article': 'designation', // Désignation article = Désignation
+            'OF n°': 'ordeFabrication'    // OF n° = OF interne
         };
 
-        // Extraire les valeurs avec les patterns
-        for (const [field, pattern] of Object.entries(patterns)) {
-            const match = fullText.match(pattern);
-            if (match && match[1]) {
-                const value = match[1].trim();
-                const input = document.getElementById(`ocr_${field}`);
-                if (input) {
-                    input.value = value;
-                }
-            }
-        }
-
-        // Recherche spécifique ligne par ligne pour meilleure précision
+        // Parcourir chaque ligne pour trouver les labels et extraire les valeurs
         lines.forEach((line, index) => {
-            // OF en haut du document (généralement une des premières lignes)
-            if (index < 5 && line.match(/OF\s*n?°?\s*\d+/i)) {
+            // Vérifier chaque label
+            Object.entries(labelMapping).forEach(([label, fieldName]) => {
+                // Regex pour matcher "Label : Valeur" ou "Label: Valeur" ou "Label Valeur"
+                const labelPattern = new RegExp(`${label}\\s*:?\\s*(.+)`, 'i');
+                const match = line.match(labelPattern);
+
+                if (match && match[1]) {
+                    let value = match[1].trim();
+
+                    // Nettoyage spécifique selon le champ
+                    if (fieldName === 'client') {
+                        // Garder tout le nom du client
+                        value = value.split(/\s{2,}|Désignation/)[0].trim();
+                    } else if (fieldName === 'quantiteLot') {
+                        // Extraire uniquement les chiffres
+                        const qtyMatch = value.match(/(\d+)/);
+                        value = qtyMatch ? qtyMatch[1] : value;
+                    } else if (fieldName === 'ordeFabrication') {
+                        // Extraire uniquement les chiffres après OF n°
+                        const ofMatch = value.match(/(\d+)/);
+                        value = ofMatch ? ofMatch[1] : value;
+                    }
+
+                    const input = document.getElementById(`ocr_${fieldName}`);
+                    if (input && value) {
+                        input.value = value;
+                        console.log(`✓ ${label} détecté: "${value}"`);
+                    }
+                }
+            });
+
+            // Recherche alternative si le label n'est pas sur la même ligne
+            // Chercher les patterns de valeurs seules
+
+            // OF n° au début du document
+            if (index < 5 && line.match(/^OF\s*n?°?\s*(\d+)/i)) {
                 const match = line.match(/(\d+)/);
-                if (match && !document.getElementById('ocr_ordeFabrication').value) {
-                    document.getElementById('ocr_ordeFabrication').value = match[1];
+                const input = document.getElementById('ocr_ordeFabrication');
+                if (match && input && !input.value) {
+                    input.value = match[1];
+                    console.log(`✓ OF n° détecté (ligne ${index}): "${match[1]}"`);
                 }
             }
 
-            // Client (chercher SAS, SA, SARL, etc.)
-            if (line.match(/^(?:SAS|SA|SARL|EURL)\s+[\w\-]+/i)) {
-                const input = document.getElementById('ocr_client');
-                if (input && !input.value) {
-                    // Nettoyer et prendre les 3 premiers mots maximum
-                    const words = line.split(/\s+/).slice(0, 4).join(' ');
-                    input.value = words;
-                }
-            }
-
-            // Référence (format XXXX-XXXXX)
+            // Référence au format XXXX-XXXXX
             if (line.match(/\d{4}[-\.]\d{5}/)) {
                 const match = line.match(/(\d{4}[-\.]\d{5})/);
                 const input = document.getElementById('ocr_reference');
                 if (match && input && !input.value) {
                     input.value = match[1];
+                    console.log(`✓ Référence détectée: "${match[1]}"`);
                 }
             }
 
-            // N° OF client (format M60655021 ou N060355021)
-            if (line.match(/[A-Z]\d{8,9}/)) {
-                const match = line.match(/([MN]\d{8,9})/);
+            // N° OF client (format alphanumérique 8-9 caractères)
+            if (line.match(/[A-Z0-9]{8,9}/) && !line.match(/Client|Commande|Référence|Désignation/i)) {
+                const match = line.match(/([A-Z]\d{8,9}|[A-Z0-9]{8,9})/);
                 const input = document.getElementById('ocr_ofClient');
                 if (match && input && !input.value) {
                     input.value = match[1];
+                    console.log(`✓ N° OF client détecté: "${match[1]}"`);
                 }
             }
 
-            // N° de commande (format P00287448)
-            if (line.match(/P\d{8}/)) {
-                const match = line.match(/(P\d{8})/);
+            // N° de commande (format commençant par lettre + chiffres)
+            if (line.match(/^[A-Z]\d{7,9}$/)) {
                 const input = document.getElementById('ocr_numeroCommande');
-                if (match && input && !input.value) {
-                    input.value = match[1];
+                if (input && !input.value) {
+                    input.value = line;
+                    console.log(`✓ N° Commande détecté: "${line}"`);
                 }
             }
         });
 
-        // Log pour debug
-        console.log('Lignes détectées:', lines);
+        console.log('=== FIN ANALYSE ===');
     }
 
     applyOCRValues() {
         // Appliquer les valeurs détectées au formulaire principal
-        const fields = ['ordeFabrication', 'ofClient', 'numeroCommande', 'reference', 'client', 'quantiteLot'];
+        const fields = ['ordeFabrication', 'ofClient', 'numeroCommande', 'reference', 'client', 'quantiteLot', 'designation'];
 
         fields.forEach(field => {
             const ocrInput = document.getElementById(`ocr_${field}`);
