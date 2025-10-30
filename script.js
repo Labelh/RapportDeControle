@@ -89,6 +89,11 @@ class RapportDeControleApp {
         this.currentUser = session.user;
         this.userProfile = profile;
 
+        // Ajouter les infos de rôle à currentUser pour faciliter les vérifications
+        this.currentUser.is_admin = (profile.role === 'admin');
+        this.currentUser.role = profile.role;
+        this.currentUser.full_name = profile.full_name;
+
         // Afficher l'application
         this.showApp();
     }
@@ -775,15 +780,14 @@ class RapportDeControleApp {
     }
 
     updateClientsUI() {
-        // Mettre à jour le select dans le formulaire
-        const clientSelect = document.getElementById('client');
-        if (clientSelect) {
-            clientSelect.innerHTML = '<option value="">Sélectionner un client</option>';
+        // Mettre à jour le datalist dans le formulaire
+        const clientsList = document.getElementById('clientsList');
+        if (clientsList) {
+            clientsList.innerHTML = '';
             this.clients.forEach(client => {
                 const option = document.createElement('option');
                 option.value = client.nom;
-                option.textContent = client.nom;
-                clientSelect.appendChild(option);
+                clientsList.appendChild(option);
             });
         }
 
@@ -3599,13 +3603,25 @@ ${this.userProfile.full_name}`;
             // Recherche alternative si le label n'est pas sur la même ligne
             // Chercher les patterns de valeurs seules
 
-            // OF n° au début du document
-            if (index < 5 && line.match(/^OF\s*n?°?\s*(\d+)/i)) {
-                const match = line.match(/(\d+)/);
-                const input = document.getElementById('ocr_ordeFabrication');
-                if (match && input && !input.value) {
-                    input.value = match[1];
-                    console.log(`✓ OF n° détecté (ligne ${index}): "${match[1]}"`);
+            // OF n° au début du document (en haut à droite, police plus grosse)
+            // Chercher "OF" suivi d'un numéro, ou juste un numéro seul dans les premières lignes
+            if (index < 10) {
+                // Pattern 1: "OF n°11162" ou "OF 11162"
+                if (line.match(/^OF\s*n?°?\s*(\d+)/i)) {
+                    const match = line.match(/(\d+)/);
+                    const input = document.getElementById('ocr_ordeFabrication');
+                    if (match && input && !input.value) {
+                        input.value = match[1];
+                        console.log(`✓ OF n° détecté (ligne ${index}): "${match[1]}"`);
+                    }
+                }
+                // Pattern 2: Ligne contenant uniquement un numéro de 4-6 chiffres (OF interne)
+                else if (line.match(/^\d{4,6}$/)) {
+                    const input = document.getElementById('ocr_ordeFabrication');
+                    if (input && !input.value) {
+                        input.value = line;
+                        console.log(`✓ OF n° détecté (numéro seul, ligne ${index}): "${line}"`);
+                    }
                 }
             }
 
