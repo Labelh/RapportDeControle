@@ -1916,29 +1916,19 @@ class RapportDeControleApp {
             return;
         }
 
-        // Créer le tableau
-        const table = document.createElement('table');
-        table.className = 'rapports-table';
+        // Pagination
+        const itemsPerPage = 10;
+        const currentPage = this.adminCurrentPage || 1;
+        const totalPages = Math.ceil(rapports.length / itemsPerPage);
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const currentRapports = rapports.slice(startIndex, endIndex);
 
-        table.innerHTML = `
-            <thead>
-                <tr>
-                    <th>N°</th>
-                    <th>OF</th>
-                    <th>Référence</th>
-                    <th>Client</th>
-                    <th>Contrôleur</th>
-                    <th>Statut</th>
-                    <th>Date</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        `;
+        // Créer la grille de cartes
+        const grid = document.createElement('div');
+        grid.className = 'rapports-grid';
 
-        const tbody = table.querySelector('tbody');
-
-        rapports.forEach(rapport => {
+        currentRapports.forEach(rapport => {
             const dateFormatted = new Date(rapport.date_controle).toLocaleDateString('fr-FR');
 
             let statusLabel = 'En attente';
@@ -1966,47 +1956,100 @@ class RapportDeControleApp {
             }
 
             // Icônes SVG
-            const pdfIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
-            const mailIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>`;
-            const editIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
-            const modifyIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>`;
-            const deleteIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`;
+            const pdfIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+            const mailIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>`;
+            const editIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+            const modifyIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>`;
+            const deleteIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`;
 
             const pdfTitle = rapport.status === 'en_attente' ? 'Générer PDF' : 'Regénérer PDF';
 
             // Bouton Modifier uniquement pour les rapports en attente
             const modifyButton = rapport.status === 'en_attente'
-                ? `<button class="btn-icon-only btn-primary-icon" onclick="event.stopPropagation(); app.editerRapport('${rapport.id}')" title="Modifier le rapport">${modifyIcon}</button>`
+                ? `<button class="btn-card-action btn-primary" onclick="event.stopPropagation(); app.editerRapport('${rapport.id}')" title="Modifier le rapport">${modifyIcon} Modifier</button>`
                 : '';
 
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><div class="rapport-numero">${rapport.numero}</div></td>
-                <td>${rapport.ordre_fabrication}</td>
-                <td>${rapport.reference || 'N/A'}</td>
-                <td>${rapport.client || 'N/A'}</td>
-                <td>${rapport.controleur_name}</td>
-                <td><span class="rapport-status status-${statusClass}">${statusLabel}</span></td>
-                <td>${dateFormatted}</td>
-                <td>
-                    <div class="rapport-actions">
-                        ${modifyButton}
-                        <button class="btn-icon-only" onclick="event.stopPropagation(); app.genererPDF('${rapport.id}')" title="${pdfTitle}">${pdfIcon}</button>
-                        <button class="btn-icon-only" onclick="event.stopPropagation(); app.openMailModal('${rapport.id}')" title="Générer un mail">${mailIcon}</button>
-                        <button class="btn-icon-only btn-edit-icon" onclick="event.stopPropagation(); app.addReponseClient('${rapport.id}')" title="Réponse client">${editIcon}</button>
-                        <button class="btn-icon-only btn-delete-icon" onclick="event.stopPropagation(); app.supprimerRapport('${rapport.id}')" title="Supprimer">${deleteIcon}</button>
+            const card = document.createElement('div');
+            card.className = 'rapport-card';
+            card.onclick = () => this.showRapportDetails(rapport.id);
+            card.innerHTML = `
+                <div class="rapport-card-header">
+                    <div class="rapport-card-numero">${rapport.numero}</div>
+                    <span class="rapport-status status-${statusClass}">${statusLabel}</span>
+                </div>
+                <div class="rapport-card-body">
+                    <div class="rapport-card-row">
+                        <span class="rapport-card-label">OF:</span>
+                        <span class="rapport-card-value">${rapport.ordre_fabrication}</span>
                     </div>
-                </td>
+                    <div class="rapport-card-row">
+                        <span class="rapport-card-label">Référence:</span>
+                        <span class="rapport-card-value">${rapport.reference || 'N/A'}</span>
+                    </div>
+                    <div class="rapport-card-row">
+                        <span class="rapport-card-label">Client:</span>
+                        <span class="rapport-card-value">${rapport.client || 'N/A'}</span>
+                    </div>
+                    <div class="rapport-card-row">
+                        <span class="rapport-card-label">Contrôleur:</span>
+                        <span class="rapport-card-value">${rapport.controleur_name}</span>
+                    </div>
+                    <div class="rapport-card-row">
+                        <span class="rapport-card-label">Date:</span>
+                        <span class="rapport-card-value">${dateFormatted}</span>
+                    </div>
+                </div>
+                <div class="rapport-card-actions">
+                    ${modifyButton}
+                    <button class="btn-card-action" onclick="event.stopPropagation(); app.genererPDF('${rapport.id}')" title="${pdfTitle}">${pdfIcon} PDF</button>
+                    <button class="btn-card-action" onclick="event.stopPropagation(); app.openMailModal('${rapport.id}')" title="Générer un mail">${mailIcon} Mail</button>
+                    <button class="btn-card-action" onclick="event.stopPropagation(); app.addReponseClient('${rapport.id}')" title="Réponse client">${editIcon} Réponse</button>
+                    <button class="btn-card-action btn-danger" onclick="event.stopPropagation(); app.supprimerRapport('${rapport.id}')" title="Supprimer">${deleteIcon}</button>
+                </div>
             `;
 
-            // Ajouter le clic sur la ligne pour ouvrir le modal
-            tr.style.cursor = 'pointer';
-            tr.onclick = () => this.showRapportDetails(rapport.id);
-
-            tbody.appendChild(tr);
+            grid.appendChild(card);
         });
 
-        container.appendChild(table);
+        container.appendChild(grid);
+
+        // Ajouter la pagination si nécessaire
+        if (totalPages > 1) {
+            const pagination = document.createElement('div');
+            pagination.className = 'pagination';
+
+            // Bouton Précédent
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'pagination-btn';
+            prevBtn.textContent = '« Précédent';
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.onclick = () => {
+                this.adminCurrentPage = currentPage - 1;
+                this.updateAdminRapportsUI(rapports);
+                document.getElementById('page-admin').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            };
+            pagination.appendChild(prevBtn);
+
+            // Numéros de page
+            const pageInfo = document.createElement('span');
+            pageInfo.className = 'pagination-info';
+            pageInfo.textContent = `Page ${currentPage} sur ${totalPages}`;
+            pagination.appendChild(pageInfo);
+
+            // Bouton Suivant
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'pagination-btn';
+            nextBtn.textContent = 'Suivant »';
+            nextBtn.disabled = currentPage === totalPages;
+            nextBtn.onclick = () => {
+                this.adminCurrentPage = currentPage + 1;
+                this.updateAdminRapportsUI(rapports);
+                document.getElementById('page-admin').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            };
+            pagination.appendChild(nextBtn);
+
+            container.appendChild(pagination);
+        }
     }
 
     async addReponseClient(rapportId) {
