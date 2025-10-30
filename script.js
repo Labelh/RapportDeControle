@@ -1966,45 +1966,46 @@ class RapportDeControleApp {
 
             // Bouton Modifier uniquement pour les rapports en attente
             const modifyButton = rapport.status === 'en_attente'
-                ? `<button class="btn-card-action btn-primary" onclick="event.stopPropagation(); app.editerRapport('${rapport.id}')" title="Modifier le rapport">${modifyIcon} Modifier</button>`
+                ? `<button class="btn-rapport-action btn-modify" onclick="event.stopPropagation(); app.editerRapport('${rapport.id}')" title="Modifier le rapport">${modifyIcon}</button>`
                 : '';
 
             const card = document.createElement('div');
             card.className = 'rapport-card';
-            card.onclick = () => this.showRapportDetails(rapport.id);
             card.innerHTML = `
-                <div class="rapport-card-header">
-                    <div class="rapport-card-numero">${rapport.numero}</div>
-                    <span class="rapport-status status-${statusClass}">${statusLabel}</span>
-                </div>
-                <div class="rapport-card-body">
-                    <div class="rapport-card-row">
-                        <span class="rapport-card-label">OF:</span>
-                        <span class="rapport-card-value">${rapport.ordre_fabrication}</span>
+                <div class="rapport-card-content" onclick="app.showRapportDetails('${rapport.id}')">
+                    <div class="rapport-card-left">
+                        <div class="rapport-card-numero">${rapport.numero}</div>
+                        <span class="rapport-status status-${statusClass}">${statusLabel}</span>
                     </div>
-                    <div class="rapport-card-row">
-                        <span class="rapport-card-label">Référence:</span>
-                        <span class="rapport-card-value">${rapport.reference || 'N/A'}</span>
+                    <div class="rapport-card-middle">
+                        <div class="rapport-card-info">
+                            <span class="rapport-info-label">OF:</span>
+                            <span class="rapport-info-value">${rapport.ordre_fabrication}</span>
+                        </div>
+                        <div class="rapport-card-info">
+                            <span class="rapport-info-label">Référence:</span>
+                            <span class="rapport-info-value">${rapport.reference || 'N/A'}</span>
+                        </div>
+                        <div class="rapport-card-info">
+                            <span class="rapport-info-label">Client:</span>
+                            <span class="rapport-info-value">${rapport.client || 'N/A'}</span>
+                        </div>
+                        <div class="rapport-card-info">
+                            <span class="rapport-info-label">Contrôleur:</span>
+                            <span class="rapport-info-value">${rapport.controleur_name}</span>
+                        </div>
+                        <div class="rapport-card-info">
+                            <span class="rapport-info-label">Date:</span>
+                            <span class="rapport-info-value">${dateFormatted}</span>
+                        </div>
                     </div>
-                    <div class="rapport-card-row">
-                        <span class="rapport-card-label">Client:</span>
-                        <span class="rapport-card-value">${rapport.client || 'N/A'}</span>
+                    <div class="rapport-card-right">
+                        ${modifyButton}
+                        <button class="btn-rapport-action" onclick="event.stopPropagation(); app.genererPDF('${rapport.id}')" title="${pdfTitle}">${pdfIcon}</button>
+                        <button class="btn-rapport-action" onclick="event.stopPropagation(); app.openMailModal('${rapport.id}')" title="Générer un mail">${mailIcon}</button>
+                        <button class="btn-rapport-action" onclick="event.stopPropagation(); app.addReponseClient('${rapport.id}')" title="Réponse client">${editIcon}</button>
+                        <button class="btn-rapport-action btn-delete" onclick="event.stopPropagation(); app.supprimerRapport('${rapport.id}')" title="Supprimer">${deleteIcon}</button>
                     </div>
-                    <div class="rapport-card-row">
-                        <span class="rapport-card-label">Contrôleur:</span>
-                        <span class="rapport-card-value">${rapport.controleur_name}</span>
-                    </div>
-                    <div class="rapport-card-row">
-                        <span class="rapport-card-label">Date:</span>
-                        <span class="rapport-card-value">${dateFormatted}</span>
-                    </div>
-                </div>
-                <div class="rapport-card-actions">
-                    ${modifyButton}
-                    <button class="btn-card-action" onclick="event.stopPropagation(); app.genererPDF('${rapport.id}')" title="${pdfTitle}">${pdfIcon} PDF</button>
-                    <button class="btn-card-action" onclick="event.stopPropagation(); app.openMailModal('${rapport.id}')" title="Générer un mail">${mailIcon} Mail</button>
-                    <button class="btn-card-action" onclick="event.stopPropagation(); app.addReponseClient('${rapport.id}')" title="Réponse client">${editIcon} Réponse</button>
-                    <button class="btn-card-action btn-danger" onclick="event.stopPropagation(); app.supprimerRapport('${rapport.id}')" title="Supprimer">${deleteIcon}</button>
                 </div>
             `;
 
