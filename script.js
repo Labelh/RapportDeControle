@@ -472,6 +472,11 @@ class RapportDeControleApp {
             copyCorpsBtn.addEventListener('click', () => this.copyToClipboard('mailCorps'));
         }
 
+        const openGmailBtn = document.getElementById('openGmailBtn');
+        if (openGmailBtn) {
+            openGmailBtn.addEventListener('click', () => this.openGmail());
+        }
+
         // Modal détails rapport
         const closeDetailsModal = document.getElementById('closeDetailsModal');
         if (closeDetailsModal) {
@@ -2623,6 +2628,28 @@ ${this.userProfile.full_name}`;
             console.error('Erreur lors de la copie:', err);
             this.showNotification('Erreur lors de la copie', 'error');
         });
+    }
+
+    openGmail() {
+        const objet = document.getElementById('mailObjet').value;
+        const corps = document.getElementById('mailCorps').value;
+
+        if (!objet || !corps) {
+            this.showNotification('Impossible d\'ouvrir Gmail sans contenu', 'error');
+            return;
+        }
+
+        // Encoder les paramètres pour l'URL
+        const sujet = encodeURIComponent(objet);
+        const body = encodeURIComponent(corps);
+
+        // URL Gmail pour créer un nouveau mail avec champs pré-remplis
+        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&su=${sujet}&body=${body}`;
+
+        // Ouvrir dans un nouvel onglet
+        window.open(gmailUrl, '_blank');
+
+        this.showNotification('Gmail ouvert dans un nouvel onglet', 'success');
     }
 
     // ========== UTILITAIRES ==========
