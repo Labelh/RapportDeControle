@@ -2817,7 +2817,7 @@ input.field-error, select.field-error, textarea.field-error {
 
 .rapport-card:hover {
     border-color: var(--primary-color);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    background: var(--hover-bg);
 }
 
 .rapport-card-content {
@@ -2828,25 +2828,41 @@ input.field-error, select.field-error, textarea.field-error {
     cursor: pointer;
 }
 
+.rapport-card-photo {
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--background-light);
+    border: 1px solid var(--border-light);
+}
+
+.rapport-card-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
 .rapport-card-left {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
-    min-width: 120px;
+    min-width: 100px;
 }
 
 .rapport-card-numero {
     font-size: 1.25rem;
     font-weight: 700;
-    color: var(--text-dark);
+    color: var(--accent-orange);
 }
 
 .rapport-card-middle {
     flex: 1;
-    display: flex;
-    gap: 2rem;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
 }
 
 .rapport-card-info {
@@ -2872,6 +2888,7 @@ input.field-error, select.field-error, textarea.field-error {
     display: flex;
     gap: 0.5rem;
     align-items: center;
+    flex-shrink: 0;
 }
 
 .btn-rapport-action {
@@ -2886,6 +2903,7 @@ input.field-error, select.field-error, textarea.field-error {
     color: var(--text-dark);
     cursor: pointer;
     transition: all 0.2s ease;
+    flex-shrink: 0;
 }
 
 .btn-rapport-action:hover {
@@ -2896,16 +2914,6 @@ input.field-error, select.field-error, textarea.field-error {
 
 .btn-rapport-action svg {
     flex-shrink: 0;
-}
-
-.btn-rapport-action.btn-modify {
-    border-color: var(--primary-color);
-    color: var(--primary-color);
-}
-
-.btn-rapport-action.btn-modify:hover {
-    background: var(--primary-color);
-    color: white;
 }
 
 .btn-rapport-action.btn-delete {

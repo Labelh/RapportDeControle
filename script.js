@@ -1966,16 +1966,23 @@ class RapportDeControleApp {
 
             // Bouton Modifier uniquement pour les rapports en attente
             const modifyButton = rapport.status === 'en_attente'
-                ? `<button class="btn-rapport-action btn-modify" onclick="event.stopPropagation(); app.editerRapport('${rapport.id}')" title="Modifier le rapport">${modifyIcon}</button>`
+                ? `<button class="btn-rapport-action" onclick="event.stopPropagation(); app.editerRapport('${rapport.id}')" title="Modifier le rapport">${modifyIcon}</button>`
                 : '';
+
+            // Récupérer la première photo du premier défaut s'il existe
+            const firstPhoto = rapport.defauts && rapport.defauts.length > 0 && rapport.defauts[0].photos && rapport.defauts[0].photos.length > 0
+                ? rapport.defauts[0].photos[0]
+                : null;
 
             const card = document.createElement('div');
             card.className = 'rapport-card';
             card.innerHTML = `
                 <div class="rapport-card-content" onclick="app.showRapportDetails('${rapport.id}')">
+                    ${firstPhoto ? `<div class="rapport-card-photo">
+                        <img src="${firstPhoto}" alt="Photo défaut">
+                    </div>` : ''}
                     <div class="rapport-card-left">
                         <div class="rapport-card-numero">${rapport.numero}</div>
-                        <span class="rapport-status status-${statusClass}">${statusLabel}</span>
                     </div>
                     <div class="rapport-card-middle">
                         <div class="rapport-card-info">
@@ -1997,6 +2004,10 @@ class RapportDeControleApp {
                         <div class="rapport-card-info">
                             <span class="rapport-info-label">Date:</span>
                             <span class="rapport-info-value">${dateFormatted}</span>
+                        </div>
+                        <div class="rapport-card-info">
+                            <span class="rapport-info-label">Statut:</span>
+                            <span class="rapport-status status-${statusClass}">${statusLabel}</span>
                         </div>
                     </div>
                     <div class="rapport-card-right">
