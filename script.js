@@ -1972,51 +1972,46 @@ class RapportDeControleApp {
             // Récupérer la première photo du premier défaut s'il existe
             let firstPhoto = null;
             if (rapport.defauts && rapport.defauts.length > 0) {
-                console.log('Défaut trouvé pour rapport', rapport.numero);
                 const defaut = rapport.defauts[0];
-                console.log('Photos du défaut:', defaut.photos, 'Type:', typeof defaut.photos);
-
                 const photos = defaut.photos;
-                // Les photos peuvent être un array, un JSON string, ou null
+
+                // Les photos sont un array d'objets ou de strings
                 if (Array.isArray(photos) && photos.length > 0) {
-                    firstPhoto = photos[0];
-                    console.log('Photo trouvée (array):', firstPhoto);
+                    const photo = photos[0];
+                    // Si c'est un objet, extraire la propriété qui contient l'URL/data
+                    if (typeof photo === 'object' && photo !== null) {
+                        // Chercher les propriétés communes: url, src, data, dataUrl, base64
+                        firstPhoto = photo.url || photo.src || photo.data || photo.dataUrl || photo.base64;
+                    } else if (typeof photo === 'string') {
+                        firstPhoto = photo;
+                    }
                 } else if (typeof photos === 'string' && photos.trim() !== '') {
                     try {
                         const parsedPhotos = JSON.parse(photos);
                         if (Array.isArray(parsedPhotos) && parsedPhotos.length > 0) {
-                            firstPhoto = parsedPhotos[0];
-                            console.log('Photo trouvée (parsed):', firstPhoto);
+                            const photo = parsedPhotos[0];
+                            if (typeof photo === 'object' && photo !== null) {
+                                firstPhoto = photo.url || photo.src || photo.data || photo.dataUrl || photo.base64;
+                            } else if (typeof photo === 'string') {
+                                firstPhoto = photo;
+                            }
                         }
                     } catch (e) {
-                        console.log('Erreur parsing photos pour rapport', rapport.numero, ':', e);
-                        console.log('Contenu photos:', photos);
+                        // Pas de log, on ignore silencieusement
                     }
-                } else if (photos && typeof photos === 'object' && photos.length > 0) {
-                    // Cas PostgreSQL array direct
-                    firstPhoto = photos[0];
-                    console.log('Photo trouvée (object):', firstPhoto);
                 }
-            } else {
-                console.log('Pas de défauts pour rapport', rapport.numero);
             }
-
-            // Décomposer le numéro pour mettre RC en orange
-            const numeroMatch = rapport.numero.match(/^(RC-)?(.+)$/);
-            const numeroHTML = numeroMatch
-                ? `<span class="rapport-numero-rc">RC-</span>${numeroMatch[2]}`
-                : rapport.numero;
 
             const card = document.createElement('div');
             card.className = 'rapport-card';
             card.innerHTML = `
                 <div class="rapport-card-content" onclick="app.showRapportDetails('${rapport.id}')">
                     <div class="rapport-card-photo">
-                        ${firstPhoto ? `<img src="${firstPhoto}" alt="Photo défaut" onerror="console.error('Erreur chargement image:', this.src)">` : '<div class="rapport-card-no-photo">Aucune photo</div>'}
+                        ${firstPhoto ? `<img src="${firstPhoto}" alt="Photo défaut">` : '<div class="rapport-card-no-photo">Aucune photo</div>'}
                     </div>
                     <div class="rapport-card-main">
                         <div class="rapport-card-header">
-                            <div class="rapport-card-numero">${numeroHTML}</div>
+                            <div class="rapport-card-numero">${rapport.numero}</div>
                             <span class="rapport-status status-${statusClass}">${statusLabel}</span>
                         </div>
                         <div class="rapport-card-body">

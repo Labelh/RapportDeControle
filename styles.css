@@ -2871,10 +2871,6 @@ input.field-error, select.field-error, textarea.field-error {
 .rapport-card-numero {
     font-size: 1.75rem;
     font-weight: 700;
-    color: var(--text-dark);
-}
-
-.rapport-numero-rc {
     color: var(--accent-orange);
 }
 
