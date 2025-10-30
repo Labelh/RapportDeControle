@@ -477,6 +477,11 @@ class RapportDeControleApp {
             openGmailBtn.addEventListener('click', () => this.openGmail());
         }
 
+        const downloadPackageBtn = document.getElementById('downloadPackageBtn');
+        if (downloadPackageBtn) {
+            downloadPackageBtn.addEventListener('click', () => this.downloadEmailPackage());
+        }
+
         // Modal détails rapport
         const closeDetailsModal = document.getElementById('closeDetailsModal');
         if (closeDetailsModal) {
@@ -1451,7 +1456,7 @@ class RapportDeControleApp {
         }
     }
 
-    async genererPDF(rapportId = null) {
+    async genererPDF(rapportId = null, returnBlob = false) {
         let ordeFabrication, ofClient, numeroCommande, reference, designation, quantiteLot, client, controleurName, dateControle, reportNumber, defauts;
 
         if (rapportId) {
@@ -1814,6 +1819,11 @@ class RapportDeControleApp {
             // Ne sauvegarder que si c'est un nouveau rapport (pas rapportId)
             if (!rapportId) {
                 await this.saveRapport(reportNumber, null);
+            }
+
+            // Si returnBlob est true, retourner le blob au lieu de télécharger
+            if (returnBlob) {
+                return doc.output('blob');
             }
 
             const fileName = `${reportNumber}_${ofClient || ordeFabrication}_${reference}_${new Date().toISOString().split('T')[0]}.pdf`;
@@ -2599,6 +2609,9 @@ Nous restons à votre disposition pour toute information complémentaire.
 Cordialement,
 ${this.userProfile.full_name}`;
 
+        // Stocker le rapport pour les fonctions suivantes
+        this.currentMailRapport = rapport;
+
         // Remplir les champs
         document.getElementById('mailRapportNumero').textContent = rapport.numero;
         document.getElementById('mailObjet').value = objet;
@@ -2630,11 +2643,114 @@ ${this.userProfile.full_name}`;
         });
     }
 
+    async downloadEmailPackage() {
+        if (!this.currentMailRapport) {
+            this.showNotification('Erreur: aucun rapport sélectionné', 'error');
+            return;
+        }
+
+        try {
+            this.showNotification('Génération du package en cours...', 'info');
+
+            const rapport = this.currentMailRapport;
+            const zip = new JSZip();
+
+            // 1. Ajouter le fichier texte avec l'email
+            const objet = document.getElementById('mailObjet').value;
+            const corps = document.getElementById('mailCorps').value;
+            const emailText = `Objet: ${objet}\n\n${corps}`;
+            zip.file('email.txt', emailText);
+
+            // 2. Générer et ajouter le PDF
+            const pdfBlob = await this.generatePDFBlob(rapport.id);
+            if (pdfBlob) {
+                zip.file(`Rapport_${rapport.numero}.pdf`, pdfBlob);
+            }
+
+            // 3. Ajouter toutes les photos des défauts
+            let photoCount = 0;
+            if (rapport.defauts && rapport.defauts.length > 0) {
+                const photosFolder = zip.folder('photos');
+
+                for (let i = 0; i < rapport.defauts.length; i++) {
+                    const defaut = rapport.defauts[i];
+                    if (defaut.photos && Array.isArray(defaut.photos)) {
+                        for (let j = 0; j < defaut.photos.length; j++) {
+                            const photo = defaut.photos[j];
+                            let photoData = null;
+
+                            // Extraire les données de l'image
+                            if (typeof photo === 'object' && photo !== null) {
+                                photoData = photo.data || photo.url || photo.src || photo.dataUrl || photo.base64;
+                            } else if (typeof photo === 'string') {
+                                photoData = photo;
+                            }
+
+                            if (photoData) {
+                                // Convertir base64 en blob si nécessaire
+                                if (photoData.startsWith('data:image')) {
+                                    const base64Data = photoData.split(',')[1];
+                                    const mimeType = photoData.match(/data:(.*?);/)[1];
+                                    const ext = mimeType.split('/')[1];
+                                    photosFolder.file(`defaut_${i+1}_photo_${j+1}.${ext}`, base64Data, {base64: true});
+                                    photoCount++;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Générer le ZIP
+            const zipBlob = await zip.generateAsync({type: 'blob'});
+
+            // Télécharger
+            const url = URL.createObjectURL(zipBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Package_${rapport.numero}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            this.showNotification(`Package téléchargé (1 PDF + ${photoCount} photos)`, 'success');
+        } catch (error) {
+            console.error('[PACKAGE] Erreur:', error);
+            this.showNotification('Erreur lors de la génération du package', 'error');
+        }
+    }
+
+    async generatePDFBlob(rapportId) {
+        try {
+            // Modifier temporairement genererPDF pour retourner le doc au lieu de le télécharger
+            const returnBlob = true;
+            return await this.genererPDF(rapportId, returnBlob);
+        } catch (error) {
+            console.error('[PDF BLOB] Erreur:', error);
+            return null;
+        }
+    }
+
     openGmail() {
-        const objet = document.getElementById('mailObjet').value;
-        const corps = document.getElementById('mailCorps').value;
+        console.log('[GMAIL] Fonction openGmail appelée');
+        const objetElement = document.getElementById('mailObjet');
+        const corpsElement = document.getElementById('mailCorps');
+
+        if (!objetElement || !corpsElement) {
+            console.error('[GMAIL] Éléments non trouvés');
+            this.showNotification('Erreur: éléments du formulaire introuvables', 'error');
+            return;
+        }
+
+        const objet = objetElement.value;
+        const corps = corpsElement.value;
+
+        console.log('[GMAIL] Objet:', objet);
+        console.log('[GMAIL] Corps:', corps?.substring(0, 50) + '...');
 
         if (!objet || !corps) {
+            console.error('[GMAIL] Objet ou corps vide');
             this.showNotification('Impossible d\'ouvrir Gmail sans contenu', 'error');
             return;
         }
@@ -2646,10 +2762,18 @@ ${this.userProfile.full_name}`;
         // URL Gmail pour créer un nouveau mail avec champs pré-remplis
         const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&su=${sujet}&body=${body}`;
 
-        // Ouvrir dans un nouvel onglet
-        window.open(gmailUrl, '_blank');
+        console.log('[GMAIL] URL générée:', gmailUrl.substring(0, 100) + '...');
 
-        this.showNotification('Gmail ouvert dans un nouvel onglet', 'success');
+        // Ouvrir dans un nouvel onglet
+        const newWindow = window.open(gmailUrl, '_blank');
+
+        if (newWindow) {
+            console.log('[GMAIL] Fenêtre ouverte avec succès');
+            this.showNotification('Gmail ouvert dans un nouvel onglet', 'success');
+        } else {
+            console.error('[GMAIL] Bloqué par le navigateur');
+            this.showNotification('Popup bloquée. Autorisez les popups pour ce site.', 'error');
+        }
     }
 
     // ========== UTILITAIRES ==========
