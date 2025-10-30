@@ -1978,10 +1978,11 @@ class RapportDeControleApp {
                 // Les photos sont un array d'objets ou de strings
                 if (Array.isArray(photos) && photos.length > 0) {
                     const photo = photos[0];
-                    // Si c'est un objet, extraire la propriété qui contient l'URL/data
+
+                    // Si c'est un objet, extraire la propriété 'data' (format standard de l'app)
                     if (typeof photo === 'object' && photo !== null) {
-                        // Chercher les propriétés communes: url, src, data, dataUrl, base64
-                        firstPhoto = photo.url || photo.src || photo.data || photo.dataUrl || photo.base64;
+                        // Format standard: { name, data, width, height }
+                        firstPhoto = photo.data || photo.url || photo.src || photo.dataUrl || photo.base64;
                     } else if (typeof photo === 'string') {
                         firstPhoto = photo;
                     }
@@ -1991,7 +1992,7 @@ class RapportDeControleApp {
                         if (Array.isArray(parsedPhotos) && parsedPhotos.length > 0) {
                             const photo = parsedPhotos[0];
                             if (typeof photo === 'object' && photo !== null) {
-                                firstPhoto = photo.url || photo.src || photo.data || photo.dataUrl || photo.base64;
+                                firstPhoto = photo.data || photo.url || photo.src || photo.dataUrl || photo.base64;
                             } else if (typeof photo === 'string') {
                                 firstPhoto = photo;
                             }
