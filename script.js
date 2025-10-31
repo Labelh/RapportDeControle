@@ -1572,25 +1572,27 @@ class RapportDeControleApp {
             }
 
             // Tableau en 4 colonnes (2 paires label/valeur par ligne)
+            // Colonne gauche : Client, OF Client, Référence, Désignation, Quantité Lot
+            // Colonne droite : OF Interne, N°Commande, Date, Contrôleur
             const tableData = [
                 [
-                    ['OF Interne', ordeFabrication || 'N/A'],
-                    ['OF Client', ofClient || 'N/A']
+                    ['Client', client || 'N/A'],
+                    ['OF Interne', ordeFabrication || 'N/A']
                 ],
                 [
-                    ['N° Commande', numeroCommande || 'N/A'],
-                    ['Référence', reference]
+                    ['OF Client', ofClient || 'N/A'],
+                    ['N° Commande', numeroCommande || 'N/A']
+                ],
+                [
+                    ['Référence', reference],
+                    ['Date', dateObj.toLocaleDateString('fr-FR')]
                 ],
                 [
                     ['Désignation', designation || 'N/A'],
-                    ['Qté Lot', quantiteLot ? `${quantiteLot} pcs` : 'N/A']
-                ],
-                [
-                    ['Client', client || 'N/A'],
                     ['Contrôleur', controleurDisplay]
                 ],
                 [
-                    ['Date', dateObj.toLocaleDateString('fr-FR')],
+                    ['Qté Lot', quantiteLot ? `${quantiteLot} pcs` : 'N/A'],
                     ['', '']
                 ]
             ];
