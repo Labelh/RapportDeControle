@@ -1031,22 +1031,20 @@ class RapportDeControleApp {
             const dateObj = new Date(rapport.date_controle);
             const dateFormatted = dateObj.toLocaleDateString('fr-FR');
 
-            let statusLabel = 'En attente';
-            let statusClass = 'en_attente';
+            let statusLabel = 'À Traiter';
+            let statusClass = 'a_traiter';
 
             // Si réponse client existe, afficher "Traité"
             if (rapport.reponse_client && rapport.reponse_client.trim() !== '') {
                 statusLabel = 'Traité';
                 statusClass = 'traite';
-            } else if (rapport.status === 'en_cours') {
-                statusLabel = 'En cours';
-                statusClass = 'en_cours';
-            } else if (rapport.status === 'attente_client') {
-                statusLabel = 'Attente client';
-                statusClass = 'attente_client';
-            } else if (rapport.status === 'cloture') {
-                statusLabel = 'Clôturé';
-                statusClass = 'cloture';
+            } else if (rapport.email_genere) {
+                // Si l'email a été généré mais pas de réponse
+                statusLabel = 'En attente de réponse';
+                statusClass = 'attente_reponse';
+            } else if (rapport.status === 'en_attente' || rapport.status === 'a_traiter' || !rapport.status) {
+                statusLabel = 'À Traiter';
+                statusClass = 'a_traiter';
             } else if (rapport.status === 'traite') {
                 statusLabel = 'Traité';
                 statusClass = 'traite';
@@ -1061,7 +1059,7 @@ class RapportDeControleApp {
 
             // Boutons selon statut
             let actionButtons = '';
-            if (rapport.status === 'en_attente') {
+            if (rapport.status === 'en_attente' || rapport.status === 'a_traiter' || !rapport.status) {
                 actionButtons = `
                     <button class="btn-icon-only btn-edit-icon" onclick="event.stopPropagation(); app.editerRapport('${rapport.id}')" title="Modifier">${editIcon}</button>
                     <button class="btn-icon-only btn-delete-icon" onclick="event.stopPropagation(); app.supprimerRapportUser('${rapport.id}')" title="Supprimer">${deleteIcon}</button>
@@ -1946,22 +1944,20 @@ class RapportDeControleApp {
         currentRapports.forEach(rapport => {
             const dateFormatted = new Date(rapport.date_controle).toLocaleDateString('fr-FR');
 
-            let statusLabel = 'En attente';
-            let statusClass = 'en_attente';
+            let statusLabel = 'À Traiter';
+            let statusClass = 'a_traiter';
 
             // Si réponse client existe, afficher "Traité"
             if (rapport.reponse_client && rapport.reponse_client.trim() !== '') {
                 statusLabel = 'Traité';
                 statusClass = 'traite';
-            } else if (rapport.status === 'en_cours') {
-                statusLabel = 'En cours';
-                statusClass = 'en_cours';
-            } else if (rapport.status === 'attente_client') {
-                statusLabel = 'Attente client';
-                statusClass = 'attente_client';
-            } else if (rapport.status === 'cloture') {
-                statusLabel = 'Clôturé';
-                statusClass = 'cloture';
+            } else if (rapport.email_genere) {
+                // Si l'email a été généré mais pas de réponse
+                statusLabel = 'En attente de réponse';
+                statusClass = 'attente_reponse';
+            } else if (rapport.status === 'en_attente' || rapport.status === 'a_traiter' || !rapport.status) {
+                statusLabel = 'À Traiter';
+                statusClass = 'a_traiter';
             } else if (rapport.status === 'traite') {
                 statusLabel = 'Traité';
                 statusClass = 'traite';
@@ -2611,6 +2607,22 @@ ${this.userProfile.full_name}`;
 
         // Stocker le rapport pour les fonctions suivantes
         this.currentMailRapport = rapport;
+
+        // Marquer l'email comme généré dans la base de données
+        if (!rapport.email_genere) {
+            const { error: updateError } = await supabaseClient
+                .from('rapports')
+                .update({ email_genere: true })
+                .eq('id', rapportId);
+
+            if (updateError) {
+                console.error('Erreur mise à jour email_genere:', updateError);
+            } else {
+                // Recharger les listes de rapports pour mettre à jour le statut
+                await this.loadAdminRapports();
+                await this.updateNotifBadge();
+            }
+        }
 
         // Remplir les champs
         document.getElementById('mailRapportNumero').textContent = rapport.numero;

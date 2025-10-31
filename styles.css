@@ -1238,32 +1238,33 @@ input.field-error, select.field-error, textarea.field-error {
 
 .rapport-status {
     display: inline-block;
-    padding: 0.4rem 0.8rem;
+    padding: 0.35rem 0.75rem;
     border-radius: 20px;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
-    margin-top: 0.5rem;
+    margin-top: 0;
 }
 
-.status-en_attente {
-    background: rgba(255, 193, 7, 0.2);
+.status-en_attente,
+.status-a_traiter {
+    background: rgba(249, 55, 5, 0.15);
+    color: var(--accent-color);
+}
+
+.status-attente_reponse {
+    background: rgba(255, 193, 7, 0.15);
     color: #ff9800;
 }
 
 .status-traite {
-    background: rgba(23, 162, 184, 0.2);
-    color: var(--accent-green-blue);
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--success-color);
 }
 
 .status-resolu {
-    background: rgba(40, 167, 69, 0.2);
-    color: var(--accent-green);
-}
-
-.status-traite {
-    background: rgba(23, 162, 184, 0.2);
-    color: var(--accent-green-blue);
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--success-color);
 }
 
 .rapport-actions {
@@ -2814,11 +2815,13 @@ input.field-error, select.field-error, textarea.field-error {
     border-radius: 8px;
     transition: all 0.2s ease;
     min-height: 160px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .rapport-card:hover {
-    border-color: var(--primary-color);
+    border-color: var(--accent-color);
     background: var(--hover-bg);
+    box-shadow: 0 4px 12px rgba(249, 55, 5, 0.15);
 }
 
 .rapport-card-content {
@@ -2858,20 +2861,22 @@ input.field-error, select.field-error, textarea.field-error {
     flex-direction: column;
     padding: 1.5rem;
     gap: 1rem;
+    background: var(--card-bg);
 }
 
 .rapport-card-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     padding-bottom: 1rem;
-    border-bottom: 2px solid var(--border-light);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .rapport-card-numero {
     font-size: 1.75rem;
     font-weight: 700;
-    color: var(--accent-orange);
+    color: var(--accent-color);
+    letter-spacing: -0.5px;
 }
 
 .rapport-card-body {
@@ -2888,8 +2893,8 @@ input.field-error, select.field-error, textarea.field-error {
 }
 
 .rapport-field-value {
-    font-size: 1.125rem;
-    color: var(--text-dark);
+    font-size: 1rem;
+    color: var(--text-color);
     font-weight: 500;
 }
 
@@ -2898,8 +2903,9 @@ input.field-error, select.field-error, textarea.field-error {
     flex-direction: column;
     gap: 0.5rem;
     padding: 1rem;
-    border-left: 1px solid var(--border-dark);
+    border-left: 1px solid var(--border-color);
     justify-content: center;
+    background: var(--hover-bg);
 }
 
 .btn-rapport-action {
@@ -2908,19 +2914,19 @@ input.field-error, select.field-error, textarea.field-error {
     justify-content: center;
     width: 42px;
     height: 42px;
-    background: transparent;
-    border: 1px solid var(--border-dark);
+    background: #6c757d;
+    border: 1px solid #6c757d;
     border-radius: 6px;
-    color: var(--text-dark);
+    color: white;
     cursor: pointer;
     transition: all 0.2s ease;
     flex-shrink: 0;
 }
 
 .btn-rapport-action:hover {
-    background: var(--hover-bg);
-    border-color: var(--primary-color);
-    color: var(--primary-color);
+    background: white;
+    border-color: var(--border-dark);
+    color: #6c757d;
 }
 
 .btn-rapport-action svg {
