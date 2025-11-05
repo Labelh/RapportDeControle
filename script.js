@@ -2796,6 +2796,18 @@ class RapportDeControleApp {
             }).join('\n');
         }
 
+        // Générer la liste des destinataires
+        let destinatairesText = '';
+        if (contactsEmails.length > 0) {
+            const emailsList = contactsEmails.map(contact => {
+                if (contact.nom) {
+                    return `${contact.nom} <${contact.email}>`;
+                }
+                return contact.email;
+            }).join('; ');
+            destinatairesText = `\n\nDestinataires : ${emailsList}`;
+        }
+
         const corps = `Bonjour,
 
 Suite au contrôle qualité effectué le ${dateControle}, nous avons identifié des non-conformités sur la commande n°${numeroCommande}.
@@ -2810,7 +2822,7 @@ ${defautsText}
 Nous restons à votre disposition pour toute information complémentaire.
 
 Cordialement,
-${this.userProfile.full_name}`;
+${this.userProfile.full_name}${destinatairesText}`;
 
         // Stocker le rapport pour les fonctions suivantes
         this.currentMailRapport = rapport;

@@ -1441,34 +1441,36 @@ input.field-error, select.field-error, textarea.field-error {
     flex-shrink: 0;
     background: linear-gradient(135deg, var(--accent-orange) 0%, #d64104 100%);
     color: white;
-    box-shadow: 0 4px 12px rgba(249, 55, 5, 0.25);
 }
 
 .settings-section-icon.clients-icon {
     background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.25);
 }
 
 .settings-section-icon.contacts-icon {
     background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
-    box-shadow: 0 4px 12px rgba(155, 89, 182, 0.25);
 }
 
 .settings-section-icon.defauts-icon {
     background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.25);
 }
 
 .settings-section-icon.import-icon {
     background: linear-gradient(135deg, #16a085 0%, #1abc9c 100%);
-    box-shadow: 0 4px 12px rgba(22, 160, 133, 0.25);
 }
 
 .settings-section-header h3 {
-    color: var(--text-dark);
     font-size: 1.35rem;
     font-weight: 700;
     margin: 0;
+}
+
+[data-theme="dark"] .settings-section-header h3 {
+    color: #c0c0c0;
+}
+
+[data-theme="light"] .settings-section-header h3 {
+    color: var(--text-dark);
 }
 
 .settings-section-title-row {
@@ -1495,7 +1497,6 @@ input.field-error, select.field-error, textarea.field-error {
     font-size: 0.8rem;
     font-weight: 600;
     letter-spacing: 0.3px;
-    box-shadow: 0 2px 6px rgba(249, 55, 5, 0.2);
 }
 
 .settings-card {
@@ -1602,13 +1603,12 @@ input.field-error, select.field-error, textarea.field-error {
     font-weight: 600;
     font-size: 0.95rem;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(249, 55, 5, 0.25);
     white-space: nowrap;
 }
 
 .settings-btn-add:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(249, 55, 5, 0.35);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .settings-btn-add:active {
@@ -1842,12 +1842,11 @@ input.field-error, select.field-error, textarea.field-error {
     font-weight: 600;
     font-size: 0.95rem;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(22, 160, 133, 0.25);
 }
 
 .settings-btn-import:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(22, 160, 133, 0.35);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .import-filename {
