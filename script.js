@@ -491,9 +491,39 @@ class RapportDeControleApp {
             copyCorpsBtn.addEventListener('click', () => this.copyToClipboard('mailCorps'));
         }
 
+        const copyDestinatairesBtn = document.getElementById('copyDestinatairesBtn');
+        if (copyDestinatairesBtn) {
+            copyDestinatairesBtn.addEventListener('click', () => this.copyToClipboard('mailDestinataires'));
+        }
+
         const openGmailBtn = document.getElementById('openGmailBtn');
         if (openGmailBtn) {
             openGmailBtn.addEventListener('click', () => this.openGmail());
+        }
+
+        // Modals clients/contacts
+        const closeAddClientModal = document.getElementById('closeAddClientModal');
+        if (closeAddClientModal) {
+            closeAddClientModal.addEventListener('click', () => {
+                document.getElementById('addClientModal').style.display = 'none';
+            });
+        }
+
+        const modalAjouterClient = document.getElementById('modalAjouterClient');
+        if (modalAjouterClient) {
+            modalAjouterClient.addEventListener('click', () => this.ajouterClientModal());
+        }
+
+        const closeAddContactModal = document.getElementById('closeAddContactModal');
+        if (closeAddContactModal) {
+            closeAddContactModal.addEventListener('click', () => {
+                document.getElementById('addContactModal').style.display = 'none';
+            });
+        }
+
+        const modalAjouterContact = document.getElementById('modalAjouterContact');
+        if (modalAjouterContact) {
+            modalAjouterContact.addEventListener('click', () => this.ajouterContactModal());
         }
 
         const downloadPackageBtn = document.getElementById('downloadPackageBtn');
@@ -835,6 +865,21 @@ class RapportDeControleApp {
 
         if (listeClients) {
             listeClients.innerHTML = '';
+
+            // Ajouter la card "Ajouter un client" en premier
+            const addCard = document.createElement('div');
+            addCard.className = 'item-card add-card';
+            addCard.innerHTML = `
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span style="margin-left: 0.5rem;">Ajouter un client</span>
+            `;
+            addCard.addEventListener('click', () => this.openAddClientModal());
+            listeClients.appendChild(addCard);
+
+            // Ajouter les clients existants
             this.clients.forEach(client => {
                 const card = document.createElement('div');
                 card.className = 'item-card';
@@ -902,6 +947,36 @@ class RapportDeControleApp {
         }
 
         this.showNotification('Client supprimé avec succès', 'success');
+        await this.loadClients();
+    }
+
+    openAddClientModal() {
+        document.getElementById('modalNouveauClient').value = '';
+        document.getElementById('addClientModal').style.display = 'block';
+    }
+
+    async ajouterClientModal() {
+        const input = document.getElementById('modalNouveauClient');
+        const nom = input.value.trim();
+
+        if (!nom) {
+            this.showNotification('Veuillez entrer un nom de client', 'error');
+            return;
+        }
+
+        const { error } = await supabaseClient
+            .from('clients')
+            .insert([{ nom }]);
+
+        if (error) {
+            console.error('Erreur lors de l\'ajout du client:', error);
+            this.showNotification('Erreur lors de l\'ajout du client', 'error');
+            return;
+        }
+
+        input.value = '';
+        document.getElementById('addClientModal').style.display = 'none';
+        this.showNotification('Client ajouté avec succès', 'success');
         await this.loadClients();
     }
 
@@ -1143,6 +1218,75 @@ class RapportDeControleApp {
         }
 
         this.showNotification('Contact supprimé avec succès', 'success');
+        await this.loadContacts();
+    }
+
+    openAddContactModal() {
+        // Remplir le select avec les clients
+        const modalContactClient = document.getElementById('modalContactClient');
+        if (modalContactClient) {
+            modalContactClient.innerHTML = '<option value="">Sélectionner un client</option>';
+            this.clients.forEach(client => {
+                const option = document.createElement('option');
+                option.value = client.id;
+                option.textContent = client.nom;
+                modalContactClient.appendChild(option);
+            });
+        }
+
+        document.getElementById('modalContactEmail').value = '';
+        document.getElementById('modalContactNom').value = '';
+        document.getElementById('addContactModal').style.display = 'block';
+    }
+
+    updateModalContactClientSelect() {
+        const modalContactClient = document.getElementById('modalContactClient');
+        if (modalContactClient) {
+            modalContactClient.innerHTML = '<option value="">Sélectionner un client</option>';
+            this.clients.forEach(client => {
+                const option = document.createElement('option');
+                option.value = client.id;
+                option.textContent = client.nom;
+                modalContactClient.appendChild(option);
+            });
+        }
+    }
+
+    async ajouterContactModal() {
+        const clientId = document.getElementById('modalContactClient').value;
+        const email = document.getElementById('modalContactEmail').value.trim();
+        const nom = document.getElementById('modalContactNom').value.trim();
+
+        if (!clientId || !email) {
+            this.showNotification('Veuillez remplir tous les champs obligatoires', 'error');
+            return;
+        }
+
+        // Valider l'email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            this.showNotification('Adresse email invalide', 'error');
+            return;
+        }
+
+        const { error } = await supabaseClient
+            .from('contacts_clients')
+            .insert([{
+                client_id: clientId,
+                email: email,
+                nom: nom || null
+            }]);
+
+        if (error) {
+            console.error('Erreur lors de l\'ajout du contact:', error);
+            this.showNotification('Erreur lors de l\'ajout du contact', 'error');
+            return;
+        }
+
+        document.getElementById('modalContactEmail').value = '';
+        document.getElementById('modalContactNom').value = '';
+        document.getElementById('addContactModal').style.display = 'none';
+        this.showNotification('Contact ajouté avec succès', 'success');
         await this.loadContacts();
     }
 
@@ -2832,24 +2976,15 @@ ${this.userProfile.full_name}${destinatairesText}`;
         document.getElementById('mailObjet').value = objet;
         document.getElementById('mailCorps').value = corps;
 
-        // Afficher les contacts email si disponibles
-        const contactsSection = document.getElementById('contactsEmailSection');
-        const contactsList = document.getElementById('contactsEmailList');
-
-        if (contactsEmails.length > 0) {
-            contactsList.innerHTML = contactsEmails.map(contact => `
-                <div class="contact-email-badge">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                        <polyline points="22,6 12,13 2,6"></polyline>
-                    </svg>
-                    <span class="contact-email-text">${contact.email}</span>
-                    ${contact.nom ? `<span class="contact-email-name">(${contact.nom})</span>` : ''}
-                </div>
-            `).join('');
-            contactsSection.style.display = 'block';
-        } else {
-            contactsSection.style.display = 'none';
+        // Remplir le champ destinataires avec les emails des contacts
+        const destinatairesField = document.getElementById('mailDestinataires');
+        if (destinatairesField) {
+            if (contactsEmails.length > 0) {
+                const emailsList = contactsEmails.map(contact => contact.email).join(', ');
+                destinatairesField.value = emailsList;
+            } else {
+                destinatairesField.value = '';
+            }
         }
 
         // Afficher le modal

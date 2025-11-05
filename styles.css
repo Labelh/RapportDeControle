@@ -1384,22 +1384,29 @@ input.field-error, select.field-error, textarea.field-error {
 
 /* ========== PAGE PARAMÈTRES - NOUVEAU DESIGN ========== */
 .settings-header {
-    background: linear-gradient(135deg, var(--accent-orange) 0%, #d64104 100%);
+    background: var(--hover-bg);
     border-radius: 16px;
     padding: 2.5rem 2rem;
     margin-bottom: 2rem;
-    box-shadow: 0 8px 24px rgba(249, 55, 5, 0.15);
+    border: 1px solid var(--border-color);
 }
 
 .settings-header-content h2 {
-    color: white;
     font-size: 2rem;
     font-weight: 700;
     margin-bottom: 0.5rem;
 }
 
+[data-theme="dark"] .settings-header-content h2 {
+    color: #c0c0c0;
+}
+
+[data-theme="light"] .settings-header-content h2 {
+    color: var(--text-dark);
+}
+
 .settings-subtitle {
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--text-light);
     font-size: 1.05rem;
     margin: 0;
 }
@@ -1624,7 +1631,7 @@ input.field-error, select.field-error, textarea.field-error {
 
 .item-card {
     background: var(--background-light);
-    border: 2px solid var(--border-color);
+    border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 1.25rem;
     display: flex;
@@ -1632,6 +1639,19 @@ input.field-error, select.field-error, textarea.field-error {
     align-items: center;
     transition: all 0.3s ease;
     animation: slideIn 0.3s ease;
+    cursor: pointer;
+}
+
+.item-card.add-card {
+    border-style: dashed;
+    justify-content: center;
+    color: var(--text-light);
+    font-weight: 600;
+}
+
+.item-card.add-card:hover {
+    border-color: var(--accent-orange);
+    color: var(--accent-orange);
 }
 
 @keyframes slideIn {
@@ -1647,9 +1667,13 @@ input.field-error, select.field-error, textarea.field-error {
 
 .item-card:hover {
     background: var(--card-bg);
-    border-color: var(--accent-orange);
+    border-color: #666;
     transform: translateY(-3px);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .item-card:hover {
+    border-color: #999;
 }
 
 .item-card.removing {
@@ -2015,6 +2039,17 @@ input.field-error, select.field-error, textarea.field-error {
     overflow-y: auto;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
     border: 1px solid var(--border-dark);
+}
+
+.modal-content.modal-sm {
+    max-width: 450px;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    justify-content: flex-end;
 }
 
 .modal-header {
