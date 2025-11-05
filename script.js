@@ -263,6 +263,7 @@ class RapportDeControleApp {
                 } else if (targetPage === 'parametres') {
                     this.loadClients();
                     this.loadTypesDefauts();
+                    this.loadContacts();
                     this.loadSettings();
                 } else if (targetPage === 'rapport') {
                     // Recharger l'UI des clients quand on retourne sur la page rapport
@@ -325,12 +326,24 @@ class RapportDeControleApp {
         document.getElementById('ajouterClient').addEventListener('click', () => this.ajouterClient());
         document.getElementById('ajouterTypeDefaut').addEventListener('click', () => this.ajouterTypeDefaut());
 
+        const ajouterContactBtn = document.getElementById('ajouterContact');
+        if (ajouterContactBtn) {
+            ajouterContactBtn.addEventListener('click', () => this.ajouterContact());
+        }
+
         document.getElementById('nouveauClient').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.ajouterClient();
         });
         document.getElementById('nouveauDefaut').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.ajouterTypeDefaut();
         });
+
+        const contactEmailInput = document.getElementById('contactEmail');
+        if (contactEmailInput) {
+            contactEmailInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') this.ajouterContact();
+            });
+        }
 
         // Import Excel
         const importExcelBtn = document.getElementById('importExcelBtn');
@@ -816,19 +829,34 @@ class RapportDeControleApp {
             });
         }
 
-        // Mettre à jour la liste dans les paramètres
+        // Mettre à jour la grille de cards dans les paramètres
         const listeClients = document.getElementById('listeClients');
+        const clientsCount = document.getElementById('clientsCount');
+
         if (listeClients) {
             listeClients.innerHTML = '';
             this.clients.forEach(client => {
-                const li = document.createElement('li');
-                li.innerHTML = `
-                    <span>${client.nom}</span>
-                    <button class="btn-delete" onclick="app.supprimerClient('${client.id}')" title="Supprimer">🗑</button>
+                const card = document.createElement('div');
+                card.className = 'item-card';
+                card.innerHTML = `
+                    <span class="item-card-name">${client.nom}</span>
+                    <button class="item-card-delete" onclick="app.supprimerClient('${client.id}')" title="Supprimer">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </button>
                 `;
-                listeClients.appendChild(li);
+                listeClients.appendChild(card);
             });
         }
+
+        if (clientsCount) {
+            clientsCount.textContent = `${this.clients.length} client${this.clients.length > 1 ? 's' : ''}`;
+        }
+
+        // Mettre à jour le select des contacts
+        this.updateContactClientSelect();
     }
 
     async ajouterClient() {
@@ -906,18 +934,30 @@ class RapportDeControleApp {
             });
         }
 
-        // Mettre à jour la liste dans les paramètres
+        // Mettre à jour la grille de cards dans les paramètres
         const listeTypesDefauts = document.getElementById('listeTypesDefauts');
+        const defautsCount = document.getElementById('defautsCount');
+
         if (listeTypesDefauts) {
             listeTypesDefauts.innerHTML = '';
             this.typesDefauts.forEach(type => {
-                const li = document.createElement('li');
-                li.innerHTML = `
-                    <span>${type.nom}</span>
-                    <button class="btn-delete" onclick="app.supprimerTypeDefaut('${type.id}')" title="Supprimer">🗑</button>
+                const card = document.createElement('div');
+                card.className = 'item-card';
+                card.innerHTML = `
+                    <span class="item-card-name">${type.nom}</span>
+                    <button class="item-card-delete" onclick="app.supprimerTypeDefaut('${type.id}')" title="Supprimer">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </button>
                 `;
-                listeTypesDefauts.appendChild(li);
+                listeTypesDefauts.appendChild(card);
             });
+        }
+
+        if (defautsCount) {
+            defautsCount.textContent = `${this.typesDefauts.length} type${this.typesDefauts.length > 1 ? 's' : ''}`;
         }
     }
 
@@ -965,6 +1005,145 @@ class RapportDeControleApp {
 
         this.showNotification('Type de défaut supprimé avec succès', 'success');
         await this.loadTypesDefauts();
+    }
+
+    // ========== GESTION DES CONTACTS CLIENTS ==========
+    async loadContacts() {
+        const { data, error} = await supabaseClient
+            .from('contacts_clients')
+            .select('*, clients(nom)')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Erreur lors du chargement des contacts:', error);
+            return;
+        }
+
+        this.contacts = data || [];
+        this.updateContactsUI();
+    }
+
+    updateContactClientSelect() {
+        const contactClient = document.getElementById('contactClient');
+        if (!contactClient) return;
+
+        contactClient.innerHTML = '<option value="">Sélectionner un client</option>';
+        this.clients.forEach(client => {
+            const option = document.createElement('option');
+            option.value = client.id;
+            option.textContent = client.nom;
+            contactClient.appendChild(option);
+        });
+    }
+
+    updateContactsUI() {
+        const listeContacts = document.getElementById('listeContacts');
+        const contactsCount = document.getElementById('contactsCount');
+
+        if (!listeContacts) return;
+
+        // Grouper les contacts par client
+        const contactsParClient = {};
+        this.contacts.forEach(contact => {
+            const clientNom = contact.clients?.nom || 'Sans client';
+            if (!contactsParClient[clientNom]) {
+                contactsParClient[clientNom] = [];
+            }
+            contactsParClient[clientNom].push(contact);
+        });
+
+        listeContacts.innerHTML = '';
+        Object.keys(contactsParClient).sort().forEach(clientNom => {
+            const group = document.createElement('div');
+            group.className = 'contact-group';
+            group.innerHTML = `<div class="contact-group-header">${clientNom}</div>`;
+
+            contactsParClient[clientNom].forEach(contact => {
+                const card = document.createElement('div');
+                card.className = 'contact-card';
+                card.innerHTML = `
+                    <div class="contact-info">
+                        <div class="contact-email">${contact.email}</div>
+                        ${contact.nom ? `<div class="contact-name">${contact.nom}</div>` : ''}
+                    </div>
+                    <button class="contact-delete" onclick="app.supprimerContact('${contact.id}')" title="Supprimer">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </button>
+                `;
+                group.appendChild(card);
+            });
+
+            listeContacts.appendChild(group);
+        });
+
+        if (contactsCount) {
+            contactsCount.textContent = `${this.contacts.length} contact${this.contacts.length > 1 ? 's' : ''}`;
+        }
+    }
+
+    async ajouterContact() {
+        const clientId = document.getElementById('contactClient').value;
+        const email = document.getElementById('contactEmail').value.trim();
+        const nom = document.getElementById('contactNom').value.trim();
+
+        if (!clientId || !email) {
+            this.showNotification('Veuillez remplir tous les champs obligatoires', 'error');
+            return;
+        }
+
+        // Valider l'email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            this.showNotification('Adresse email invalide', 'error');
+            return;
+        }
+
+        const { error } = await supabaseClient
+            .from('contacts_clients')
+            .insert([{
+                client_id: clientId,
+                email: email,
+                nom: nom || null
+            }]);
+
+        if (error) {
+            console.error('Erreur lors de l\'ajout du contact:', error);
+            this.showNotification('Erreur lors de l\'ajout du contact', 'error');
+            return;
+        }
+
+        document.getElementById('contactEmail').value = '';
+        document.getElementById('contactNom').value = '';
+        this.showNotification('Contact ajouté avec succès', 'success');
+        await this.loadContacts();
+    }
+
+    async supprimerContact(id) {
+        if (!confirm('Êtes-vous sûr de vouloir supprimer ce contact ?')) return;
+
+        // Animation de suppression
+        const card = event.target.closest('.contact-card');
+        if (card) {
+            card.classList.add('removing');
+            await new Promise(resolve => setTimeout(resolve, 300));
+        }
+
+        const { error } = await supabaseClient
+            .from('contacts_clients')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            console.error('Erreur lors de la suppression du contact:', error);
+            this.showNotification('Erreur lors de la suppression du contact', 'error');
+            return;
+        }
+
+        this.showNotification('Contact supprimé avec succès', 'success');
+        await this.loadContacts();
     }
 
     // ========== GESTION DES RAPPORTS ==========
@@ -2584,6 +2763,19 @@ class RapportDeControleApp {
             return;
         }
 
+        // Charger les contacts email pour ce client
+        let contactsEmails = [];
+        if (rapport.client_id) {
+            const { data: contacts } = await supabaseClient
+                .from('contacts_clients')
+                .select('email, nom')
+                .eq('client_id', rapport.client_id);
+
+            if (contacts && contacts.length > 0) {
+                contactsEmails = contacts;
+            }
+        }
+
         // Générer l'objet du mail
         const ofClient = rapport.of_client || 'N/A';
         const numeroCommande = rapport.numero_commande || rapport.ordre_fabrication;
@@ -2627,6 +2819,26 @@ ${this.userProfile.full_name}`;
         document.getElementById('mailRapportNumero').textContent = rapport.ordre_fabrication;
         document.getElementById('mailObjet').value = objet;
         document.getElementById('mailCorps').value = corps;
+
+        // Afficher les contacts email si disponibles
+        const contactsSection = document.getElementById('contactsEmailSection');
+        const contactsList = document.getElementById('contactsEmailList');
+
+        if (contactsEmails.length > 0) {
+            contactsList.innerHTML = contactsEmails.map(contact => `
+                <div class="contact-email-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                        <polyline points="22,6 12,13 2,6"></polyline>
+                    </svg>
+                    <span class="contact-email-text">${contact.email}</span>
+                    ${contact.nom ? `<span class="contact-email-name">(${contact.nom})</span>` : ''}
+                </div>
+            `).join('');
+            contactsSection.style.display = 'block';
+        } else {
+            contactsSection.style.display = 'none';
+        }
 
         // Afficher le modal
         document.getElementById('mailModal').style.display = 'block';

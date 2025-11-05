@@ -373,27 +373,62 @@
                 </div>
 
                 <div class="card">
-                    <h3>Clients</h3>
-                    <div class="clients-list">
-                        <ul id="listeClients"></ul>
+                    <div class="card-header-with-count">
+                        <h3>Clients</h3>
+                        <span class="item-count" id="clientsCount">0 clients</span>
                     </div>
-                    <div class="form-group">
-                        <label for="nouveauClient">Nouveau Client</label>
-                        <input type="text" id="nouveauClient">
-                        <button id="ajouterClient" class="btn btn-secondary">Ajouter</button>
+                    <div class="add-item-form">
+                        <input type="text" id="nouveauClient" placeholder="Nom du client">
+                        <button id="ajouterClient" class="btn btn-add">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            Ajouter
+                        </button>
                     </div>
+                    <div class="items-grid" id="listeClients"></div>
                 </div>
 
                 <div class="card">
-                    <h3>Types de Défauts</h3>
-                    <div class="defauts-types-list">
-                        <ul id="listeTypesDefauts"></ul>
+                    <div class="card-header-with-count">
+                        <h3>Contacts Email par Client</h3>
+                        <span class="item-count" id="contactsCount">0 contacts</span>
                     </div>
-                    <div class="form-group">
-                        <label for="nouveauDefaut">Nouveau Type de Défaut</label>
-                        <input type="text" id="nouveauDefaut">
-                        <button id="ajouterTypeDefaut" class="btn btn-secondary">Ajouter</button>
+                    <p class="card-description">Gérez les adresses email des destinataires pour chaque client. Ces emails seront ajoutés automatiquement lors de la génération d'un email.</p>
+                    <div class="add-contact-form">
+                        <select id="contactClient" class="form-control">
+                            <option value="">Sélectionner un client</option>
+                        </select>
+                        <input type="email" id="contactEmail" placeholder="email@exemple.com">
+                        <input type="text" id="contactNom" placeholder="Nom du contact (optionnel)">
+                        <button id="ajouterContact" class="btn btn-add">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                            Ajouter contact
+                        </button>
                     </div>
+                    <div id="listeContacts" class="contacts-list"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header-with-count">
+                        <h3>Types de Défauts</h3>
+                        <span class="item-count" id="defautsCount">0 types</span>
+                    </div>
+                    <div class="add-item-form">
+                        <input type="text" id="nouveauDefaut" placeholder="Type de défaut">
+                        <button id="ajouterTypeDefaut" class="btn btn-add">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            Ajouter
+                        </button>
+                    </div>
+                    <div class="items-grid" id="listeTypesDefauts"></div>
                 </div>
 
                 <div class="card">
@@ -460,6 +495,11 @@
             </div>
             <div class="modal-body">
                 <div class="mail-form">
+                    <div id="contactsEmailSection" class="form-group" style="display: none;">
+                        <label>Contacts email du client</label>
+                        <div id="contactsEmailList" class="contacts-email-list"></div>
+                    </div>
+
                     <div class="form-group">
                         <div class="label-with-action">
                             <label for="mailObjet">Objet</label>
@@ -671,6 +711,6 @@
     </div>
 
     <script src="config.js"></script>
-    <script src="script.js?v=2.3.0"></script>
+    <script src="script.js?v=2.4.0"></script>
 </body>
 </html>
