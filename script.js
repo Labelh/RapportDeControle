@@ -448,6 +448,12 @@ class RapportDeControleApp {
             filterStatus.addEventListener('change', () => this.loadAdminRapports());
         }
 
+        // Recherche admin
+        const searchRapports = document.getElementById('searchRapports');
+        if (searchRapports) {
+            searchRapports.addEventListener('input', () => this.loadAdminRapports());
+        }
+
         // Modal rapport admin
         const closeRapportModal = document.getElementById('closeRapportModal');
         if (closeRapportModal) {
@@ -1872,6 +1878,7 @@ class RapportDeControleApp {
     // ========== ESPACE ADMIN ==========
     async loadAdminRapports() {
         const filterStatus = document.getElementById('filterStatus')?.value || '';
+        const searchTerm = document.getElementById('searchRapports')?.value.toLowerCase().trim() || '';
 
         let query = supabaseClient
             .from('rapports')
@@ -1889,10 +1896,31 @@ class RapportDeControleApp {
             return;
         }
 
-        // Stocker les rapports admin pour la génération de mail
-        this.adminRapports = data;
+        // Filtrer par recherche côté client
+        let filteredData = data;
+        if (searchTerm) {
+            filteredData = data.filter(rapport => {
+                const ordeFabrication = (rapport.ordre_fabrication || '').toLowerCase();
+                const ofClient = (rapport.of_client || '').toLowerCase();
+                const reference = (rapport.reference || '').toLowerCase();
+                const client = (rapport.client || '').toLowerCase();
+                const numeroCommande = (rapport.numero_commande || '').toLowerCase();
 
-        this.updateAdminRapportsUI(data);
+                return ordeFabrication.includes(searchTerm) ||
+                       ofClient.includes(searchTerm) ||
+                       reference.includes(searchTerm) ||
+                       client.includes(searchTerm) ||
+                       numeroCommande.includes(searchTerm);
+            });
+        }
+
+        // Réinitialiser la page courante lors d'une nouvelle recherche/filtre
+        this.adminCurrentPage = 1;
+
+        // Stocker les rapports admin pour la génération de mail
+        this.adminRapports = filteredData;
+
+        this.updateAdminRapportsUI(filteredData);
     }
 
     updateAdminRapportsUI(rapports) {

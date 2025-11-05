@@ -1717,6 +1717,28 @@ input.field-error, select.field-error, textarea.field-error {
     flex-wrap: wrap;
 }
 
+.search-input {
+    flex: 1;
+    min-width: 250px;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    font-size: 0.95rem;
+    background: var(--background-white);
+    color: var(--text-dark);
+    transition: all 0.2s ease;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--accent-orange);
+    box-shadow: 0 0 0 3px rgba(249, 55, 5, 0.1);
+}
+
+.search-input::placeholder {
+    color: var(--text-light);
+}
+
 .modal-body {
     padding: 1rem 0;
 }
@@ -2922,21 +2944,21 @@ input.field-error, select.field-error, textarea.field-error {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 42px;
-    height: 42px;
-    background: #6c757d;
-    border: 1px solid #6c757d;
+    width: 38px;
+    height: 38px;
+    background: transparent;
+    border: 1px solid transparent;
     border-radius: 6px;
-    color: white;
+    color: var(--text-light);
     cursor: pointer;
     transition: all 0.2s ease;
     flex-shrink: 0;
 }
 
 .btn-rapport-action:hover {
-    background: white;
-    border-color: var(--border-dark);
-    color: #6c757d;
+    background: var(--hover-bg);
+    border-color: var(--border-color);
+    color: var(--text-color);
 }
 
 .btn-rapport-action svg {
@@ -2944,13 +2966,13 @@ input.field-error, select.field-error, textarea.field-error {
 }
 
 .btn-rapport-action.btn-delete {
-    border-color: #e74c3c;
     color: #e74c3c;
 }
 
 .btn-rapport-action.btn-delete:hover {
-    background: #e74c3c;
-    color: white;
+    background: rgba(231, 76, 60, 0.1);
+    border-color: #e74c3c;
+    color: #e74c3c;
 }
 
 /* ========== PAGINATION ========== */
