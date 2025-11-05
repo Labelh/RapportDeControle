@@ -356,107 +356,205 @@
 
             <!-- Page Paramètres -->
             <div id="page-parametres" class="page">
-                <div class="page-header">
-                    <h2>Paramètres</h2>
-                </div>
-
-                <!-- Préférences générales -->
-                <div class="card">
-                    <h3>Préférences</h3>
-                    <div class="form-group">
-                        <label for="themePreference">Thème de l'application</label>
-                        <select id="themePreference" class="form-control">
-                            <option value="dark">Sombre</option>
-                            <option value="light">Clair</option>
-                        </select>
+                <div class="settings-header">
+                    <div class="settings-header-content">
+                        <h2>Paramètres</h2>
+                        <p class="settings-subtitle">Configurez votre application et gérez vos données</p>
                     </div>
                 </div>
 
-                <div class="card">
-                    <div class="card-header-with-count">
-                        <h3>Clients</h3>
-                        <span class="item-count" id="clientsCount">0 clients</span>
+                <div class="settings-container">
+                    <!-- Section Préférences -->
+                    <div class="settings-section">
+                        <div class="settings-section-header">
+                            <div class="settings-section-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <path d="M12 1v6m0 6v6m-9-9h6m6 0h6"></path>
+                                    <path d="M18.36 5.64l-4.24 4.24m0 4.24l4.24 4.24M5.64 5.64l4.24 4.24m0 4.24l-4.24 4.24"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3>Préférences</h3>
+                                <p class="settings-section-description">Personnalisez l'apparence de l'application</p>
+                            </div>
+                        </div>
+                        <div class="settings-card">
+                            <div class="settings-form-row">
+                                <div class="settings-form-label">
+                                    <label for="themePreference">Thème de l'application</label>
+                                    <span class="settings-form-hint">Choisissez entre le mode sombre et clair</span>
+                                </div>
+                                <select id="themePreference" class="settings-select">
+                                    <option value="dark">🌙 Sombre</option>
+                                    <option value="light">☀️ Clair</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
-                    <div class="add-item-form">
-                        <input type="text" id="nouveauClient" placeholder="Nom du client">
-                        <button id="ajouterClient" class="btn btn-add">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
-                            Ajouter
-                        </button>
-                    </div>
-                    <div class="items-grid" id="listeClients"></div>
-                </div>
 
-                <div class="card">
-                    <div class="card-header-with-count">
-                        <h3>Contacts Email par Client</h3>
-                        <span class="item-count" id="contactsCount">0 contacts</span>
+                    <!-- Section Clients -->
+                    <div class="settings-section">
+                        <div class="settings-section-header">
+                            <div class="settings-section-icon clients-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="9" cy="7" r="4"></circle>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="settings-section-title-row">
+                                    <h3>Clients</h3>
+                                    <span class="settings-badge" id="clientsCount">0 clients</span>
+                                </div>
+                                <p class="settings-section-description">Gérez la liste de vos clients</p>
+                            </div>
+                        </div>
+                        <div class="settings-card">
+                            <div class="settings-add-form">
+                                <input type="text" id="nouveauClient" placeholder="Nom du nouveau client" class="settings-input">
+                                <button id="ajouterClient" class="settings-btn-add">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
+                                    Ajouter
+                                </button>
+                            </div>
+                            <div class="settings-items-grid" id="listeClients"></div>
+                        </div>
                     </div>
-                    <p class="card-description">Gérez les adresses email des destinataires pour chaque client. Ces emails seront ajoutés automatiquement lors de la génération d'un email.</p>
-                    <div class="add-contact-form">
-                        <select id="contactClient" class="form-control">
-                            <option value="">Sélectionner un client</option>
-                        </select>
-                        <input type="email" id="contactEmail" placeholder="email@exemple.com">
-                        <input type="text" id="contactNom" placeholder="Nom du contact (optionnel)">
-                        <button id="ajouterContact" class="btn btn-add">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
-                            </svg>
-                            Ajouter contact
-                        </button>
-                    </div>
-                    <div id="listeContacts" class="contacts-list"></div>
-                </div>
 
-                <div class="card">
-                    <div class="card-header-with-count">
-                        <h3>Types de Défauts</h3>
-                        <span class="item-count" id="defautsCount">0 types</span>
+                    <!-- Section Contacts -->
+                    <div class="settings-section">
+                        <div class="settings-section-header">
+                            <div class="settings-section-icon contacts-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                                    <polyline points="22,6 12,13 2,6"></polyline>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="settings-section-title-row">
+                                    <h3>Contacts Email</h3>
+                                    <span class="settings-badge" id="contactsCount">0 contacts</span>
+                                </div>
+                                <p class="settings-section-description">Gérez les destinataires email par client pour l'envoi automatique</p>
+                            </div>
+                        </div>
+                        <div class="settings-card">
+                            <div class="settings-add-form contacts-form">
+                                <select id="contactClient" class="settings-select">
+                                    <option value="">Sélectionner un client</option>
+                                </select>
+                                <input type="email" id="contactEmail" placeholder="email@exemple.com" class="settings-input">
+                                <input type="text" id="contactNom" placeholder="Nom du contact (optionnel)" class="settings-input">
+                                <button id="ajouterContact" class="settings-btn-add">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                    Ajouter
+                                </button>
+                            </div>
+                            <div id="listeContacts" class="contacts-list"></div>
+                        </div>
                     </div>
-                    <div class="add-item-form">
-                        <input type="text" id="nouveauDefaut" placeholder="Type de défaut">
-                        <button id="ajouterTypeDefaut" class="btn btn-add">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
-                            Ajouter
-                        </button>
-                    </div>
-                    <div class="items-grid" id="listeTypesDefauts"></div>
-                </div>
 
-                <div class="card">
-                    <h3>Import Références Produits</h3>
-                    <p class="card-description">Importez un fichier Excel (.xlsx) contenant les références et leurs désignations pour faciliter la saisie des rapports.</p>
-                    <div class="form-group">
-                        <label>Format attendu du fichier Excel :</label>
-                        <ul style="margin-left: 1.5rem; margin-bottom: 1rem; color: var(--text-muted);">
-                            <li>Colonne A : Référence</li>
-                            <li>Colonne B : Désignation</li>
-                            <li>Ligne 1 : En-têtes (sera ignorée)</li>
-                        </ul>
+                    <!-- Section Types de Défauts -->
+                    <div class="settings-section">
+                        <div class="settings-section-header">
+                            <div class="settings-section-icon defauts-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="settings-section-title-row">
+                                    <h3>Types de Défauts</h3>
+                                    <span class="settings-badge" id="defautsCount">0 types</span>
+                                </div>
+                                <p class="settings-section-description">Définissez les types de non-conformités</p>
+                            </div>
+                        </div>
+                        <div class="settings-card">
+                            <div class="settings-add-form">
+                                <input type="text" id="nouveauDefaut" placeholder="Type de défaut" class="settings-input">
+                                <button id="ajouterTypeDefaut" class="settings-btn-add">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
+                                    Ajouter
+                                </button>
+                            </div>
+                            <div class="settings-items-grid" id="listeTypesDefauts"></div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display: none;">
-                        <button id="importExcelBtn" class="btn btn-primary">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 0.5rem;">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="7 10 12 15 17 10"></polyline>
-                                <line x1="12" y1="15" x2="12" y2="3"></line>
-                            </svg>
-                            Sélectionner un fichier Excel
-                        </button>
-                        <span id="excelFileName" style="margin-left: 1rem; color: var(--text-muted);"></span>
-                    </div>
-                    <div id="excelImportStats" style="display: none; margin-top: 1rem; padding: 1rem; background: var(--hover-bg); border-radius: 0.5rem;">
-                        <p style="margin: 0;"><strong>Références importées :</strong> <span id="referencesCount">0</span></p>
-                        <button id="clearReferencesBtn" class="btn btn-danger" style="margin-top: 0.5rem;">Effacer toutes les références</button>
+
+                    <!-- Section Import -->
+                    <div class="settings-section">
+                        <div class="settings-section-header">
+                            <div class="settings-section-icon import-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14,2 14,8 20,8"></polyline>
+                                    <line x1="12" y1="18" x2="12" y2="12"></line>
+                                    <line x1="9" y1="15" x2="15" y2="15"></line>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3>Import de Références</h3>
+                                <p class="settings-section-description">Importez vos références produits depuis Excel</p>
+                            </div>
+                        </div>
+                        <div class="settings-card">
+                            <div class="import-info-box">
+                                <div class="import-info-header">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                    </svg>
+                                    <span>Format attendu du fichier Excel</span>
+                                </div>
+                                <ul class="import-format-list">
+                                    <li><span class="format-label">Colonne A :</span> Référence</li>
+                                    <li><span class="format-label">Colonne B :</span> Désignation</li>
+                                    <li><span class="format-label">Ligne 1 :</span> En-têtes (ignorée)</li>
+                                </ul>
+                            </div>
+                            <div class="import-actions">
+                                <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display: none;">
+                                <button id="importExcelBtn" class="settings-btn-import">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="7 10 12 15 17 10"></polyline>
+                                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                                    </svg>
+                                    Sélectionner un fichier
+                                </button>
+                                <span id="excelFileName" class="import-filename"></span>
+                            </div>
+                            <div id="excelImportStats" class="import-stats" style="display: none;">
+                                <div class="import-stats-content">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                    <span><strong>Références importées :</strong> <span id="referencesCount">0</span></span>
+                                </div>
+                                <button id="clearReferencesBtn" class="settings-btn-danger">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="3 6 5 6 21 6"></polyline>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    </svg>
+                                    Effacer toutes les références
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -711,6 +809,6 @@
     </div>
 
     <script src="config.js"></script>
-    <script src="script.js?v=2.4.0"></script>
+    <script src="script.js?v=2.5.0"></script>
 </body>
 </html>
