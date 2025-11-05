@@ -526,6 +526,18 @@ class RapportDeControleApp {
             modalAjouterContact.addEventListener('click', () => this.ajouterContactModal());
         }
 
+        const closeAddDefautModal = document.getElementById('closeAddDefautModal');
+        if (closeAddDefautModal) {
+            closeAddDefautModal.addEventListener('click', () => {
+                document.getElementById('addDefautModal').style.display = 'none';
+            });
+        }
+
+        const modalAjouterDefaut = document.getElementById('modalAjouterDefaut');
+        if (modalAjouterDefaut) {
+            modalAjouterDefaut.addEventListener('click', () => this.ajouterDefautModal());
+        }
+
         const downloadPackageBtn = document.getElementById('downloadPackageBtn');
         if (downloadPackageBtn) {
             downloadPackageBtn.addEventListener('click', () => this.downloadEmailPackage());
@@ -1015,6 +1027,21 @@ class RapportDeControleApp {
 
         if (listeTypesDefauts) {
             listeTypesDefauts.innerHTML = '';
+
+            // Ajouter la card "Ajouter un type de défaut" en premier
+            const addCard = document.createElement('div');
+            addCard.className = 'item-card add-card';
+            addCard.innerHTML = `
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span style="margin-left: 0.5rem;">Ajouter un type de défaut</span>
+            `;
+            addCard.addEventListener('click', () => this.openAddDefautModal());
+            listeTypesDefauts.appendChild(addCard);
+
+            // Ajouter les types de défauts existants
             this.typesDefauts.forEach(type => {
                 const card = document.createElement('div');
                 card.className = 'item-card';
@@ -1082,6 +1109,42 @@ class RapportDeControleApp {
         await this.loadTypesDefauts();
     }
 
+    openAddDefautModal() {
+        document.getElementById('modalNouveauDefaut').value = '';
+        document.getElementById('addDefautModal').style.display = 'block';
+    }
+
+    async ajouterDefautModal() {
+        const input = document.getElementById('modalNouveauDefaut');
+        const nom = input.value.trim();
+
+        if (!nom) {
+            this.showNotification('Veuillez entrer un type de défaut', 'error');
+            return;
+        }
+
+        // Vérifier si le type existe déjà
+        if (this.typesDefauts.find(t => t.nom === nom)) {
+            this.showNotification('Ce type de défaut existe déjà', 'error');
+            return;
+        }
+
+        const { error } = await supabaseClient
+            .from('types_defauts')
+            .insert([{ nom }]);
+
+        if (error) {
+            console.error('Erreur lors de l\'ajout du type de défaut:', error);
+            this.showNotification('Erreur lors de l\'ajout du type de défaut', 'error');
+            return;
+        }
+
+        input.value = '';
+        document.getElementById('addDefautModal').style.display = 'none';
+        this.showNotification('Type de défaut ajouté avec succès', 'success');
+        await this.loadTypesDefauts();
+    }
+
     // ========== GESTION DES CONTACTS CLIENTS ==========
     async loadContacts() {
         const { data, error} = await supabaseClient
@@ -1128,30 +1191,47 @@ class RapportDeControleApp {
         });
 
         listeContacts.innerHTML = '';
-        Object.keys(contactsParClient).sort().forEach(clientNom => {
-            const group = document.createElement('div');
-            group.className = 'contact-group';
-            group.innerHTML = `<div class="contact-group-header">${clientNom}</div>`;
 
-            contactsParClient[clientNom].forEach(contact => {
-                const card = document.createElement('div');
-                card.className = 'contact-card';
-                card.innerHTML = `
-                    <div class="contact-info">
-                        <div class="contact-email">${contact.email}</div>
-                        ${contact.nom ? `<div class="contact-name">${contact.nom}</div>` : ''}
+        // Ajouter la card "Ajouter un contact" en premier
+        const addCard = document.createElement('div');
+        addCard.className = 'item-card add-card';
+        addCard.innerHTML = `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span style="margin-left: 0.5rem;">Ajouter un contact</span>
+        `;
+        addCard.addEventListener('click', () => this.openAddContactModal());
+        listeContacts.appendChild(addCard);
+
+        // Créer des cards pour chaque client avec ses contacts
+        Object.keys(contactsParClient).sort().forEach(clientNom => {
+            const card = document.createElement('div');
+            card.className = 'item-card contact-client-card';
+
+            const contactsList = contactsParClient[clientNom].map(contact => {
+                return `<div class="contact-item">
+                    <div class="contact-item-info">
+                        <div class="contact-item-email">${contact.email}</div>
+                        ${contact.nom ? `<div class="contact-item-name">${contact.nom}</div>` : ''}
                     </div>
-                    <button class="contact-delete" onclick="app.supprimerContact('${contact.id}')" title="Supprimer">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <button class="item-card-delete" onclick="event.stopPropagation(); app.supprimerContact('${contact.id}')" title="Supprimer">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="3 6 5 6 21 6"></polyline>
                             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                         </svg>
                     </button>
-                `;
-                group.appendChild(card);
-            });
+                </div>`;
+            }).join('');
 
-            listeContacts.appendChild(group);
+            card.innerHTML = `
+                <div class="contact-client-title">${clientNom}</div>
+                <div class="contact-client-list">
+                    ${contactsList}
+                </div>
+            `;
+            listeContacts.appendChild(card);
         });
 
         if (contactsCount) {

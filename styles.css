@@ -1716,86 +1716,55 @@ input.field-error, select.field-error, textarea.field-error {
     transform: scale(1.05);
 }
 
-/* Contacts */
-.contacts-list {
-    margin-top: 1.5rem;
+/* Contacts - Design sobre */
+.contact-client-card {
+    flex-direction: column;
+    align-items: flex-start;
+    cursor: default;
 }
 
-.contact-group {
-    margin-bottom: 2rem;
+.contact-client-card:hover {
+    transform: translateY(-2px);
 }
 
-.contact-group-header {
-    font-weight: 700;
+.contact-client-title {
+    font-weight: 600;
     color: var(--text-dark);
-    font-size: 1.1rem;
-    margin-bottom: 1rem;
-    padding: 0.75rem 1rem;
-    background: linear-gradient(90deg, var(--accent-orange), transparent);
-    border-left: 4px solid var(--accent-orange);
-    border-radius: 6px;
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+    width: 100%;
 }
 
-.contact-card {
-    background: var(--background-light);
-    border: 2px solid var(--border-color);
-    border-radius: 12px;
-    padding: 1rem 1.25rem;
-    margin-bottom: 0.75rem;
+.contact-client-list {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.contact-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    transition: all 0.3s ease;
-    animation: slideIn 0.3s ease;
+    padding: 0.5rem 0;
 }
 
-.contact-card:hover {
-    background: var(--card-bg);
-    border-color: var(--accent-orange);
-    transform: translateX(6px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.contact-card.removing {
-    animation: slideOut 0.3s ease forwards;
-}
-
-.contact-info {
+.contact-item-info {
     flex: 1;
 }
 
-.contact-email {
-    font-weight: 600;
+.contact-item-email {
+    font-size: 0.9rem;
     color: var(--text-dark);
-    font-size: 0.975rem;
-    margin-bottom: 0.25rem;
+    font-weight: 500;
 }
 
-.contact-name {
-    font-size: 0.875rem;
+.contact-item-name {
+    font-size: 0.8rem;
     color: var(--text-light);
-}
-
-.contact-delete {
-    background: transparent;
-    border: 2px solid transparent;
-    color: var(--text-light);
-    cursor: pointer;
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    flex-shrink: 0;
-}
-
-.contact-delete:hover {
-    background: rgba(231, 76, 60, 0.12);
-    border-color: #e74c3c;
-    color: #e74c3c;
-    transform: scale(1.05);
+    margin-top: 0.125rem;
 }
 
 /* Section Import */

@@ -412,16 +412,6 @@
                             </div>
                         </div>
                         <div class="settings-card">
-                            <div class="settings-add-form">
-                                <input type="text" id="nouveauClient" placeholder="Nom du nouveau client" class="settings-input">
-                                <button id="ajouterClient" class="settings-btn-add">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                                    </svg>
-                                    Ajouter
-                                </button>
-                            </div>
                             <div class="settings-items-grid" id="listeClients"></div>
                         </div>
                     </div>
@@ -467,16 +457,6 @@
                             </div>
                         </div>
                         <div class="settings-card">
-                            <div class="settings-add-form">
-                                <input type="text" id="nouveauDefaut" placeholder="Type de défaut" class="settings-input">
-                                <button id="ajouterTypeDefaut" class="settings-btn-add">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                                    </svg>
-                                    Ajouter
-                                </button>
-                            </div>
                             <div class="settings-items-grid" id="listeTypesDefauts"></div>
                         </div>
                     </div>
@@ -617,6 +597,26 @@
                 <button class="close-modal" id="closeRapportModal">&times;</button>
             </div>
             <div id="rapportModalContent"></div>
+        </div>
+    </div>
+
+    <!-- Modal Ajouter Type de Défaut -->
+    <div id="addDefautModal" class="modal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h3>Ajouter un type de défaut</h3>
+                <button class="close-modal" id="closeAddDefautModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="modalNouveauDefaut">Type de défaut</label>
+                    <input type="text" id="modalNouveauDefaut" class="form-control" placeholder="Type de défaut">
+                </div>
+                <div class="modal-actions">
+                    <button id="modalAjouterDefaut" class="btn btn-primary">Ajouter</button>
+                    <button class="btn btn-secondary" onclick="document.getElementById('addDefautModal').style.display='none'">Annuler</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -853,6 +853,6 @@
     </div>
 
     <script src="config.js"></script>
-    <script src="script.js?v=2.6.0"></script>
+    <script src="script.js?v=2.6.1"></script>
 </body>
 </html>
