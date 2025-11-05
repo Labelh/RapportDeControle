@@ -408,6 +408,16 @@ body {
     justify-content: flex-end;
 }
 
+.rapport-bottom-actions {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
 /* Scrollbar pour la sidebar */
 .sidebar::-webkit-scrollbar,
 .sidebar-nav::-webkit-scrollbar {
@@ -1325,27 +1335,20 @@ input.field-error, select.field-error, textarea.field-error {
 
 .filter-select {
     padding: 0.875rem 1.25rem;
-    border: 2px solid var(--border-light);
-    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
     font-size: 0.95rem;
     background: var(--card-bg);
     color: var(--text-dark);
     cursor: pointer;
     min-width: 220px;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: none;
     font-weight: 500;
 }
 
 .filter-select:focus {
     outline: none;
-    border-color: var(--accent-orange);
-    box-shadow: 0 4px 12px rgba(249, 55, 5, 0.15);
-    transform: translateY(-1px);
-}
-
-.filter-select:hover {
-    border-color: var(--border-dark);
+    border-color: var(--border-color);
 }
 
 /* ========== GESTION UTILISATEURS ========== */
@@ -1730,20 +1733,17 @@ input.field-error, select.field-error, textarea.field-error {
     flex: 1;
     min-width: 300px;
     padding: 0.875rem 1.25rem;
-    border: 2px solid var(--border-light);
-    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
     font-size: 0.95rem;
     background: var(--card-bg);
     color: var(--text-dark);
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: none;
 }
 
 .search-input:focus {
     outline: none;
-    border-color: var(--accent-orange);
-    box-shadow: 0 4px 12px rgba(249, 55, 5, 0.15);
-    transform: translateY(-1px);
+    border-color: var(--border-color);
 }
 
 .search-input::placeholder {
@@ -2862,13 +2862,13 @@ input.field-error, select.field-error, textarea.field-error {
     display: flex;
     align-items: stretch;
     height: 100%;
-    min-height: 160px;
+    min-height: 180px;
     cursor: pointer;
 }
 
 .rapport-card-photo {
-    width: 180px;
-    height: 140px;
+    width: 200px;
+    height: 160px;
     flex-shrink: 0;
     border-radius: 12px;
     overflow: hidden;
@@ -2919,7 +2919,7 @@ input.field-error, select.field-error, textarea.field-error {
 .rapport-card-body {
     flex: 1;
     display: flex;
-    gap: 1.5rem;
+    gap: 2rem;
     align-items: center;
 }
 

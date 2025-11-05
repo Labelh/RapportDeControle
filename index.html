@@ -155,7 +155,11 @@
                     <div class="card-section-header">
                         <h3>Informations du Rapport</h3>
                         <button type="button" id="scanOFBtn" class="btn btn-scan">
-                            📷 Scanner un OF
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                                <circle cx="12" cy="13" r="4"/>
+                            </svg>
+                            Scanner un OF
                         </button>
                     </div>
 
@@ -276,11 +280,10 @@
                     <div id="defautsList" class="defauts-list"></div>
                 </div>
 
-                <div class="card-footer-actions">
+                <div class="rapport-bottom-actions">
                     <button id="addDefaut" class="btn btn-green">+ Ajouter un Défaut</button>
+                    <button id="validerRapport" class="btn btn-success" style="display: none;">Valider le Rapport</button>
                 </div>
-
-                <button id="validerRapport" class="btn btn-success generate-pdf-btn" style="display: none;">Valider le Rapport</button>
             </div>
 
             <!-- Page Mes NC -->
@@ -668,6 +671,6 @@
     </div>
 
     <script src="config.js"></script>
-    <script src="script.js?v=2.2.1"></script>
+    <script src="script.js?v=2.3.0"></script>
 </body>
 </html>

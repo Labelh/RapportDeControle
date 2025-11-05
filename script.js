@@ -550,7 +550,7 @@ class RapportDeControleApp {
             document.getElementById('topo').value = defaut.topo || '';
             document.getElementById('commentaire').value = defaut.commentaire;
             this.selectedPhotos = [...defaut.photos];
-            document.querySelector('.form-actions button[type="submit"]').textContent = 'Modifier';
+            document.querySelector('.form-actions button[type="submit"]').textContent = 'Valider modification';
         } else {
             formTitle.textContent = 'Ajouter un Défaut';
             document.getElementById('defautForm').reset();
