@@ -1990,6 +1990,9 @@ class RapportDeControleApp {
                 }
             }
 
+            const dateControle = new Date(rapport.date_controle).toLocaleDateString('fr-FR');
+            const nbDefauts = rapport.defauts ? rapport.defauts.length : 0;
+
             const card = document.createElement('div');
             card.className = 'rapport-card';
             card.innerHTML = `
@@ -1999,18 +2002,29 @@ class RapportDeControleApp {
                     </div>
                     <div class="rapport-card-main">
                         <div class="rapport-card-header">
-                            <div class="rapport-card-numero">${rapport.ordre_fabrication}</div>
+                            <div class="rapport-card-numero">OF ${rapport.ordre_fabrication}</div>
                             <span class="rapport-status status-${statusClass}">${statusLabel}</span>
                         </div>
                         <div class="rapport-card-body">
                             <div class="rapport-card-field">
-                                <span class="rapport-field-value">${rapport.ordre_fabrication}</span>
+                                <span class="rapport-field-label">Client</span>
+                                <span class="rapport-field-value">${rapport.client || 'N/A'}</span>
                             </div>
                             <div class="rapport-card-field">
+                                <span class="rapport-field-label">Référence</span>
                                 <span class="rapport-field-value">${rapport.reference || 'N/A'}</span>
                             </div>
                             <div class="rapport-card-field">
-                                <span class="rapport-field-value">${rapport.client || 'N/A'}</span>
+                                <span class="rapport-field-label">OF Client</span>
+                                <span class="rapport-field-value">${rapport.of_client || 'N/A'}</span>
+                            </div>
+                            <div class="rapport-card-field">
+                                <span class="rapport-field-label">Date</span>
+                                <span class="rapport-field-value">${dateControle}</span>
+                            </div>
+                            <div class="rapport-card-field">
+                                <span class="rapport-field-label">Défauts</span>
+                                <span class="rapport-field-value">${nbDefauts}</span>
                             </div>
                         </div>
                     </div>
