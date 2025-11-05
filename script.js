@@ -1038,8 +1038,7 @@ class RapportDeControleApp {
             if (rapport.reponse_client && rapport.reponse_client.trim() !== '') {
                 statusLabel = 'Traité';
                 statusClass = 'traite';
-            } else if (rapport.email_genere) {
-                // Si l'email a été généré mais pas de réponse
+            } else if (rapport.status === 'en_attente_reponse') {
                 statusLabel = 'En attente de réponse';
                 statusClass = 'attente_reponse';
             } else if (rapport.status === 'en_attente' || rapport.status === 'a_traiter' || !rapport.status) {
@@ -1068,7 +1067,7 @@ class RapportDeControleApp {
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><div class="rapport-numero">${rapport.numero}</div></td>
+                <td><div class="rapport-numero">${rapport.ordre_fabrication}</div></td>
                 <td>${rapport.ordre_fabrication}</td>
                 <td>${rapport.reference || 'N/A'}</td>
                 <td>${rapport.client || 'N/A'}</td>
@@ -1087,29 +1086,8 @@ class RapportDeControleApp {
         container.appendChild(table);
     }
 
-    async generateReportNumber() {
-        // Récupérer le dernier rapport
-        const { data, error } = await supabaseClient
-            .from('rapports')
-            .select('numero')
-            .order('created_at', { ascending: false })
-            .limit(1);
 
-        if (error) {
-            console.error('Erreur lors de la génération du numéro:', error);
-            return 'RC0001';
-        }
-
-        if (!data || data.length === 0) {
-            return 'RC0001';
-        }
-
-        const lastNumber = parseInt(data[0].numero.replace('RC', ''));
-        const newNumber = String(lastNumber + 1).padStart(4, '0');
-        return `RC${newNumber}`;
-    }
-
-    async saveRapport(reportNumber, pdfData) {
+    async saveRapport(pdfData) {
         const ordeFabrication = document.getElementById('ordeFabrication').value;
         const ofClient = document.getElementById('ofClient').value;
         const reference = document.getElementById('reference').value;
@@ -1119,7 +1097,6 @@ class RapportDeControleApp {
         const { data: rapport, error: rapportError } = await supabaseClient
             .from('rapports')
             .insert([{
-                numero: reportNumber,
                 ordre_fabrication: ordeFabrication,
                 of_client: ofClient,
                 reference: reference,
@@ -1259,14 +1236,12 @@ class RapportDeControleApp {
 
             } else {
                 // Mode création
-                const reportNumber = await this.generateReportNumber();
                 const currentDate = new Date();
 
                 // Enregistrer le rapport avec statut "en_attente"
                 const { data, error } = await supabaseClient
                     .from('rapports')
                     .insert([{
-                        numero: reportNumber,
                         ordre_fabrication: ordeFabrication,
                         of_client: ofClient,
                         numero_commande: numeroCommande,
@@ -1490,7 +1465,7 @@ class RapportDeControleApp {
             client = rapport.client;
             controleurName = rapport.controleur_name;
             dateControle = new Date(rapport.date_controle);
-            reportNumber = rapport.numero;
+            reportNumber = rapport.ordre_fabrication; // Utiliser OF interne
             defauts = defautsData;
 
         } else {
@@ -1511,7 +1486,7 @@ class RapportDeControleApp {
             client = document.getElementById('client').value;
             controleurName = this.userProfile.full_name;
             dateControle = new Date();
-            reportNumber = await this.generateReportNumber();
+            reportNumber = ordeFabrication; // Utiliser OF interne
             defauts = this.defauts;
         }
 
@@ -1818,7 +1793,7 @@ class RapportDeControleApp {
 
             // Ne sauvegarder que si c'est un nouveau rapport (pas rapportId)
             if (!rapportId) {
-                await this.saveRapport(reportNumber, null);
+                await this.saveRapport(null);
             }
 
             // Si returnBlob est true, retourner le blob au lieu de télécharger
@@ -1953,8 +1928,7 @@ class RapportDeControleApp {
             if (rapport.reponse_client && rapport.reponse_client.trim() !== '') {
                 statusLabel = 'Traité';
                 statusClass = 'traite';
-            } else if (rapport.email_genere) {
-                // Si l'email a été généré mais pas de réponse
+            } else if (rapport.status === 'en_attente_reponse') {
                 statusLabel = 'En attente de réponse';
                 statusClass = 'attente_reponse';
             } else if (rapport.status === 'en_attente' || rapport.status === 'a_traiter' || !rapport.status) {
@@ -2025,7 +1999,7 @@ class RapportDeControleApp {
                     </div>
                     <div class="rapport-card-main">
                         <div class="rapport-card-header">
-                            <div class="rapport-card-numero">${rapport.numero}</div>
+                            <div class="rapport-card-numero">${rapport.ordre_fabrication}</div>
                             <span class="rapport-status status-${statusClass}">${statusLabel}</span>
                         </div>
                         <div class="rapport-card-body">
@@ -2112,7 +2086,7 @@ class RapportDeControleApp {
         modal.className = 'modal-overlay';
         modal.innerHTML = `
             <div class="modal-box">
-                <h3 style="margin-top:0;color:var(--text-dark);">Réponse client - NC ${rapport.numero}</h3>
+                <h3 style="margin-top:0;color:var(--text-dark);">Réponse client - OF ${rapport.ordre_fabrication}</h3>
                 <div style="margin-bottom:1.5rem;">
                     <label style="display:block;margin-bottom:0.5rem;font-weight:bold;color:var(--text-dark);">Réponse client</label>
                     <textarea id="modalReponse" rows="8" class="modal-input" placeholder="Saisir la réponse du client...">${rapport.reponse_client || ''}</textarea>
@@ -2211,7 +2185,7 @@ class RapportDeControleApp {
         }
 
         // Créer le carrousel
-        this.showPhotoCarousel(allPhotos, rapport.numero);
+        this.showPhotoCarousel(allPhotos, rapport.ordre_fabrication);
     }
 
     showPhotoCarousel(photos, rapportNumero) {
@@ -2409,10 +2383,11 @@ class RapportDeControleApp {
         }
 
         // Remplir le contenu du modal
-        document.getElementById('detailsRapportNumero').textContent = rapport.numero;
+        document.getElementById('detailsRapportNumero').textContent = rapport.ordre_fabrication;
 
         const statusLabels = {
             'en_attente': 'En attente',
+            'en_attente_reponse': 'En attente de réponse',
             'traite': 'Traité',
             'resolu': 'Résolu'
         };
@@ -2459,10 +2434,6 @@ class RapportDeControleApp {
             <div class="details-section">
                 <h4>Informations Générales</h4>
                 <div class="details-grid">
-                    <div class="details-item">
-                        <label>N° Rapport</label>
-                        <span>${rapport.numero}</span>
-                    </div>
                     <div class="details-item">
                         <label>Statut</label>
                         <span>${statusLabels[rapport.status] || rapport.status}</span>
@@ -2610,24 +2581,8 @@ ${this.userProfile.full_name}`;
         // Stocker le rapport pour les fonctions suivantes
         this.currentMailRapport = rapport;
 
-        // Marquer l'email comme généré dans la base de données
-        if (!rapport.email_genere) {
-            const { error: updateError } = await supabaseClient
-                .from('rapports')
-                .update({ email_genere: true })
-                .eq('id', rapportId);
-
-            if (updateError) {
-                console.error('Erreur mise à jour email_genere:', updateError);
-            } else {
-                // Recharger les listes de rapports pour mettre à jour le statut
-                await this.loadAdminRapports();
-                await this.updateNotifBadge();
-            }
-        }
-
         // Remplir les champs
-        document.getElementById('mailRapportNumero').textContent = rapport.numero;
+        document.getElementById('mailRapportNumero').textContent = rapport.ordre_fabrication;
         document.getElementById('mailObjet').value = objet;
         document.getElementById('mailCorps').value = corps;
 
@@ -2678,7 +2633,7 @@ ${this.userProfile.full_name}`;
             // 2. Générer et ajouter le PDF
             const pdfBlob = await this.generatePDFBlob(rapport.id);
             if (pdfBlob) {
-                zip.file(`Rapport_${rapport.numero}.pdf`, pdfBlob);
+                zip.file(`Rapport_${rapport.ordre_fabrication}.pdf`, pdfBlob);
             }
 
             // 3. Ajouter toutes les photos des défauts
@@ -2722,7 +2677,7 @@ ${this.userProfile.full_name}`;
             const url = URL.createObjectURL(zipBlob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `Package_${rapport.numero}.zip`;
+            a.download = `Package_${rapport.ordre_fabrication}.zip`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -2746,7 +2701,7 @@ ${this.userProfile.full_name}`;
         }
     }
 
-    openGmail() {
+    async openGmail() {
         console.log('[GMAIL] Fonction openGmail appelée');
         const objetElement = document.getElementById('mailObjet');
         const corpsElement = document.getElementById('mailCorps');
@@ -2769,6 +2724,25 @@ ${this.userProfile.full_name}`;
             return;
         }
 
+        // Marquer l'email comme généré et changer le statut à "en attente de réponse"
+        if (this.currentMailRapport && !this.currentMailRapport.email_genere) {
+            const { error: updateError } = await supabaseClient
+                .from('rapports')
+                .update({
+                    email_genere: true,
+                    status: 'en_attente_reponse'
+                })
+                .eq('id', this.currentMailRapport.id);
+
+            if (updateError) {
+                console.error('Erreur mise à jour email_genere:', updateError);
+            } else {
+                // Recharger les listes de rapports pour mettre à jour le statut
+                await this.loadAdminRapports();
+                await this.updateNotifBadge();
+            }
+        }
+
         // Encoder les paramètres pour l'URL
         const sujet = encodeURIComponent(objet);
         const body = encodeURIComponent(corps);
@@ -2783,7 +2757,7 @@ ${this.userProfile.full_name}`;
 
         if (newWindow) {
             console.log('[GMAIL] Fenêtre ouverte avec succès');
-            this.showNotification('Gmail ouvert dans un nouvel onglet', 'success');
+            this.showNotification('Gmail ouvert - Statut mis à jour', 'success');
         } else {
             console.error('[GMAIL] Bloqué par le navigateur');
             this.showNotification('Popup bloquée. Autorisez les popups pour ce site.', 'error');
