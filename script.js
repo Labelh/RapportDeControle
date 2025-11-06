@@ -4274,11 +4274,19 @@ ${this.userProfile.full_name}${destinatairesText}`;
     }
 
     parseOCRText(text) {
-        // Nettoyer le texte
-        const lines = text.split('\n').map(line => line.trim()).filter(line => line);
-        const fullText = text;
+        // Nettoyer le texte de manière plus agressive
+        // Remplacer les espaces multiples par un seul espace
+        const cleanedText = text.replace(/\s+/g, ' ');
+
+        // Créer aussi une version avec les lignes séparées
+        const lines = text.split('\n')
+            .map(line => line.trim().replace(/\s+/g, ' '))
+            .filter(line => line);
+
+        const fullText = cleanedText;
 
         console.log('=== ANALYSE OCR ===');
+        console.log('Texte nettoyé:', cleanedText.substring(0, 200));
         console.log('Lignes détectées:', lines);
 
         // Mapping exact des labels OF vers les champs du formulaire
@@ -4293,12 +4301,68 @@ ${this.userProfile.full_name}${destinatairesText}`;
             'OF n°': 'ordeFabrication'    // OF n° = OF interne
         };
 
-        // Parcourir chaque ligne pour trouver les labels et extraire les valeurs
+        // Recherche dans le texte complet nettoyé (plus fiable)
+        Object.entries(labelMapping).forEach(([label, fieldName]) => {
+            // Échapper les caractères spéciaux dans le label
+            const escapedLabel = label.replace(/[°]/g, '°?').replace(/\s+/g, '\\s*');
+
+            // Patterns multiples pour plus de flexibilité
+            const patterns = [
+                new RegExp(`${escapedLabel}\\s*:?\\s*([^\\n\\r]{1,100}?)(?=\\s{3,}|\\n|$)`, 'i'),
+                new RegExp(`${escapedLabel}\\s*:?\\s*(.+?)(?=\\s+[A-Z][a-zé]+\\s*:|\\n|$)`, 'i'),
+                new RegExp(`${escapedLabel}\\s*:?\\s*([\\w\\s\\-\\.]+?)(?=\\s{2,}|$)`, 'i')
+            ];
+
+            for (const pattern of patterns) {
+                const match = fullText.match(pattern);
+
+                if (match && match[1]) {
+                    let value = match[1].trim();
+
+                    // Nettoyage spécifique selon le champ
+                    if (fieldName === 'client') {
+                        // Extraire uniquement le nom du client (avant autre label ou trop d'espaces)
+                        value = value.split(/\s+(?=[A-Z][a-zé]+\s*:)/)[0].trim();
+                        value = value.replace(/\s+/g, ' ');
+                    } else if (fieldName === 'quantiteLot') {
+                        // Extraire uniquement les chiffres
+                        const qtyMatch = value.match(/(\d+)/);
+                        value = qtyMatch ? qtyMatch[1] : value;
+                    } else if (fieldName === 'ordeFabrication') {
+                        // Extraire uniquement les chiffres après OF n°
+                        const ofMatch = value.match(/(\d+)/);
+                        value = ofMatch ? ofMatch[1] : value;
+                    } else if (fieldName === 'designation') {
+                        // Nettoyer la désignation
+                        value = value.replace(/\s+/g, ' ').trim();
+                    } else if (fieldName === 'reference') {
+                        // Extraire référence au format XXXX-XXXXX
+                        const refMatch = value.match(/(\d{4}[-\.]\d{5})/);
+                        value = refMatch ? refMatch[1] : value.split(/\s/)[0];
+                    } else if (fieldName === 'ofClient' || fieldName === 'numeroCommande') {
+                        // Prendre le premier groupe alphanumérique
+                        value = value.split(/\s/)[0].trim();
+                    }
+
+                    const input = document.getElementById(`ocr_${fieldName}`);
+                    if (input && value && value.length > 0 && value.length < 100) {
+                        input.value = value;
+                        console.log(`✓ ${label} détecté: "${value}"`);
+                        break; // Sortir dès qu'on a trouvé une valeur
+                    }
+                }
+            }
+        });
+
+        // Recherche dans les lignes individuelles (fallback)
         lines.forEach((line, index) => {
             // Vérifier chaque label
             Object.entries(labelMapping).forEach(([label, fieldName]) => {
+                const input = document.getElementById(`ocr_${fieldName}`);
+                if (input && input.value) return; // Déjà trouvé
+
                 // Regex pour matcher "Label : Valeur" ou "Label: Valeur" ou "Label Valeur"
-                const labelPattern = new RegExp(`${label}\\s*:?\\s*(.+)`, 'i');
+                const labelPattern = new RegExp(`${label.replace(/[°]/g, '°?')}\\s*:?\\s*(.+)`, 'i');
                 const match = line.match(labelPattern);
 
                 if (match && match[1]) {
@@ -4307,7 +4371,7 @@ ${this.userProfile.full_name}${destinatairesText}`;
                     // Nettoyage spécifique selon le champ
                     if (fieldName === 'client') {
                         // Garder tout le nom du client
-                        value = value.split(/\s{2,}|Désignation/)[0].trim();
+                        value = value.split(/\s+(?=[A-Z][a-zé]+\s*:)/)[0].trim();
                     } else if (fieldName === 'quantiteLot') {
                         // Extraire uniquement les chiffres
                         const qtyMatch = value.match(/(\d+)/);
@@ -4318,10 +4382,9 @@ ${this.userProfile.full_name}${destinatairesText}`;
                         value = ofMatch ? ofMatch[1] : value;
                     }
 
-                    const input = document.getElementById(`ocr_${fieldName}`);
                     if (input && value) {
                         input.value = value;
-                        console.log(`✓ ${label} détecté: "${value}"`);
+                        console.log(`✓ ${label} détecté (ligne ${index}): "${value}"`);
                     }
                 }
             });
