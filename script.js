@@ -322,29 +322,6 @@ class RapportDeControleApp {
         document.getElementById('validerRapport').addEventListener('click', () => this.validerRapport());
         document.getElementById('closePdfModal').addEventListener('click', () => this.closePdfModal());
 
-        // Paramètres (admin)
-        document.getElementById('ajouterClient').addEventListener('click', () => this.ajouterClient());
-        document.getElementById('ajouterTypeDefaut').addEventListener('click', () => this.ajouterTypeDefaut());
-
-        const ajouterContactBtn = document.getElementById('ajouterContact');
-        if (ajouterContactBtn) {
-            ajouterContactBtn.addEventListener('click', () => this.ajouterContact());
-        }
-
-        document.getElementById('nouveauClient').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.ajouterClient();
-        });
-        document.getElementById('nouveauDefaut').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.ajouterTypeDefaut();
-        });
-
-        const contactEmailInput = document.getElementById('contactEmail');
-        if (contactEmailInput) {
-            contactEmailInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') this.ajouterContact();
-            });
-        }
-
         // Import Excel
         const importExcelBtn = document.getElementById('importExcelBtn');
         if (importExcelBtn) {
