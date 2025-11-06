@@ -4274,175 +4274,99 @@ ${this.userProfile.full_name}${destinatairesText}`;
     }
 
     parseOCRText(text) {
-        // Nettoyer le texte de manière plus agressive
-        // Remplacer les espaces multiples par un seul espace
+        // Nettoyer le texte : remplacer espaces multiples par un seul
         const cleanedText = text.replace(/\s+/g, ' ');
 
-        // Créer aussi une version avec les lignes séparées
-        const lines = text.split('\n')
-            .map(line => line.trim().replace(/\s+/g, ' '))
-            .filter(line => line);
-
-        const fullText = cleanedText;
+        // Garder aussi les lignes originales
+        const lines = text.split('\n').map(line => line.trim()).filter(line => line);
 
         console.log('=== ANALYSE OCR ===');
-        console.log('Texte nettoyé:', cleanedText.substring(0, 200));
-        console.log('Lignes détectées:', lines);
+        console.log('Texte brut (150 premiers car):', text.substring(0, 150));
+        console.log('Nombre de lignes:', lines.length);
 
-        // Mapping exact des labels OF vers les champs du formulaire
-        // Sur les OF : les valeurs sont toujours à la même position après les labels
-        const labelMapping = {
-            'Client': 'client',           // Client = Client
-            'N° de commande': 'numeroCommande',  // N° de commande = N°Commande
-            'N° OF client': 'ofClient',   // N° OF client = OF Client
-            'Référence pièce': 'reference', // Référence pièce = Référence
-            'Quantité': 'quantiteLot',    // Quantité = Quantité Lot
-            'Désignation article': 'designation', // Désignation article = Désignation
-            'OF n°': 'ordeFabrication'    // OF n° = OF interne
-        };
+        // ÉTAPE 1 : Détecter l'OF interne EN PREMIER (priorité absolue)
+        // OF interne = "OF" suivi d'exactement 5 chiffres
+        const ofPattern = /OF\s*n?°?\s*(\d{5})\b/i;
+        const ofMatch = cleanedText.match(ofPattern);
 
-        // Recherche dans le texte complet nettoyé (plus fiable)
-        Object.entries(labelMapping).forEach(([label, fieldName]) => {
-            // Échapper les caractères spéciaux dans le label
-            const escapedLabel = label.replace(/[°]/g, '°?').replace(/\s+/g, '\\s*');
-
-            // Patterns multiples pour plus de flexibilité
-            const patterns = [
-                new RegExp(`${escapedLabel}\\s*:?\\s*([^\\n\\r]{1,100}?)(?=\\s{3,}|\\n|$)`, 'i'),
-                new RegExp(`${escapedLabel}\\s*:?\\s*(.+?)(?=\\s+[A-Z][a-zé]+\\s*:|\\n|$)`, 'i'),
-                new RegExp(`${escapedLabel}\\s*:?\\s*([\\w\\s\\-\\.]+?)(?=\\s{2,}|$)`, 'i')
-            ];
-
-            for (const pattern of patterns) {
-                const match = fullText.match(pattern);
-
-                if (match && match[1]) {
-                    let value = match[1].trim();
-
-                    // Nettoyage spécifique selon le champ
-                    if (fieldName === 'client') {
-                        // Extraire uniquement le nom du client (avant autre label ou trop d'espaces)
-                        value = value.split(/\s+(?=[A-Z][a-zé]+\s*:)/)[0].trim();
-                        value = value.replace(/\s+/g, ' ');
-                    } else if (fieldName === 'quantiteLot') {
-                        // Extraire uniquement les chiffres
-                        const qtyMatch = value.match(/(\d+)/);
-                        value = qtyMatch ? qtyMatch[1] : value;
-                    } else if (fieldName === 'ordeFabrication') {
-                        // Extraire uniquement les chiffres après OF n°
-                        const ofMatch = value.match(/(\d+)/);
-                        value = ofMatch ? ofMatch[1] : value;
-                    } else if (fieldName === 'designation') {
-                        // Nettoyer la désignation
-                        value = value.replace(/\s+/g, ' ').trim();
-                    } else if (fieldName === 'reference') {
-                        // Extraire référence au format XXXX-XXXXX
-                        const refMatch = value.match(/(\d{4}[-\.]\d{5})/);
-                        value = refMatch ? refMatch[1] : value.split(/\s/)[0];
-                    } else if (fieldName === 'ofClient' || fieldName === 'numeroCommande') {
-                        // Prendre le premier groupe alphanumérique
-                        value = value.split(/\s/)[0].trim();
-                    }
-
-                    const input = document.getElementById(`ocr_${fieldName}`);
-                    if (input && value && value.length > 0 && value.length < 100) {
-                        input.value = value;
-                        console.log(`✓ ${label} détecté: "${value}"`);
-                        break; // Sortir dès qu'on a trouvé une valeur
-                    }
-                }
+        if (ofMatch && ofMatch[1]) {
+            const input = document.getElementById('ocr_ordeFabrication');
+            if (input) {
+                input.value = ofMatch[1];
+                console.log(`✓ OF interne détecté: "${ofMatch[1]}"`);
             }
-        });
+        }
 
-        // Recherche dans les lignes individuelles (fallback)
-        lines.forEach((line, index) => {
-            // Vérifier chaque label
-            Object.entries(labelMapping).forEach(([label, fieldName]) => {
-                const input = document.getElementById(`ocr_${fieldName}`);
-                if (input && input.value) return; // Déjà trouvé
+        // ÉTAPE 2 : Détecter les autres champs basés sur les labels
+        // Format flexible sans standardisation (chaque client peut avoir des formats différents)
 
-                // Regex pour matcher "Label : Valeur" ou "Label: Valeur" ou "Label Valeur"
-                const labelPattern = new RegExp(`${label.replace(/[°]/g, '°?')}\\s*:?\\s*(.+)`, 'i');
-                const match = line.match(labelPattern);
-
-                if (match && match[1]) {
-                    let value = match[1].trim();
-
-                    // Nettoyage spécifique selon le champ
-                    if (fieldName === 'client') {
-                        // Garder tout le nom du client
-                        value = value.split(/\s+(?=[A-Z][a-zé]+\s*:)/)[0].trim();
-                    } else if (fieldName === 'quantiteLot') {
-                        // Extraire uniquement les chiffres
-                        const qtyMatch = value.match(/(\d+)/);
-                        value = qtyMatch ? qtyMatch[1] : value;
-                    } else if (fieldName === 'ordeFabrication') {
-                        // Extraire uniquement les chiffres après OF n°
-                        const ofMatch = value.match(/(\d+)/);
-                        value = ofMatch ? ofMatch[1] : value;
-                    }
-
-                    if (input && value) {
-                        input.value = value;
-                        console.log(`✓ ${label} détecté (ligne ${index}): "${value}"`);
-                    }
-                }
-            });
-
-            // Recherche alternative si le label n'est pas sur la même ligne
-            // Chercher les patterns de valeurs seules
-
-            // OF n° au début du document (en haut à droite, police plus grosse)
-            // Chercher "OF" suivi d'un numéro, ou juste un numéro seul dans les premières lignes
-            if (index < 10) {
-                // Pattern 1: "OF n°11162" ou "OF 11162"
-                if (line.match(/^OF\s*n?°?\s*(\d+)/i)) {
-                    const match = line.match(/(\d+)/);
-                    const input = document.getElementById('ocr_ordeFabrication');
-                    if (match && input && !input.value) {
-                        input.value = match[1];
-                        console.log(`✓ OF n° détecté (ligne ${index}): "${match[1]}"`);
-                    }
-                }
-                // Pattern 2: Ligne contenant uniquement un numéro de 4-6 chiffres (OF interne)
-                else if (line.match(/^\d{4,6}$/)) {
-                    const input = document.getElementById('ocr_ordeFabrication');
-                    if (input && !input.value) {
-                        input.value = line;
-                        console.log(`✓ OF n° détecté (numéro seul, ligne ${index}): "${line}"`);
-                    }
-                }
+        // Client - chercher "Client" suivi de la valeur (en majuscules généralement)
+        const clientPattern = /Client\s*:?\s*([A-Z][A-Z\s\-&]+?)(?=\s{2,}|N°|Référence|Désignation|$)/i;
+        const clientMatch = cleanedText.match(clientPattern);
+        if (clientMatch && clientMatch[1]) {
+            const input = document.getElementById('ocr_client');
+            if (input) {
+                let clientName = clientMatch[1].trim().replace(/\s+/g, ' ');
+                input.value = clientName;
+                console.log(`✓ Client détecté: "${clientName}"`);
             }
+        }
 
-            // Référence au format XXXX-XXXXX
-            if (line.match(/\d{4}[-\.]\d{5}/)) {
-                const match = line.match(/(\d{4}[-\.]\d{5})/);
-                const input = document.getElementById('ocr_reference');
-                if (match && input && !input.value) {
-                    input.value = match[1];
-                    console.log(`✓ Référence détectée: "${match[1]}"`);
-                }
+        // N° de commande - prendre tout après le label (format flexible)
+        const commandePattern = /N°\s*de\s*commande\s*:?\s*([^\s\n]+)/i;
+        const commandeMatch = cleanedText.match(commandePattern);
+        if (commandeMatch && commandeMatch[1]) {
+            const input = document.getElementById('ocr_numeroCommande');
+            if (input) {
+                input.value = commandeMatch[1].trim();
+                console.log(`✓ N° de commande détecté: "${commandeMatch[1].trim()}"`);
             }
+        }
 
-            // N° OF client (format alphanumérique 8-9 caractères)
-            if (line.match(/[A-Z0-9]{8,9}/) && !line.match(/Client|Commande|Référence|Désignation/i)) {
-                const match = line.match(/([A-Z]\d{8,9}|[A-Z0-9]{8,9})/);
-                const input = document.getElementById('ocr_ofClient');
-                if (match && input && !input.value) {
-                    input.value = match[1];
-                    console.log(`✓ N° OF client détecté: "${match[1]}"`);
-                }
+        // N° OF client - prendre tout après le label (format flexible)
+        const ofClientPattern = /N°\s*OF\s*client\s*:?\s*([^\s\n]+)/i;
+        const ofClientMatch = cleanedText.match(ofClientPattern);
+        if (ofClientMatch && ofClientMatch[1]) {
+            const input = document.getElementById('ocr_ofClient');
+            if (input) {
+                input.value = ofClientMatch[1].trim();
+                console.log(`✓ N° OF client détecté: "${ofClientMatch[1].trim()}"`);
             }
+        }
 
-            // N° de commande (format commençant par lettre + chiffres)
-            if (line.match(/^[A-Z]\d{7,9}$/)) {
-                const input = document.getElementById('ocr_numeroCommande');
-                if (input && !input.value) {
-                    input.value = line;
-                    console.log(`✓ N° Commande détecté: "${line}"`);
-                }
+        // Référence pièce - prendre tout après le label (PAS de contrainte de format)
+        const referencePattern = /Référence\s*pièce\s*:?\s*([^\s\n]+)/i;
+        const referenceMatch = cleanedText.match(referencePattern);
+        if (referenceMatch && referenceMatch[1]) {
+            const input = document.getElementById('ocr_reference');
+            if (input) {
+                input.value = referenceMatch[1].trim();
+                console.log(`✓ Référence détectée: "${referenceMatch[1].trim()}"`);
             }
-        });
+        }
+
+        // Quantité - extraire le premier nombre après le label
+        const quantitePattern = /Quantité\s*:?\s*(\d+)/i;
+        const quantiteMatch = cleanedText.match(quantitePattern);
+        if (quantiteMatch && quantiteMatch[1]) {
+            const input = document.getElementById('ocr_quantiteLot');
+            if (input) {
+                input.value = quantiteMatch[1];
+                console.log(`✓ Quantité détectée: "${quantiteMatch[1]}"`);
+            }
+        }
+
+        // Désignation article - prendre tout après le label jusqu'au prochain label ou 2+ espaces
+        const designationPattern = /Désignation\s*article\s*:?\s*(.+?)(?=\s{2,}|N°|Référence|Quantité|Client|$)/i;
+        const designationMatch = cleanedText.match(designationPattern);
+        if (designationMatch && designationMatch[1]) {
+            const input = document.getElementById('ocr_designation');
+            if (input) {
+                let designation = designationMatch[1].trim().replace(/\s+/g, ' ');
+                input.value = designation;
+                console.log(`✓ Désignation détectée: "${designation}"`);
+            }
+        }
 
         console.log('=== FIN ANALYSE ===');
     }
