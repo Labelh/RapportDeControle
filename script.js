@@ -2966,15 +2966,25 @@ class RapportDeControleApp {
 
         // Charger les contacts email pour ce client
         let contactsEmails = [];
+        console.log('[MAIL MODAL] Client ID du rapport:', rapport.client_id);
+        console.log('[MAIL MODAL] Nom du client:', rapport.client);
+
         if (rapport.client_id) {
-            const { data: contacts } = await supabaseClient
+            const { data: contacts, error: contactsError } = await supabaseClient
                 .from('contacts_clients')
                 .select('email, nom')
                 .eq('client_id', rapport.client_id);
 
+            console.log('[MAIL MODAL] Contacts chargés:', contacts);
+            if (contactsError) {
+                console.error('[MAIL MODAL] Erreur chargement contacts:', contactsError);
+            }
+
             if (contacts && contacts.length > 0) {
                 contactsEmails = contacts;
             }
+        } else {
+            console.warn('[MAIL MODAL] Pas de client_id pour ce rapport');
         }
 
         // Générer l'objet du mail
@@ -3035,13 +3045,20 @@ ${this.userProfile.full_name}${destinatairesText}`;
 
         // Remplir le champ destinataires avec les emails des contacts
         const destinatairesField = document.getElementById('mailDestinataires');
+        console.log('[MAIL MODAL] Champ destinataires trouvé:', !!destinatairesField);
+        console.log('[MAIL MODAL] Nombre de contacts emails:', contactsEmails.length);
+
         if (destinatairesField) {
             if (contactsEmails.length > 0) {
                 const emailsList = contactsEmails.map(contact => contact.email).join(', ');
+                console.log('[MAIL MODAL] Liste emails à insérer:', emailsList);
                 destinatairesField.value = emailsList;
             } else {
+                console.log('[MAIL MODAL] Aucun contact, champ vide');
                 destinatairesField.value = '';
             }
+        } else {
+            console.error('[MAIL MODAL] Champ destinataires non trouvé dans le DOM');
         }
 
         // Afficher le modal

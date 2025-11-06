@@ -1622,14 +1622,14 @@ input.field-error, select.field-error, textarea.field-error {
 .item-card.add-card {
     border-style: dashed;
     justify-content: center;
-    color: #10b981;
+    color: var(--text-light);
     font-weight: 600;
-    border-color: #10b981;
+    border-color: var(--border-color);
 }
 
 .item-card.add-card:hover {
-    border-color: #059669;
-    color: #059669;
+    border-color: #10b981;
+    color: #10b981;
     background: rgba(16, 185, 129, 0.05);
 }
 
