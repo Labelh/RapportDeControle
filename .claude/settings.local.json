@@ -14,7 +14,8 @@
       "Bash(node:*)",
       "Bash(python3:*)",
       "Read(//c/Users/Ajust82/Pictures/Screenshots/**)",
-      "Bash(gh run:*)"
+      "Bash(gh run:*)",
+      "WebFetch(domain:cdn.dribbble.com)"
     ],
     "deny": [],
     "ask": []

@@ -357,33 +357,22 @@
             <!-- Page Paramètres -->
             <div id="page-parametres" class="page">
                 <div class="settings-header">
-                    <div class="settings-header-content">
-                        <h2>Paramètres</h2>
-                        <p class="settings-subtitle">Configurez votre application et gérez vos données</p>
-                    </div>
+                    <h2>Paramètres</h2>
+                    <p class="settings-subtitle">Configurez votre application et gérez vos données</p>
                 </div>
 
                 <div class="settings-container">
-                    <!-- Section Préférences -->
-                    <div class="settings-section">
-                        <div class="settings-section-header">
-                            <div class="settings-section-icon">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                    <path d="M12 1v6m0 6v6m-9-9h6m6 0h6"></path>
-                                    <path d="M18.36 5.64l-4.24 4.24m0 4.24l4.24 4.24M5.64 5.64l4.24 4.24m0 4.24l-4.24 4.24"></path>
-                                </svg>
-                            </div>
-                            <div>
-                                <h3>Préférences</h3>
-                                <p class="settings-section-description">Personnalisez l'apparence de l'application</p>
-                            </div>
+                    <!-- Module Préférences -->
+                    <div class="settings-module">
+                        <div class="settings-module-left">
+                            <h3 class="settings-module-title">Préférences</h3>
+                            <p class="settings-module-subtitle">Personnalisez l'apparence de l'application</p>
                         </div>
-                        <div class="settings-card">
-                            <div class="settings-form-row">
-                                <div class="settings-form-label">
-                                    <label for="themePreference">Thème de l'application</label>
-                                    <span class="settings-form-hint">Choisissez entre le mode sombre et clair</span>
+                        <div class="settings-module-right">
+                            <div class="settings-module-row">
+                                <div class="settings-module-label">
+                                    <label for="themePreference">Thème</label>
+                                    <span class="settings-module-hint">Mode sombre ou clair</span>
                                 </div>
                                 <select id="themePreference" class="settings-select">
                                     <option value="dark">🌙 Sombre</option>
@@ -393,91 +382,55 @@
                         </div>
                     </div>
 
-                    <!-- Section Clients -->
-                    <div class="settings-section">
-                        <div class="settings-section-header">
-                            <div class="settings-section-icon clients-icon">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="9" cy="7" r="4"></circle>
-                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
-                                </svg>
+                    <!-- Module Clients -->
+                    <div class="settings-module">
+                        <div class="settings-module-left">
+                            <div class="settings-module-title-wrapper">
+                                <h3 class="settings-module-title">Clients</h3>
+                                <span class="settings-badge-count" id="clientsCount">0</span>
                             </div>
-                            <div>
-                                <div class="settings-section-title-row">
-                                    <h3>Clients</h3>
-                                    <span class="settings-badge" id="clientsCount">0 clients</span>
-                                </div>
-                                <p class="settings-section-description">Gérez la liste de vos clients</p>
-                            </div>
+                            <p class="settings-module-subtitle">Gérez la liste de vos clients</p>
                         </div>
-                        <div class="settings-card">
+                        <div class="settings-module-right">
                             <div class="settings-items-grid" id="listeClients"></div>
                         </div>
                     </div>
 
-                    <!-- Section Contacts -->
-                    <div class="settings-section">
-                        <div class="settings-section-header">
-                            <div class="settings-section-icon contacts-icon">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                                    <polyline points="22,6 12,13 2,6"></polyline>
-                                </svg>
+                    <!-- Module Contacts Email -->
+                    <div class="settings-module">
+                        <div class="settings-module-left">
+                            <div class="settings-module-title-wrapper">
+                                <h3 class="settings-module-title">Contacts Email</h3>
+                                <span class="settings-badge-count" id="contactsCount">0</span>
                             </div>
-                            <div>
-                                <div class="settings-section-title-row">
-                                    <h3>Contacts Email</h3>
-                                    <span class="settings-badge" id="contactsCount">0 contacts</span>
-                                </div>
-                                <p class="settings-section-description">Gérez les destinataires email par client pour l'envoi automatique</p>
-                            </div>
+                            <p class="settings-module-subtitle">Gérez les destinataires email par client</p>
                         </div>
-                        <div class="settings-card">
+                        <div class="settings-module-right">
                             <div class="settings-items-grid" id="listeContacts"></div>
                         </div>
                     </div>
 
-                    <!-- Section Types de Défauts -->
-                    <div class="settings-section">
-                        <div class="settings-section-header">
-                            <div class="settings-section-icon defauts-icon">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                                    <line x1="12" y1="9" x2="12" y2="13"></line>
-                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                                </svg>
+                    <!-- Module Types de Défauts -->
+                    <div class="settings-module">
+                        <div class="settings-module-left">
+                            <div class="settings-module-title-wrapper">
+                                <h3 class="settings-module-title">Types de Défauts</h3>
+                                <span class="settings-badge-count" id="defautsCount">0</span>
                             </div>
-                            <div>
-                                <div class="settings-section-title-row">
-                                    <h3>Types de Défauts</h3>
-                                    <span class="settings-badge" id="defautsCount">0 types</span>
-                                </div>
-                                <p class="settings-section-description">Définissez les types de non-conformités</p>
-                            </div>
+                            <p class="settings-module-subtitle">Définissez les types de non-conformités</p>
                         </div>
-                        <div class="settings-card">
+                        <div class="settings-module-right">
                             <div class="settings-items-grid" id="listeTypesDefauts"></div>
                         </div>
                     </div>
 
-                    <!-- Section Import -->
-                    <div class="settings-section">
-                        <div class="settings-section-header">
-                            <div class="settings-section-icon import-icon">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                    <polyline points="14,2 14,8 20,8"></polyline>
-                                    <line x1="12" y1="18" x2="12" y2="12"></line>
-                                    <line x1="9" y1="15" x2="15" y2="15"></line>
-                                </svg>
-                            </div>
-                            <div>
-                                <h3>Import de Références</h3>
-                                <p class="settings-section-description">Importez vos références produits depuis Excel</p>
-                            </div>
+                    <!-- Module Import -->
+                    <div class="settings-module">
+                        <div class="settings-module-left">
+                            <h3 class="settings-module-title">Import de Références</h3>
+                            <p class="settings-module-subtitle">Importez vos références produits depuis Excel</p>
                         </div>
-                        <div class="settings-card">
+                        <div class="settings-module-right settings-card">
                             <div class="import-info-box">
                                 <div class="import-info-header">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

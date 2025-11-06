@@ -886,7 +886,7 @@ class RapportDeControleApp {
         }
 
         if (clientsCount) {
-            clientsCount.textContent = `${this.clients.length} client${this.clients.length > 1 ? 's' : ''}`;
+            clientsCount.textContent = `${this.clients.length}`;
         }
 
         // Mettre à jour le select des contacts
@@ -1036,7 +1036,7 @@ class RapportDeControleApp {
         }
 
         if (defautsCount) {
-            defautsCount.textContent = `${this.typesDefauts.length} type${this.typesDefauts.length > 1 ? 's' : ''}`;
+            defautsCount.textContent = `${this.typesDefauts.length}`;
         }
     }
 
@@ -1212,7 +1212,7 @@ class RapportDeControleApp {
         });
 
         if (contactsCount) {
-            contactsCount.textContent = `${this.contacts.length} contact${this.contacts.length > 1 ? 's' : ''}`;
+            contactsCount.textContent = `${this.contacts.length}`;
         }
     }
 
