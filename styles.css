@@ -1622,13 +1622,15 @@ input.field-error, select.field-error, textarea.field-error {
 .item-card.add-card {
     border-style: dashed;
     justify-content: center;
-    color: var(--text-light);
+    color: #10b981;
     font-weight: 600;
+    border-color: #10b981;
 }
 
 .item-card.add-card:hover {
-    border-color: var(--accent-orange);
-    color: var(--accent-orange);
+    border-color: #059669;
+    color: #059669;
+    background: rgba(16, 185, 129, 0.05);
 }
 
 @keyframes slideIn {

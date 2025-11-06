@@ -3163,6 +3163,7 @@ ${this.userProfile.full_name}${destinatairesText}`;
         console.log('[GMAIL] Fonction openGmail appelée');
         const objetElement = document.getElementById('mailObjet');
         const corpsElement = document.getElementById('mailCorps');
+        const destinatairesElement = document.getElementById('mailDestinataires');
 
         if (!objetElement || !corpsElement) {
             console.error('[GMAIL] Éléments non trouvés');
@@ -3172,9 +3173,11 @@ ${this.userProfile.full_name}${destinatairesText}`;
 
         const objet = objetElement.value;
         const corps = corpsElement.value;
+        const destinataires = destinatairesElement ? destinatairesElement.value.trim() : '';
 
         console.log('[GMAIL] Objet:', objet);
         console.log('[GMAIL] Corps:', corps?.substring(0, 50) + '...');
+        console.log('[GMAIL] Destinataires:', destinataires);
 
         if (!objet || !corps) {
             console.error('[GMAIL] Objet ou corps vide');
@@ -3204,9 +3207,13 @@ ${this.userProfile.full_name}${destinatairesText}`;
         // Encoder les paramètres pour l'URL
         const sujet = encodeURIComponent(objet);
         const body = encodeURIComponent(corps);
+        const to = destinataires ? encodeURIComponent(destinataires) : '';
 
-        // URL Gmail pour créer un nouveau mail avec champs pré-remplis
-        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&su=${sujet}&body=${body}`;
+        // URL Gmail pour créer un nouveau mail avec champs pré-remplis (incluant les destinataires)
+        let gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&su=${sujet}&body=${body}`;
+        if (to) {
+            gmailUrl += `&to=${to}`;
+        }
 
         console.log('[GMAIL] URL générée:', gmailUrl.substring(0, 100) + '...');
 
