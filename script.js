@@ -2969,22 +2969,39 @@ class RapportDeControleApp {
         console.log('[MAIL MODAL] Client ID du rapport:', rapport.client_id);
         console.log('[MAIL MODAL] Nom du client:', rapport.client);
 
-        if (rapport.client_id) {
-            const { data: contacts, error: contactsError } = await supabaseClient
-                .from('contacts_clients')
-                .select('email, nom')
-                .eq('client_id', rapport.client_id);
+        // Le rapport stocke le nom du client, pas l'ID
+        // On doit d'abord trouver le client par son nom, puis ses contacts
+        if (rapport.client) {
+            // Trouver le client par son nom
+            const { data: clientData, error: clientError } = await supabaseClient
+                .from('clients')
+                .select('id')
+                .eq('nom', rapport.client)
+                .single();
 
-            console.log('[MAIL MODAL] Contacts chargés:', contacts);
-            if (contactsError) {
-                console.error('[MAIL MODAL] Erreur chargement contacts:', contactsError);
+            console.log('[MAIL MODAL] Client trouvé:', clientData);
+            if (clientError) {
+                console.error('[MAIL MODAL] Erreur recherche client:', clientError);
             }
 
-            if (contacts && contacts.length > 0) {
-                contactsEmails = contacts;
+            if (clientData) {
+                // Charger les contacts de ce client
+                const { data: contacts, error: contactsError } = await supabaseClient
+                    .from('contacts_clients')
+                    .select('email, nom')
+                    .eq('client_id', clientData.id);
+
+                console.log('[MAIL MODAL] Contacts chargés:', contacts);
+                if (contactsError) {
+                    console.error('[MAIL MODAL] Erreur chargement contacts:', contactsError);
+                }
+
+                if (contacts && contacts.length > 0) {
+                    contactsEmails = contacts;
+                }
             }
         } else {
-            console.warn('[MAIL MODAL] Pas de client_id pour ce rapport');
+            console.warn('[MAIL MODAL] Pas de client pour ce rapport');
         }
 
         // Générer l'objet du mail
